@@ -75,20 +75,29 @@ impl Component for Model {
                 false
             }
             Msg::HandleRoute(route) => {
-                info!("Routing: {}", route);
-                // Instead of each component selecting which parts of the path are important to it,
-                // it is also possible to match on the `route.to_route_string().as_str()` once
-                // and create enum variants representing the different children and pass them as props.
-                self.page = match route.path_segments.as_slice() {
+                info!("Routing: {:#?}", route.path_segments);
+                let path_segments = route
+                    .path_segments
+                    .into_iter()
+                    .filter(|ref i| i.len() > 0)
+                    .collect::<Vec<_>>();
+                self.page = match &path_segments[..] {
                     [] => Page::Home,
                     [account] => Page::Profile(account.to_string()),
                     [poll_creator, poll_name] => {
                         Page::Poll(poll_creator.to_string(), poll_name.to_string())
                     }
+                    [poll_creator, poll_name, results] => {
+                        if results == "results" {
+                            Page::PollResults(poll_creator.to_string(), poll_name.to_string())
+                        } else {
+                            Page::NotFound("".into())
+                        }
+                    }
                     // [poll_creator, poll_name, "results"] => {
                     //     Page::PollResults(poll_creator.to_string(), poll_name.to_string())
                     // }
-                    other => Page::NotFound("".into()),
+                    _ => Page::NotFound("".into()),
                 };
 
                 true
@@ -105,6 +114,7 @@ impl Renderable<Model> for Model {
                     <button onclick=|_| Msg::NavigateTo(Page::Home),>{ "Go to Home" }</button>
                     <button onclick=|_| Msg::NavigateTo(Page::Profile("balls".into())),>{ "Go to Profile" }</button>
                     <button onclick=|_| Msg::NavigateTo(Page::Poll("balls".into(), "balls".into())),>{ "Go to Poll" }</button>
+                    <button onclick=|_| Msg::NavigateTo(Page::PollResults("balls".into(), "balls".into())),>{ "Go to Poll Results" }</button>
                 </nav>
                 <div>
                     {self.page.view()}
@@ -131,6 +141,11 @@ impl Renderable<Model> for Page {
             Page::Poll(ref poll_creator, ref poll_name) => html! {
                 <>
                     {format!("Poll page: '{}' '{}'", poll_creator, poll_name)}
+                </>
+            },
+            Page::PollResults(ref poll_creator, ref poll_name) => html! {
+                <>
+                    {format!("Poll results page: '{}' '{}'", poll_creator, poll_name)}
                 </>
             },
             _ => html! {

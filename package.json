@@ -1,0 +1,19 @@
+{
+  "name": "eosstrawpoll",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sagan-software/eosstrawpoll.git",
+  "author": "Liam Curry <liam@sagan.software>",
+  "license": "MIT",
+  "dependencies": {
+    "clean-webpack-plugin": "^0.1.19",
+    "concurrently": "^3.6.1",
+    "copy-webpack-plugin": "^4.5.2",
+    "html-webpack-plugin": "^3.2.0",
+    "string-replace-loader": "^2.1.1",
+    "webpack": "^4.16.4",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5",
+    "yarn": "^1.9.4"
+  }
+}

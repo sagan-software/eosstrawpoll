@@ -6,12 +6,16 @@ install:
 	rustup component add rustfmt-preview --toolchain nightly
 	cargo install --force cargo-watch
 	cargo install --force cargo-web
+	yarn install
 
 build:
-	cargo web build --target=wasm32-unknown-unknown --release
+	cargo web deploy --target=wasm32-unknown-unknown --release
+	NODE_ENV=production `npm bin`/webpack
 
 start:
-	cargo web start --target=wasm32-unknown-unknown --release
+	`npm bin`/concurrently --raw --kill-others \
+		'cargo watch -x "web deploy --target=wasm32-unknown-unknown --release"' \
+		'`npm bin`/webpack-dev-server --hot --inline --host 0.0.0.0 --progress'
 
 BUILD_CONTRACTS := docker run -i -t --rm \
 	-v `pwd`/build_contracts.sh:/build_contracts.sh \
