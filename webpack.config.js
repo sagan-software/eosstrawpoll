@@ -1,4 +1,3 @@
-const CleanWebpackPlugin = require("clean-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require("path");
@@ -10,7 +9,6 @@ console.log("PRODUCTION?", IS_PROD);
 
 const config = {
     mode: IS_PROD ? "production" : "development",
-    //devtool: IS_PROD ? undefined : "inline-source-map",
     entry: "./target/deploy/eosstrawpoll.js",
     node: {
         fs: "empty"
@@ -23,15 +21,6 @@ const config = {
     performance: {
         hints: false,
     },
-    devServer: {
-        contentBase: [
-            DIST_DIR,
-            "./target/deploy/",
-        ],
-        compress: true,
-        port: 9000,
-        historyApiFallback: true,
-    },
     module: {
         rules: [
             {
@@ -41,15 +30,12 @@ const config = {
                     search: 'fetch( "eosstrawpoll.wasm"',
                     replace: 'fetch( "/index.wasm"',
                 }
-            }
+            },
         ]
     },
     plugins: [
-        new CleanWebpackPlugin(["dist"], {
-            verbose: true,
-        }),
         new HtmlWebpackPlugin({
-            template: "src/index.html",
+            template: "static/index.html",
             filename: "index.html",
         }),
         new CopyWebpackPlugin([{

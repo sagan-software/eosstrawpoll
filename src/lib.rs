@@ -94,9 +94,6 @@ impl Component for Model {
                             Page::NotFound("".into())
                         }
                     }
-                    // [poll_creator, poll_name, "results"] => {
-                    //     Page::PollResults(poll_creator.to_string(), poll_name.to_string())
-                    // }
                     _ => Page::NotFound("".into()),
                 };
 
@@ -128,10 +125,7 @@ impl Renderable<Model> for Page {
     fn view(&self) -> Html<Model> {
         match *self {
             Page::Home => html! {
-                <>
-                    {"Home page"}
-                    <HomePage: />
-                </>
+                <HomePage: />
             },
             Page::Profile(ref account) => html! {
                 <>

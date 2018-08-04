@@ -1,10 +1,8 @@
-#[macro_use]
-extern crate log;
 extern crate eosstrawpoll;
+extern crate log;
 extern crate web_logger;
 extern crate yew;
 
-// use counter::Model;
 use eosstrawpoll::Model;
 use yew::prelude::*;
 
