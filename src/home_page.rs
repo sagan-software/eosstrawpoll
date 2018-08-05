@@ -1,6 +1,6 @@
+use poll_form::PollForm;
 use router;
 use router::Route;
-use std::usize;
 use yew::prelude::*;
 
 pub struct HomePage {
@@ -75,6 +75,7 @@ impl Renderable<HomePage> for HomePage {
         html! {
             <div>
                 <h1>{ "Home" }</h1>
+                <PollForm: />
             </div>
         }
     }

@@ -8,8 +8,9 @@ extern crate yew;
 extern crate stdweb;
 
 mod home_page;
+mod poll_form;
 mod router;
-mod routing;
+mod services;
 
 use home_page::HomePage;
 use router::Route;

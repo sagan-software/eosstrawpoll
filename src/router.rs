@@ -1,8 +1,8 @@
 //! Agent that exposes a usable routing interface to components.
 
-use routing::RouteService;
 use serde::Deserialize;
 use serde::Serialize;
+use services::routing::RouteService;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use stdweb::unstable::TryFrom;
@@ -36,7 +36,7 @@ where
 
     pub fn current_route(route_service: &RouteService<T>) -> Self {
         let path = route_service.get_path(); // guaranteed to always start with a '/'
-        let mut path_segments: Vec<String> = path.split("/").map(String::from).collect();
+        let mut path_segments: Vec<String> = path.split('/').map(String::from).collect();
         path_segments.remove(0); // remove empty string that is split from the first '/'
 
         let mut query: String = route_service.get_query(); // The first character will be a '?'
@@ -140,7 +140,7 @@ where
                 info!("Browser navigated");
                 let mut route = Route::current_route(&self.route_service);
                 route.state = state;
-                for sub in self.subscribers.iter() {
+                for sub in &self.subscribers {
                     self.link.response(*sub, route.clone());
                 }
             }
@@ -157,7 +157,7 @@ where
                 // get the new route. This will contain a default state object
                 let route = Route::current_route(&self.route_service);
                 // broadcast it to all listening components
-                for sub in self.subscribers.iter() {
+                for sub in &self.subscribers {
                     self.link.response(*sub, route.clone());
                 }
             }

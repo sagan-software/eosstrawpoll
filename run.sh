@@ -94,6 +94,12 @@ function run_watch_css {
     run_build_css --watch
 }
 
+function run_build_website {
+    run_task "build_cargo"
+    run_task "build_webpack"
+    run_task "build_css"
+}
+
 function run_build_contract {
     docker run \
         --interactive \
@@ -110,12 +116,6 @@ function run_build {
     run_clean
     run_build_website
     run_build_contract
-}
-
-function run_build_website {
-    run_task "build_rust"
-    run_task "build_webpack"
-    run_task "build_css"
 }
 
 function run_start_server {
