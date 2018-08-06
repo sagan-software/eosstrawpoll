@@ -1,5 +1,10 @@
-h1 {
-    text-align: left;
-    font-weight: 700;
-    color: red;
+.home_page .page__title {
+    text-align: center;
+    margin: 0;
+    padding: 30px 0;
+}
+
+.home_page .poll_form {
+    margin: 0 auto;
+    width: 600px;
 }

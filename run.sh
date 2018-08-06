@@ -2,6 +2,8 @@
 
 NPM=$(npm bin)
 PWD=$(pwd)
+PUBKEY=EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
+PRIVKEY=5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
 
 export APP=eosstrawpoll
 export SRC=src
@@ -10,8 +12,8 @@ export DIST=dist
 function run_task {
     task=$1
     printf ">>>>>>>> Running task '%s' \\n" "$task"
-    run_${task}
-    case $? in
+    run_${task} "$@"
+    case "$?" in
         127)
             printf "!!!!!!!! Error: unknown task '%s'. Exiting now \\n" "$task"
             exit 1
@@ -19,9 +21,6 @@ function run_task {
         1)
             printf "!!!!!!!! Error running task '%s'. Exiting now \\n" "$task"
             exit 1
-            ;;
-        *)
-            printf ">>>>>>>> Successfully ran task '%s' \\n" "$@"
             ;;
     esac
 }
@@ -31,6 +30,7 @@ function command_exists {
 }
 
 function run_install {
+    git submodule update --init --recursive
     if ! command_exists rustup; then
         curl https://sh.rustup.rs -sSf | sh
     fi
@@ -58,7 +58,8 @@ function run_clean {
 function run_build_cargo {
     cargo web deploy \
         --target=wasm32-unknown-unknown \
-        --release
+        --release \
+        --verbose
 }
 
 function run_watch_cargo {
@@ -68,7 +69,7 @@ function run_watch_cargo {
         -i '*.js*' \
         -i '*.sh' \
         -i 'node_modules' \
-        -x "web deploy --target=wasm32-unknown-unknown --release"
+        -x "web deploy --target=wasm32-unknown-unknown --release --verbose"
 }
 
 function run_build_webpack {
@@ -101,14 +102,68 @@ function run_build_website {
 }
 
 function run_build_contract {
-    docker run \
-        --interactive \
-        --tty \
-        --rm \
-        --volume $PWD/build_contracts.sh:/build_contracts.sh \
-        --volume $PWD/contract:/contracts/eosstrawpoll \
-        --entrypoint /build_contracts.sh \
-        sagansoftware/eos:v1.1.0
+    docker-compose exec nodeosd /build_contracts.sh
+}
+
+
+CLEOS="docker-compose exec nodeosd cleos --url http://nodeosd:8888 --wallet-url http://localhost:8888"
+
+function run_create_accounts {
+	$CLEOS system newaccount eosio --transfer eosstrawpoll $PUBKEY --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 2000
+	$CLEOS system newaccount eosio --transfer alice $PUBKEY --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$CLEOS system newaccount eosio --transfer bob $PUBKEY --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$CLEOS system newaccount eosio --transfer carol $PUBKEY --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$CLEOS system newaccount eosio --transfer williamcurry $PUBKEY --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$CLEOS system newaccount eosio --transfer saganonroids $PUBKEY --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$CLEOS system newaccount eosio --transfer g4ydegenesis $PUBKEY --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+}
+
+function run_deploy_contract {
+    $CLEOS set contract eosstrawpoll \
+        /eos/contracts/eosstrawpoll \
+        /eos/contracts/eosstrawpoll/eosstrawpoll.wast \
+        /eos/contracts/eosstrawpoll/eosstrawpoll.abi && \
+        $CLEOS get table eosstrawpoll alice polls
+}
+
+
+function run_clean_docker {
+    docker-compose down
+    docker kill $(docker ps -q)
+}
+
+function run_full_clean_docker {
+    run_clean_docker
+    docker rm $(docker ps -a -q)
+    docker rmi $(docker images -q)
+    docker system prune
+}
+
+function run_setup_chain {
+    $CLEOS wallet create
+    $CLEOS wallet import --private-key $PRIVKEY
+    $CLEOS create account eosio eosio.token $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.msig $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.ram $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.ramfee $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.stake $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.bpay $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.vpay $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.saving $PUBKEY $PUBKEY
+    $CLEOS create account eosio eosio.names $PUBKEY $PUBKEY
+    $CLEOS set contract eosio.token /eos/build/contracts/eosio.token
+    $CLEOS set contract eosio.msig /eos/build/contracts/eosio.msig
+    $CLEOS push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token
+    $CLEOS push action eosio.token issue '[ "eosio", "10000000000.0000 SYS", "memo" ]' -p eosio
+    $CLEOS set contract eosio /eos/build/contracts/eosio.system
+}
+
+function run_cleos {
+    if [ "$(docker ps -q -f name=nodeosd)" ]; then
+        docker-compose exec nodeosd "$@"
+    else
+        echo "Please start Docker first with './run.sh start_docker'"
+    fi
 }
 
 function run_build {
@@ -144,4 +199,4 @@ function run_start {
     run_task "start_website"
 }
 
-run_task $@
+run_task "$@"

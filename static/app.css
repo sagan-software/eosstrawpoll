@@ -1,0 +1,31 @@
+.app {
+    position: relative;
+    top: 0;
+    left: 0;
+    min-width: 100vw;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.app__header {
+    display: flex;
+}
+
+.app__header > * {
+    padding: 10px;
+}
+
+.app__logo {
+    font-weight: 700;
+}
+
+.app__nav {
+    flex: 1;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.app__nav > * {
+    padding: 10px;
+}

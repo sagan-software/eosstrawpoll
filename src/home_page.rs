@@ -1,3 +1,4 @@
+use context::Context;
 use poll_form::PollForm;
 use router;
 use router::Route;
@@ -6,6 +7,7 @@ use yew::prelude::*;
 pub struct HomePage {
     sub_path: Option<String>,
     router: Box<Bridge<router::Router<()>>>,
+    context: Context,
 }
 
 pub enum Msg {
@@ -13,11 +15,16 @@ pub enum Msg {
     HandleRoute(Route<()>),
 }
 
+#[derive(PartialEq, Clone, Default)]
+pub struct Props {
+    pub context: Context,
+}
+
 impl Component for HomePage {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let callback = link.send_back(|route: Route<()>| Msg::HandleRoute(route));
         let mut router = router::Router::bridge(callback);
 
@@ -26,6 +33,7 @@ impl Component for HomePage {
         HomePage {
             sub_path: None,
             router,
+            context: props.context,
         }
     }
 
@@ -64,8 +72,8 @@ impl Component for HomePage {
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        // Apparently change MUST be implemented in this case, even though no props were changed
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.context = props.context;
         true
     }
 }
@@ -73,9 +81,41 @@ impl Component for HomePage {
 impl Renderable<HomePage> for HomePage {
     fn view(&self) -> Html<Self> {
         html! {
-            <div>
-                <h1>{ "Home" }</h1>
-                <PollForm: />
+            <div class="home_page", >
+                <header class="page__header", >
+                    <h1 class="page__title", >
+                        { "Create real-time polls on EOS blockchains" }
+                    </h1>
+                </header>
+                <div>
+                    <PollForm: context=&self.context, />
+                </div>
+                <div class="activity", >
+                    <div class="popular_polls", >
+                        <h2> { "Popular Polls" } </h2>
+                        <ul>
+                            <li>
+                                <a href="#", >{ "Poll title" }</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="recent_polls", >
+                        <h2> { "Recent Polls" } </h2>
+                        <ul>
+                            <li>
+                                <a href="#", >{ "Poll title" }</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="recent_votes", >
+                        <h2> { "Recent Votes" } </h2>
+                        <ul>
+                            <li>
+                                <a href="#", >{ "Poll title" }</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         }
     }

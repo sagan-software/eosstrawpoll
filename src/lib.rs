@@ -1,19 +1,30 @@
+#![recursion_limit = "500"]
+#![warn(clippy)]
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
+extern crate serde_json;
 #[macro_use]
 extern crate yew;
+extern crate http;
+#[macro_use]
 extern crate stdweb;
 
+mod context;
+mod eos;
+mod global_config;
 mod home_page;
 mod poll_form;
 mod router;
 mod services;
 
+use context::Context;
 use home_page::HomePage;
 use router::Route;
+use services::scatter::{self, Identity, ScatterError, ScatterService};
+use stdweb::traits::IEvent;
 use yew::prelude::*;
 
 pub enum Page {
@@ -25,14 +36,26 @@ pub enum Page {
     NotFound(String),
 }
 
+const EOS_MAINNET: &'static str =
+    "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
+const TELOS_TESTNET: &'static str =
+    "9e46127b78e0a7f6906f549bba3d23b264c70ee6ec781aed9d4f1b72732f34fc";
+
 pub struct Model {
     page: Page,
     router: Box<Bridge<router::Router<()>>>,
+    context: Context,
+    scatter: ScatterService,
+    link: ComponentLink<Model>,
 }
 
 pub enum Msg {
+    Ignore,
     NavigateTo(Page),
     HandleRoute(Route<()>),
+    Login,
+    Logout,
+    GotIdentity(Result<Identity, ScatterError>),
 }
 
 impl Component for Model {
@@ -40,19 +63,28 @@ impl Component for Model {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(|route: Route<()>| Msg::HandleRoute(route));
+        let callback = link.send_back(Msg::HandleRoute);
         let mut router = router::Router::bridge(callback);
-
         router.send(router::Request::GetCurrentRoute);
+
+        let scatter = ScatterService::new();
+        let mut context = Context::default();
+        if let Some(identity) = scatter.identity() {
+            context.identity = Some(Ok(identity));
+        }
 
         Model {
             page: Page::Loading,
             router,
+            context,
+            scatter,
+            link,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::Ignore => false,
             Msg::NavigateTo(page) => {
                 let path_segments = match page {
                     Page::Loading => vec![],
@@ -80,7 +112,7 @@ impl Component for Model {
                 let path_segments = route
                     .path_segments
                     .into_iter()
-                    .filter(|ref i| i.len() > 0)
+                    .filter(|ref i| !i.is_empty())
                     .collect::<Vec<_>>();
                 self.page = match &path_segments[..] {
                     [] => Page::Home,
@@ -100,6 +132,23 @@ impl Component for Model {
 
                 true
             }
+            Msg::Login => {
+                let callback = self.link.send_back(Msg::GotIdentity);
+                let chain_id = EOS_MAINNET.to_string();
+                self.scatter.get_identity_for_chain(chain_id, callback);
+                true
+            }
+            Msg::Logout => {
+                let callback = self.link.send_back(|_| Msg::Ignore);
+                self.scatter.forget_identity(callback);
+                self.context.identity = None;
+                true
+            }
+            Msg::GotIdentity(result) => {
+                info!("got identity {:#?}", result);
+                self.context.identity = Some(result);
+                true
+            }
         }
     }
 }
@@ -107,26 +156,121 @@ impl Component for Model {
 impl Renderable<Model> for Model {
     fn view(&self) -> Html<Self> {
         html! {
-            <div>
-                <nav class="menu",>
-                    <button onclick=|_| Msg::NavigateTo(Page::Home),>{ "Go to Home" }</button>
-                    <button onclick=|_| Msg::NavigateTo(Page::Profile("balls".into())),>{ "Go to Profile" }</button>
-                    <button onclick=|_| Msg::NavigateTo(Page::Poll("balls".into(), "balls".into())),>{ "Go to Poll" }</button>
-                    <button onclick=|_| Msg::NavigateTo(Page::PollResults("balls".into(), "balls".into())),>{ "Go to Poll Results" }</button>
-                </nav>
-                <div>
-                    {self.page.view()}
-                </div>
+            <div class="app", >
+                { self.view_header() }
+                { self.view_content() }
+                { self.view_footer() }
             </div>
         }
     }
 }
 
-impl Renderable<Model> for Page {
-    fn view(&self) -> Html<Model> {
-        match *self {
+impl Model {
+    fn view_header(&self) -> Html<Self> {
+        html! {
+            <header class="app__header", >
+                <a
+                    class="app__logo",
+                    href="/",
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::NavigateTo(Page::Home)
+                    },
+                >
+                    { "EOS Straw Poll" }
+                </a>
+                { self.view_nav() }
+                { self.view_user() }
+            </header>
+        }
+    }
+
+    fn view_nav(&self) -> Html<Self> {
+        html! {
+            <nav class="app__nav", >
+                { self.view_nav_link("Create") }
+                { self.view_nav_link("Popular") }
+                { self.view_nav_link("Recent") }
+                // <button onclick=|_| Msg::NavigateTo(Page::Home),>{ "Go to Home" }</button>
+                // <button onclick=|_| Msg::NavigateTo(Page::Profile("balls".into())),>{ "Go to Profile" }</button>
+                // <button onclick=|_| Msg::NavigateTo(Page::Poll("balls".into(), "balls".into())),>{ "Go to Poll" }</button>
+                // <button onclick=|_| Msg::NavigateTo(Page::PollResults("balls".into(), "balls".into())),>{ "Go to Poll Results" }</button>
+            </nav>
+        }
+    }
+
+    fn view_nav_link(&self, text: &str) -> Html<Self> {
+        html! {
+            <a class="app__link", href="/", >{ text }</a>
+        }
+    }
+
+    fn view_user(&self) -> Html<Self> {
+        let view = match &self.context.identity {
+            None => self.view_user_none(),
+            Some(Ok(identity)) => self.view_user_ok(identity),
+            Some(Err(error)) => self.view_user_err(error),
+        };
+        html! {
+            <nav class="app__user", >
+                { view }
+            </nav>
+        }
+    }
+
+    fn view_user_none(&self) -> Html<Self> {
+        html! {
+            <button
+                class="app__login",
+                onclick=|_| Msg::Login,
+            >
+                { "Login" }
+            </button>
+        }
+    }
+
+    fn view_user_ok(&self, identity: &Identity) -> Html<Self> {
+        html! {
+            <button
+                class="app__logout",
+                onclick=|_| Msg::Logout,
+            >
+                { "Logout" }
+            </button>
+        }
+    }
+
+    fn view_user_err(&self, error: &ScatterError) -> Html<Self> {
+        html! {
+            <button
+                class="app__login",
+                onclick=|_| Msg::Login,
+            >
+                { "Login (error)" }
+            </button>
+        }
+    }
+
+    fn view_content(&self) -> Html<Self> {
+        html! {
+            <div class="app__content", >
+                {self.view_page()}
+            </div>
+        }
+    }
+
+    fn view_footer(&self) -> Html<Self> {
+        html!{
+            <footer class="app__footer", >
+                { "Footer" }
+            </footer>
+        }
+    }
+
+    fn view_page(&self) -> Html<Model> {
+        match self.page {
             Page::Home => html! {
-                <HomePage: />
+                <HomePage: context=&self.context, />
             },
             Page::Profile(ref account) => html! {
                 <>
