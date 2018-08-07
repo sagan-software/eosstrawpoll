@@ -4,11 +4,11 @@ namespace eosstrawpoll
 {
 // @abi action
 void contract::setconfig(
-    const uint16_t max_recent_polls,
+    const uint16_t max_new_polls,
     const uint16_t max_popular_polls,
     const uint16_t max_closed_polls,
     const uint16_t max_top_donors,
-    const uint16_t max_recent_donations,
+    const uint16_t max_new_donations,
     const uint16_t max_choices_len,
     const uint16_t max_title_len,
     const uint16_t max_options_len,

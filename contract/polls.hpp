@@ -27,7 +27,8 @@ struct poll
 
     // Indexing functions
     uint64_t primary_key() const { return id; }
-    uint64_t by_time() const { return create_time; }
+    uint64_t by_created() const { return create_time; }
+    uint64_t by_closed() const { return close_time; }
     double by_popularity() const { return popularity; }
 
     // Helper functions
@@ -40,12 +41,16 @@ struct poll
 
 typedef multi_index<N(polls), poll> polls_index;
 typedef multi_index<
-    N(recentpolls), poll,
-    indexed_by<N(created), const_mem_fun<poll, uint64_t, &poll::by_time>>>
-    recent_polls_index;
-typedef multi_index<
     N(popularpolls), poll,
     indexed_by<N(popularity), const_mem_fun<poll, double, &poll::by_popularity>>>
     popular_polls_index;
+typedef multi_index<
+    N(newpolls), poll,
+    indexed_by<N(created), const_mem_fun<poll, uint64_t, &poll::by_created>>>
+    new_polls_index;
+typedef multi_index<
+    N(closedpolls), poll,
+    indexed_by<N(closed), const_mem_fun<poll, uint64_t, &poll::by_closed>>>
+    closed_polls_index;
 
 } // namespace eosstrawpoll

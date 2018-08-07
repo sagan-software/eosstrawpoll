@@ -15,8 +15,9 @@ class contract
     config_index _config;
     donations_index _donations;
     top_donors_index _top_donors;
-    recent_polls_index _recent_polls;
     popular_polls_index _popular_polls;
+    new_polls_index _new_polls;
+    closed_polls_index _closed_polls;
 
   public:
     contract(account_name self)
@@ -24,17 +25,18 @@ class contract
           _config(self, self),
           _donations(self, self),
           _top_donors(self, self),
-          _recent_polls(self, self),
-          _popular_polls(self, self) {}
+          _popular_polls(self, self),
+          _new_polls(self, self),
+          _closed_polls(self, self) {}
 
     inline account_name get_self() const { return _self; }
 
     void setconfig(
-        const uint16_t max_recent_polls,
+        const uint16_t max_new_polls,
         const uint16_t max_popular_polls,
         const uint16_t max_closed_polls,
         const uint16_t max_top_donors,
-        const uint16_t max_recent_donations,
+        const uint16_t max_new_donations,
         const uint16_t max_choices_len,
         const uint16_t max_title_len,
         const uint16_t max_options_len,

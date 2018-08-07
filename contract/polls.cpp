@@ -39,7 +39,7 @@ void contract::createpoll(
 {
     require_auth(creator);
 
-    const uint8_t num_options = options.size();
+    const uint16_t num_options = options.size();
 
     eosio_assert(num_options >= 2, "must have at least 2 options");
 
@@ -102,14 +102,14 @@ void contract::createpoll(
     });
 
     // add poll to recently created table
-    auto recent_poll = _recent_polls.emplace(creator, [&](auto &p2) {
-        p2.id = _recent_polls.available_primary_key();
+    auto new_poll = _new_polls.emplace(creator, [&](auto &p2) {
+        p2.id = _new_polls.available_primary_key();
         // TODO
     });
 
     // prune recently created table
-    auto time_index = _recent_polls.get_index<N(created)>();
-    auto num_left = 20; //MAX_RECENT_POLLS;
+    auto time_index = _new_polls.get_index<N(created)>();
+    auto num_left = 20; //MAX_new_POLLS;
     for (auto it = time_index.rbegin(); it != time_index.rend();)
     {
         if (num_left <= 0)
@@ -170,11 +170,11 @@ void contract::destroypoll(
     polls.erase(p);
 
     // erase poll from recent polls table
-    for (auto it = _recent_polls.begin(); it != _recent_polls.end();)
+    for (auto it = _new_polls.begin(); it != _new_polls.end();)
     {
         if (it->creator == creator && it->name == name)
         {
-            it = _recent_polls.erase(it);
+            it = _new_polls.erase(it);
         }
         else
         {
