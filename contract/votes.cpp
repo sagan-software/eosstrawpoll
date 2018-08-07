@@ -1,5 +1,4 @@
-#include "eosstrawpoll.hpp"
-#include "polls.hpp"
+#include "include/contract.hpp"
 
 namespace eosstrawpoll
 {

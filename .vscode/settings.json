@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "abi": "json",
         "thread": "cpp",
         "__locale": "cpp",
         "coroutine": "cpp",

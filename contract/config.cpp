@@ -1,4 +1,4 @@
-#include "eosstrawpoll.hpp"
+#include "include/contract.hpp"
 
 namespace eosstrawpoll
 {
@@ -22,5 +22,5 @@ void contract::setconfig(
     const vector<account_name> &graylist,
     const double popularity_gravity,
     const uint64_t max_metadata_size,
-    vector<chain_info> &supported_chains){};
+    const string &metadata){};
 } // namespace eosstrawpoll

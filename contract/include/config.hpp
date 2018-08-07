@@ -6,14 +6,6 @@
 namespace eosstrawpoll
 {
 
-struct chain_info
-{
-    string chain_id;
-    account_name account;
-
-    EOSLIB_SERIALIZE(chain_info, (chain_id)(account))
-};
-
 // @abi table config i64
 struct config
 {
@@ -35,7 +27,7 @@ struct config
     vector<account_name> graylist;
     double popularity_gravity = 1.8;
     uint64_t max_metadata_size = 10000;
-    vector<chain_info> supported_chains;
+    string metadata = "";
 
     EOSLIB_SERIALIZE(
         config,
@@ -48,7 +40,7 @@ struct config
         // account lists
         (superusers)(moderators)(blacklist)(graylist)
         // misc
-        (popularity_gravity)(max_metadata_size)(supported_chains))
+        (popularity_gravity)(max_metadata_size)(metadata))
 };
 
 typedef eosio::singleton<N(config), config>

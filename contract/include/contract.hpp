@@ -50,7 +50,7 @@ class contract
         const vector<account_name> &graylist,
         const double popularity_gravity,
         const uint64_t max_metadata_size,
-        vector<chain_info> &supported_chains);
+        const string &metadata);
 
     void createpoll(
         const account_name creator,

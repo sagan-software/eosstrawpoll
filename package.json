@@ -6,8 +6,8 @@
   "author": "Liam Curry <liam@sagan.software>",
   "license": "MIT",
   "scripts": {
-    "start": "./run.sh start",
-    "build": "./run.sh build"
+    "start": "make start",
+    "build": "make build"
   },
   "dependencies": {
     "browser-sync": "^2.24.6",
