@@ -5,6 +5,15 @@
 
 namespace eosstrawpoll
 {
+
+struct chain_info
+{
+    string chain_id;
+    account_name account;
+
+    EOSLIB_SERIALIZE(chain_info, (chain_id)(account))
+};
+
 // @abi table config i64
 struct config
 {
@@ -20,9 +29,13 @@ struct config
     uint16_t max_whitelist_size = 500;
     uint16_t max_blacklist_size = 500;
     uint32_t min_duration = 60 * 5;
+    vector<account_name> superusers;
+    vector<account_name> moderators;
     vector<account_name> blacklist;
     vector<account_name> graylist;
     double popularity_gravity = 1.8;
+    uint64_t max_metadata_size = 10000;
+    vector<chain_info> supported_chains;
 
     EOSLIB_SERIALIZE(
         config,
@@ -31,7 +44,11 @@ struct config
         // donations
         (max_top_donors)(max_donations)
         // polls
-        (max_choices_size)(max_title_size)(max_options_size)(max_option_size)(max_whitelist_size)(max_blacklist_size)(min_duration)(blacklist)(graylist)(popularity_gravity))
+        (max_choices_size)(max_title_size)(max_options_size)(max_option_size)(max_whitelist_size)(max_blacklist_size)(min_duration)
+        // account lists
+        (superusers)(moderators)(blacklist)(graylist)
+        // misc
+        (popularity_gravity)(max_metadata_size)(supported_chains))
 };
 
 typedef eosio::singleton<N(config), config>
