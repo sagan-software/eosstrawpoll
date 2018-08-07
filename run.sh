@@ -101,7 +101,24 @@ function run_build_website {
     run_task "build_css"
 }
 
+function run_clean_contract {
+    rm -f contract/*.wasm contract/*.wast
+}
+
 function run_build_contract {
+    run_clean_contract
+    EOSIOCPP="docker-compose exec nodeosd eosiocpp"
+    # $EOSIOCPP \
+    #     --genabi /contracts/eosstrawpoll/eosstrawpoll.abi \
+    #     /contracts/eosstrawpoll/eosstrawpoll.cpp
+    $EOSIOCPP \
+        --outname /contracts/eosstrawpoll/eosstrawpoll.wast \
+        /contracts/eosstrawpoll/eosstrawpoll.cpp
+
+}
+
+function run_full_build_contract {
+    run_clean_contract
     docker-compose exec nodeosd /build_contracts.sh
 }
 

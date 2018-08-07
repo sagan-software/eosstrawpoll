@@ -293,8 +293,8 @@ for contract_name in $contract_names; do
     build_contract_cmakelists $contract_name > $eos_src_dir/CMakeLists.txt
     cp -f $eos_src_dir/CMakeLists.txt $eos_build_dir/CMakeLists.txt
 
-    eosiocpp --genabi $SRC_DIR/$contract_name/$contract_name.abi $eos_src_dir/$contract_name.cpp
-    eosiocpp --outname $SRC_DIR/$contract_name/$contract_name.wast $eos_src_dir/$contract_name.cpp
+    #eosiocpp --genabi $SRC_DIR/$contract_name/$contract_name.abi $SRC_DIR/$contract_name/$contract_name.cpp
+    eosiocpp --outname $SRC_DIR/$contract_name/$contract_name.wast $SRC_DIR/$contract_name/$contract_name.cpp
 
     cp $SRC_DIR/$contract_name/$contract_name.* $eos_src_dir
     cp $SRC_DIR/$contract_name/$contract_name.* $eos_build_dir

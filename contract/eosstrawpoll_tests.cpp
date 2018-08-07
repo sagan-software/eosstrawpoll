@@ -261,8 +261,8 @@ try
         vector<string>{"Option A", "Option B", "Option C"},
         vector<account_name>{N(name1), N(name2)},
         vector<account_name>{N(name3), N(name4)},
-        0,
-        0,
+        1,
+        1,
         0,
         0);
 
@@ -279,15 +279,15 @@ try
         vector<string>{"Option A", "Option B", "Option C"},
         vector<account_name>{N(name1), N(name2)},
         vector<account_name>{N(name3), N(name4)},
-        0,
-        0,
+        1,
+        1,
         0,
         0);
 
     require_success(close_poll(N(alice), id));
 
     const poll_t p = get_poll(N(alice), id);
-    BOOST_REQUIRE_MESSAGE(p.close_time > 0, "close time should be greater than 0");
+    BOOST_REQUIRE_MESSAGE(p.close_time > 0, "close_time should be greater than 0");
 }
 FC_LOG_AND_RETHROW()
 
@@ -300,8 +300,8 @@ try
         vector<string>{"Option A", "Option B", "Option C"},
         vector<account_name>{},
         vector<account_name>{},
-        0,
-        0,
+        1,
+        1,
         0,
         0);
 
@@ -344,8 +344,8 @@ try
             vector<string>{"Option A", "Option B", "Option C"},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             0,
             0);
         const poll_t p = get_poll(N(alice), id);
@@ -353,34 +353,42 @@ try
         BOOST_REQUIRE_EQUAL(p.max_num_choices, 1);
     };
     {
-        const uuid id = require_create_poll(
-            N(alice),
-            "Test poll",
-            vector<string>{"Option A", "Option B", "Option C"},
-            vector<account_name>{},
-            vector<account_name>{},
-            5,
-            4,
-            0,
-            0);
-        const poll_t p = get_poll(N(alice), id);
-        BOOST_REQUIRE_EQUAL(p.min_num_choices, 3);
-        BOOST_REQUIRE_EQUAL(p.max_num_choices, 3);
-    };
-    {
-        const uuid id = require_create_poll(
-            N(alice),
-            "Test poll",
-            vector<string>{"Option A", "Option B", "Option C"},
-            vector<account_name>{},
-            vector<account_name>{},
-            5,
-            4,
-            0,
-            0);
-        const poll_t p = get_poll(N(alice), id);
-        BOOST_REQUIRE_EQUAL(p.min_num_choices, 3);
-        BOOST_REQUIRE_EQUAL(p.max_num_choices, 3);
+        BOOST_REQUIRE_EQUAL(
+            wasm_assert_msg("min_num_choices cannot be greater than the total number of options"),
+            create_poll(
+                N(alice),
+                "Test poll",
+                vector<string>{"Option A", "Option B", "Option C"},
+                vector<account_name>{},
+                vector<account_name>{},
+                4,
+                4,
+                0,
+                0));
+        BOOST_REQUIRE_EQUAL(
+            wasm_assert_msg("max_num_choices cannot be less than min_num_choices"),
+            create_poll(
+                N(alice),
+                "Test poll",
+                vector<string>{"Option A", "Option B", "Option C"},
+                vector<account_name>{},
+                vector<account_name>{},
+                3,
+                2,
+                0,
+                0));
+        BOOST_REQUIRE_EQUAL(
+            wasm_assert_msg("max_num_choices cannot be greater than the total number of options"),
+            create_poll(
+                N(alice),
+                "Test poll",
+                vector<string>{"Option A", "Option B", "Option C"},
+                vector<account_name>{},
+                vector<account_name>{},
+                2,
+                4,
+                0,
+                0));
     };
     {
         const uuid id = require_create_poll(
@@ -390,7 +398,7 @@ try
             vector<account_name>{},
             vector<account_name>{},
             2,
-            0,
+            2,
             0,
             0);
         const poll_t p = get_poll(N(alice), id);
@@ -411,8 +419,8 @@ try
             vector<string>{},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             0,
             0));
 
@@ -424,8 +432,8 @@ try
             vector<string>{"Option A"},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             0,
             0));
 }
@@ -442,8 +450,8 @@ try
             vector<string>{"A", "B", ""},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             0,
             0));
 }
@@ -460,8 +468,8 @@ try
             vector<string>{"A", "B", "B"},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             0,
             0));
 }
@@ -471,15 +479,15 @@ BOOST_FIXTURE_TEST_CASE(cannot_create_polls_with_invalid_open_time, eosstrawpoll
 try
 {
     BOOST_REQUIRE_EQUAL(
-        wasm_assert_msg("close time must be after open time"),
+        wasm_assert_msg("close_time must be after open_time"),
         create_poll(
             N(alice),
             "Test poll",
             vector<string>{"Option A", "Option B"},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             2,
             1));
 
@@ -490,8 +498,8 @@ try
             vector<string>{"Option A", "Option B"},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             2,
             0));
 }
@@ -501,15 +509,15 @@ BOOST_FIXTURE_TEST_CASE(cannot_create_polls_already_closed, eosstrawpoll_tester)
 try
 {
     BOOST_REQUIRE_EQUAL(
-        wasm_assert_msg("close time must not be in the past"),
+        wasm_assert_msg("close_time must not be in the past"),
         create_poll(
             N(alice),
             "Test poll",
             vector<string>{"Option A", "Option B"},
             vector<account_name>{},
             vector<account_name>{},
-            0,
-            0,
+            1,
+            1,
             0,
             1));
 }
@@ -545,8 +553,8 @@ try
         vector<string>{"Option A", "Option B"},
         vector<account_name>{},
         vector<account_name>{},
-        0,
-        0,
+        1,
+        1,
         now() + 10,
         0);
 
@@ -583,8 +591,8 @@ try
         vector<string>{"Option A", "Option B"},
         vector<account_name>{},
         vector<account_name>{},
-        0,
-        0,
+        1,
+        1,
         now() - 10,
         0);
 
@@ -606,8 +614,8 @@ try
         vector<string>{"Option A", "Option B"},
         vector<account_name>{},
         vector<account_name>{},
-        0,
-        0,
+        1,
+        1,
         0,
         0);
 
@@ -635,8 +643,8 @@ try
         vector<string>{"Option A", "Option B"},
         vector<account_name>{},
         vector<account_name>{},
-        0,
-        0,
+        1,
+        1,
         0,
         now() + 10);
 
@@ -678,7 +686,7 @@ try
         vector<account_name>{},
         vector<account_name>{},
         2,
-        0,
+        2,
         0,
         0);
 
@@ -716,7 +724,7 @@ try
         vector<string>{"Option A", "Option B"},
         vector<account_name>{},
         vector<account_name>{},
-        0,
+        1,
         2,
         0,
         0);
@@ -755,7 +763,7 @@ try
         vector<string>{"Option A", "Option B", "Option C"},
         vector<account_name>{},
         vector<account_name>{},
-        0,
+        1,
         3,
         0,
         0);
@@ -803,12 +811,12 @@ try
         vector<account_name>{},
         vector<account_name>{},
         2,
-        0,
+        2,
         0,
         0);
 
     BOOST_REQUIRE_EQUAL(
-        wasm_assert_msg("received invalid choice 2, must be within 0-1"),
+        wasm_assert_msg("received invalid choice"),
         cast_vote(
             N(alice),
             id,
@@ -816,7 +824,7 @@ try
             vector<uint8_t>{2, 3}));
 
     BOOST_REQUIRE_EQUAL(
-        wasm_assert_msg("received invalid choice 3, must be within 0-1"),
+        wasm_assert_msg("received invalid choice"),
         cast_vote(
             N(alice),
             id,
@@ -834,8 +842,8 @@ try
         vector<string>{"Option A", "Option B"},
         vector<account_name>{N(carol)},
         vector<account_name>{},
-        0,
-        0,
+        1,
+        1,
         0,
         0);
 
@@ -865,8 +873,8 @@ try
         vector<string>{"Option A", "Option B"},
         vector<account_name>{},
         vector<account_name>{N(bob), N(carol)},
-        0,
-        0,
+        1,
+        1,
         0,
         0);
 
