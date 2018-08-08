@@ -1,0 +1,12 @@
+{
+    "version": "eosio::abi/1.0",
+    "types": [
+        {
+            "new_type_name": "poll_name",
+            "type": "account_name"
+        }
+    ],
+    "structs": [],
+    "actions": [],
+    "tables": []
+}

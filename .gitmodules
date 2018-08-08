@@ -1,3 +1,3 @@
 [submodule "eos"]
-	path = eos
+	path = contract/eos
 	url = https://github.com/EOSIO/eos.git

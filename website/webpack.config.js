@@ -2,7 +2,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require("path");
 
-const DIST_DIR = path.resolve(__dirname, "dist/website");
+const DIST_DIR = path.resolve(__dirname, "dist");
 const IS_PROD = process.env.NODE_ENV === "production";
 
 console.log("PRODUCTION?", IS_PROD);

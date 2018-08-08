@@ -1,9 +1,10 @@
-/target
+/website/target
 **/*.rs.bk
-Cargo.lock
-/node_modules
+/website/Cargo.lock
+/website/node_modules
 /contract/*.wast
 /contract/*.wasm
 /contract/*.abi
-/dist/
+/contract/dist
+/website/dist
 .DS_Store

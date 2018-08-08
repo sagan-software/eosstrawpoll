@@ -1,124 +1,10 @@
-NPM := `npm bin`
 PWD := `pwd`
 PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
 DOCKER := docker-compose exec nodeosd
 CLEOS := $(DOCKER) cleos --url http://nodeosd:8888 --wallet-url http://localhost:8888
 EOSIOCPP := $(DOCKER) eosiocpp
-DIST_WEBSITE := dist/website
-DIST_CONTRACT := dist/contract
-
-clean: clean-website
-.PHONY: clean
-
-build: clean website
-.PHONY: build
-
-install: node_modules
-	git submodule update --init --recursive
-	curl https://sh.rustup.rs -sSf | sh
-	rustup target add wasm32-unknown-unknown
-	rustup install nightly
-	rustup default nightly
-	rustup component add rustfmt-preview --toolchain nightly
-	cargo install --force cargo-watch
-	cargo install --force cargo-web
-.PHONY: install
-
-node_modules:
-	yarn install
-
-cargo:
-	cargo web deploy \
-		--target=wasm32-unknown-unknown \
-		--release \
-		--verbose
-.PHONY: cargo
-
-clean-cargo:
-	rm -Rf target/deploy
-.PHONY: clean-cargo
-
-full-clean-cargo:
-	rm -Rf target
-.PHONY: full-clean-cargo
-
-watch-cargo:
-	cargo watch \
-		-i '*.css' \
-		-i '*.html' \
-		-i '*.js*' \
-		-i '*.sh' \
-		-i 'node_modules' \
-		-x "web deploy --target=wasm32-unknown-unknown --release --verbose"
-.PHONY: watch-cargo
-
-$(DIST_WEBSITE):
-	mkdir -p $(DIST_WEBSITE)
-
-webpack: $(DIST_WEBSITE)
-	NODE_ENV=production $(NPM)/webpack
-.PHONY: webpack
-
-clean-webpack:
-	rm -Rf $(DIST_WEBSITE)/index.js
-	rm -Rf $(DIST_WEBSITE)/index.wasm
-	rm -Rf $(DIST_WEBSITE)/index.html
-.PHONY: clean-webpack
-
-watch-webpack: $(DIST_WEBSITE)
-	$(NPM)/webpack --watch
-.PHONY: watch-webpack
-
-css: $(DIST_WEBSITE)
-	$(NPM)/postcss \
-        static/index.css \
-        --output $(DIST_WEBSITE)/index.css
-.PHONY: css
-
-clean-css:
-	rm -Rf $(DIST_WEBSITE)/index.css
-.PHONY: clean-css
-
-watch-css: $(DIST_WEBSITE)
-	$(NPM)/postcss \
-        static/index.css \
-        --output $(DIST_WEBSITE)/index.css \
-		--watch
-.PHONY: watch-css
-
-website:
-	$(MAKE) cargo
-	$(MAKE) webpack
-	$(MAKE) css
-.PHONY: website
-
-clean-website: clean-cargo clean-webpack clean-css
-.PHONY: clean-website
-
-start-server:
-	$(NPM)/browser-sync start \
-		--port 1337 \
-		--https \
-		--single \
-		--server $(DIST_WEBSITE) \
-		--no-open \
-		--no-ui \
-		--watch
-
-start-website:
-	$(NPM)/concurrently \
-		--raw \
-		--kill-others \
-		"$(MAKE) watch-cargo" \
-		"$(MAKE) watch-webpack" \
-		"$(MAKE) watch-css" \
-		"$(MAKE) start-server"
-.PHONY: start-website
-
-test:
-	echo TODO
-.PHONY: test
+DIST := $(PWD)/dist
 
 docker:
 	docker build \
@@ -128,15 +14,15 @@ docker:
 		./docker
 .PHONY: docker
 
-clean-docker:
+clean:
 	docker kill $(docker ps -q)
-.PHONY: clean-docker
+.PHONY: clean
 
-full-clean-docker: clean-docker
+full-clean: clean
 	docker rm $(docker ps -a -q)
 	docker rmi $(docker images -q)
 	docker system prune
-.PHONY: full-clean-docker
+.PHONY: full-clean
 
 chain-bios:
 	$(CLEOS) wallet create
@@ -167,10 +53,10 @@ chain-accounts:
 	$(CLEOS) system newaccount eosio --transfer g4ydegenesis $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 .PHONY: chain-accounts
 
-$(DIST_CONTRACT):
-	mkdir -p $(DIST_CONTRACT)
+$(DIST):
+	mkdir -p $(DIST)
 
-contract: $(DIST_CONTRACT)
+build: $(DIST)
 	# $(EOSIOCPP) \
 	# 	--outname /contracts/eosstrawpoll/eosstrawpoll.wast \
 	# 	/contracts/eosstrawpoll/eosstrawpoll.cpp
@@ -179,17 +65,19 @@ contract: $(DIST_CONTRACT)
 		--tty \
 		--rm \
 		--entrypoint eosio-cpp \
-		--volume $(PWD)/contract:/contract \
+		--volume $(PWD):/contract:ro \
+		--volume $(DIST):/dist \
 		sagansoftware/eos:v1.1.3 \
+		-I=/contract/include \
 		-I=/root/opt/boost/include \
-		-o=/contract/test.wasm \
+		-o=/dist/test2.wasm \
 		-O=3 \
 		-lto-opt=O3 \
 		-fmerge-all-constants \
 		-fstrict-return \
-		/contract/eosstrawpoll.cpp
+		/contract/src/eosstrawpoll.cpp
 .PHONY: contract
 
-test-contract: $(DIST_CONTRACT)
+test: $(DIST)
 	$(DOCKER) /build_contracts.sh
 .PHONY: test-contract

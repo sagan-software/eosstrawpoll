@@ -1,4 +1,4 @@
-#include "include/contract.hpp"
+#include <eosstrawpoll/contract.hpp>
 #include <eosiolib/dispatcher.hpp>
 
 #include "config.cpp"

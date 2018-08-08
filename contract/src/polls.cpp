@@ -1,5 +1,4 @@
-#include "include/contract.hpp"
-
+#include <eosstrawpoll/contract.hpp>
 #include <cmath>
 #include <map>
 
