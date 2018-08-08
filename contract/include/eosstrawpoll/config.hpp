@@ -18,6 +18,7 @@ struct config
     uint16_t max_title_size = 144;
     uint16_t max_options_size = 50;
     uint16_t max_option_size = 144;
+    uint16_t max_other_size = 50;
     uint16_t max_whitelist_size = 500;
     uint16_t max_blacklist_size = 500;
     uint32_t min_duration = 60 * 5;
@@ -36,7 +37,7 @@ struct config
         // donations
         (max_top_donors)(max_donations)
         // polls
-        (max_choices_size)(max_title_size)(max_options_size)(max_option_size)(max_whitelist_size)(max_blacklist_size)(min_duration)
+        (max_choices_size)(max_title_size)(max_options_size)(max_option_size)(max_other_size)(max_whitelist_size)(max_blacklist_size)(min_duration)
         // account lists
         (superusers)(moderators)(blacklist)(graylist)
         // misc
