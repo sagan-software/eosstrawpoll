@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.hpp"
+#include <eosstrawpoll/types.hpp>
 #include <eosiolib/singleton.hpp>
 
 namespace eosstrawpoll

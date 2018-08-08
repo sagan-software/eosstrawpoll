@@ -8,24 +8,42 @@
     flex-direction: column;
 }
 
-.app__header {
-    display: flex;
+.app__container {
+    max-width: var(--container-width);
+    margin: 0 auto;
 }
 
-.app__header > * {
-    padding: 10px;
+.app__header {
+    border-bottom: 1px solid #ddd;
+
+    & .app__container {
+        display: flex;
+        align-items: center;
+        min-height: 6rem;
+
+        & * {
+            padding: var(--spacing);
+        }
+    }
+
 }
 
 .app__logo {
+    font-size: 1.8rem;
     font-weight: 700;
 }
 
 .app__nav {
+    font-size: 1.6rem;
     flex: 1;
     align-items: center;
     justify-content: flex-end;
 }
 
 .app__nav > * {
-    padding: 10px;
+    padding: var(--spacing);
+}
+
+.app__user {
+    font-size: 1.4rem;
 }

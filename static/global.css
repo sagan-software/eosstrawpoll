@@ -1,9 +1,52 @@
+:root {
+    --brand-color: #0342bf;
+    --text-color: #444;
+    --background-color: #fff;
+    --spacing: 1rem;
+    --border-radius: 0.3rem;
+    --container-width: 70rem;
+    font-size: 62.5%;
+}
+
 * {
     box-sizing: border-box;
-    font-family: sans-serif;
+    font-family: system-ui;
 }
 
 body {
-    background: #ebebeb;
-    color: #444;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+a:any-link {
+    color: var(--brand-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+button {
+    background-color: var(--brand-color);
+    border-width: 0;
+    border-radius: var(--border-radius);
+    color: #fff;
+    cursor: pointer;
+    outline: 0;
+}
+
+input, textarea {
+    border-radius: var(--border-radius);
+}
+
+/* LastPass overrides */
+input, textarea {
+    background-image: none !important;
+}
+
+[id*=__lpform] {
+    display: none;
+    height: 0;
+    width: 0;
 }

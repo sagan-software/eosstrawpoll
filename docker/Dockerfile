@@ -21,15 +21,16 @@ ARG wasmsdk_fork=EOSIO
 ARG wasmsdk_branch=master
 RUN git clone -b $wasmsdk_branch --recursive https://github.com/$wasmsdk_fork/eosio.wasmsdk /eosio.wasmsdk
 WORKDIR /eosio.wasmsdk
+COPY ./build_wasmsdk.sh ./build.sh
 RUN echo 1 | ./build.sh $symbol
-RUN cd build && make install
+RUN ./install.sh
 
 # Done building. Set default WORKDIR.
 WORKDIR /
 
 # Environment variables
 ENV SYMBOL $symbol
-ENV PATH /usr/local/eosio.wasmsdk/bin:/usr/local/eosio/bin:$PATH
+ENV PATH $PATH:/usr/local/eosio.wasmsdk/bin:/usr/local/eosio/bin
 
 # Data dir
 VOLUME /eos/build/data-dir
@@ -44,7 +45,6 @@ COPY ./config.ini $CONFIG_DIR
 VOLUME /contracts
 COPY ./build_contracts.sh /
 RUN chmod +x /build_contracts.sh
-RUN /build_contracts.sh
 
 # For setting up system contracts
 COPY ./setup_chain.sh /

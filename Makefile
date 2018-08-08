@@ -8,11 +8,11 @@ EOSIOCPP := $(DOCKER) eosiocpp
 DIST_WEBSITE := dist/website
 DIST_CONTRACT := dist/contract
 
-build: website contract
-.PHONY: build
-
 clean: clean-website
 .PHONY: clean
+
+build: clean website
+.PHONY: build
 
 install: node_modules
 	git submodule update --init --recursive
@@ -73,11 +73,7 @@ watch-webpack: $(DIST_WEBSITE)
 css: $(DIST_WEBSITE)
 	$(NPM)/postcss \
         static/index.css \
-        --no-map \
-        --output $(DIST_WEBSITE)/index.css \
-        --use postcss-import \
-        --use postcss-preset-env \
-        --use cssnano
+        --output $(DIST_WEBSITE)/index.css
 .PHONY: css
 
 clean-css:
@@ -87,11 +83,7 @@ clean-css:
 watch-css: $(DIST_WEBSITE)
 	$(NPM)/postcss \
         static/index.css \
-        --no-map \
         --output $(DIST_WEBSITE)/index.css \
-        --use postcss-import \
-        --use postcss-preset-env \
-        --use cssnano \
 		--watch
 .PHONY: watch-css
 
@@ -130,19 +122,20 @@ test:
 
 docker:
 	docker build \
-		--tag sagansoftware/eos-dev:v1.1.0 \
-		--build-arg eos_branch=v1.1.0 \
+		--tag sagansoftware/eos:v1.1.3 \
+		--build-arg eos_branch=v1.1.3 \
+		--memory 12G \
 		./docker
 .PHONY: docker
 
 clean-docker:
-    docker kill $(docker ps -q)
+	docker kill $(docker ps -q)
 .PHONY: clean-docker
 
 full-clean-docker: clean-docker
-    docker rm $(docker ps -a -q)
-    docker rmi $(docker images -q)
-    docker system prune
+	docker rm $(docker ps -a -q)
+	docker rmi $(docker images -q)
+	docker system prune
 .PHONY: full-clean-docker
 
 chain-bios:
@@ -178,9 +171,23 @@ $(DIST_CONTRACT):
 	mkdir -p $(DIST_CONTRACT)
 
 contract: $(DIST_CONTRACT)
-    $(EOSIOCPP) \
-        --outname /contracts/eosstrawpoll/eosstrawpoll.wast \
-        /contracts/eosstrawpoll/eosstrawpoll.cpp
+	# $(EOSIOCPP) \
+	# 	--outname /contracts/eosstrawpoll/eosstrawpoll.wast \
+	# 	/contracts/eosstrawpoll/eosstrawpoll.cpp
+	docker run \
+		--interactive \
+		--tty \
+		--rm \
+		--entrypoint eosio-cpp \
+		--volume $(PWD)/contract:/contract \
+		sagansoftware/eos:v1.1.3 \
+		-I=/root/opt/boost/include \
+		-o=/contract/test.wasm \
+		-O=3 \
+		-lto-opt=O3 \
+		-fmerge-all-constants \
+		-fstrict-return \
+		/contract/eosstrawpoll.cpp
 .PHONY: contract
 
 test-contract: $(DIST_CONTRACT)

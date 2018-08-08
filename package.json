@@ -9,6 +9,25 @@
     "start": "make start",
     "build": "make build"
   },
+  "postcss": {
+    "map": false,
+    "plugins": {
+      "postcss-import": {},
+      "postcss-preset-env": {
+        "stage": 0
+      },
+      "cssnano": {
+        "preset": [
+          "default",
+          {
+            "discardComments": {
+              "removeAll": true
+            }
+          }
+        ]
+      }
+    }
+  },
   "dependencies": {
     "browser-sync": "^2.24.6",
     "concurrently": "^3.6.1",

@@ -19,13 +19,17 @@ mod home_page;
 mod poll_form;
 mod router;
 mod services;
+mod svg;
 
 use context::Context;
 use home_page::HomePage;
 use router::Route;
 use services::scatter::{self, Identity, ScatterError, ScatterService};
 use stdweb::traits::IEvent;
+use stdweb::unstable::TryFrom;
+use stdweb::web::Node;
 use yew::prelude::*;
+use yew::virtual_dom::VNode;
 
 pub enum Page {
     Loading,
@@ -169,18 +173,20 @@ impl Model {
     fn view_header(&self) -> Html<Self> {
         html! {
             <header class="app__header", >
-                <a
-                    class="app__logo",
-                    href="/",
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::NavigateTo(Page::Home)
-                    },
-                >
-                    { "EOS Straw Poll" }
-                </a>
-                { self.view_nav() }
-                { self.view_user() }
+                <div class="app__container", >
+                    <a
+                        class="app__logo",
+                        href="/",
+                        onclick=|e| {
+                            e.prevent_default();
+                            Msg::NavigateTo(Page::Home)
+                        },
+                    >
+                        { "EOS Straw Poll" }
+                    </a>
+                    { self.view_nav() }
+                    { self.view_user() }
+                </div>
             </header>
         }
     }
@@ -188,7 +194,6 @@ impl Model {
     fn view_nav(&self) -> Html<Self> {
         html! {
             <nav class="app__nav", >
-                { self.view_nav_link("Create") }
                 { self.view_nav_link("Popular") }
                 { self.view_nav_link("Recent") }
                 // <button onclick=|_| Msg::NavigateTo(Page::Home),>{ "Go to Home" }</button>
@@ -201,8 +206,16 @@ impl Model {
 
     fn view_nav_link(&self, text: &str) -> Html<Self> {
         html! {
-            <a class="app__link", href="/", >{ text }</a>
+            <a class="app__link", href="/", >
+                { self.view_icon() }
+                { text }
+            </a>
         }
+    }
+
+    pub fn view_icon(&self) -> Html<Self> {
+        let node = Node::from_html("<svg></svg>").unwrap();
+        VNode::VRef(node)
     }
 
     fn view_user(&self) -> Html<Self> {
@@ -262,7 +275,9 @@ impl Model {
     fn view_footer(&self) -> Html<Self> {
         html!{
             <footer class="app__footer", >
-                { "Footer" }
+                <div class="app__container", >
+                    { "Footer" }
+                </div>
             </footer>
         }
     }

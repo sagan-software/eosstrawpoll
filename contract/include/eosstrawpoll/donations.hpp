@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.hpp"
+#include <eosstrawpoll/types.hpp>
 #include <eosiolib/asset.hpp>
 #include <eosiolib/multi_index.hpp>
 

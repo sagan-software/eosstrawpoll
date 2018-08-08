@@ -82,15 +82,15 @@ impl Renderable<HomePage> for HomePage {
     fn view(&self) -> Html<Self> {
         html! {
             <div class="home_page", >
-                <header class="page__header", >
+                <header class="page__header app__container", >
                     <h1 class="page__title", >
                         { "Create real-time polls on EOS blockchains" }
                     </h1>
                 </header>
-                <div>
+                <div class="app__container", >
                     <PollForm: context=&self.context, />
                 </div>
-                <div class="activity", >
+                <div class="app__container", >
                     <div class="popular_polls", >
                         <h2> { "Popular Polls" } </h2>
                         <ul>

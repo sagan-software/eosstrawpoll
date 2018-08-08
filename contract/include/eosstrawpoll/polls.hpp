@@ -1,6 +1,6 @@
 #pragma once
 
-#include "votes.hpp"
+#include <eosstrawpoll/votes.hpp>
 
 namespace eosstrawpoll
 {
@@ -24,6 +24,7 @@ struct poll
     timestamp create_time;
     timestamp open_time;
     timestamp close_time;
+    bool allow_other;
 
     // Indexing functions
     uint64_t primary_key() const { return id; }
@@ -36,7 +37,7 @@ struct poll
     bool is_closed() const;
     double calculate_popularity(double popularity_gravity) const;
 
-    EOSLIB_SERIALIZE(poll, (id)(name)(creator)(title)(options)(votes)(min_num_choices)(max_num_choices)(whitelist)(blacklist)(create_time)(open_time)(close_time))
+    EOSLIB_SERIALIZE(poll, (id)(name)(creator)(title)(options)(votes)(min_num_choices)(max_num_choices)(whitelist)(blacklist)(create_time)(open_time)(close_time)(allow_other))
 };
 
 typedef multi_index<N(polls), poll> polls_index;

@@ -1,18 +1,24 @@
-.poll_form { }
+.poll_form {
+    background-color: #ebebeb;
+    border-radius: var(--border-radius);
+    padding: var(--spacing);
 
-.poll_form input,
-.poll_form textarea {
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin: 0;
-    display: block;
+    & input,
+    & textarea {
+        border: 1px solid #ccc;
+        padding: var(--spacing);
+        margin: 0;
+        display: block;
+        font-size: 1.4rem;
+
+        &:focus {
+            outline: 0;
+            border-color: var(--brand-color);
+        }
+    }
+
 }
 
-.poll_form input:focus,
-.poll_form textarea:focus {
-    outline: 0;
-    border-color: blue;
-}
 
 .poll_form__title { }
 
@@ -25,9 +31,7 @@
 
 .poll_form__options,
 .poll_form__advanced {
-    border: 1px solid #ccc;
     padding: 15px;
-    background-color: #fff;
     margin-bottom: 5px;
 }
 

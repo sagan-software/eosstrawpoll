@@ -1,8 +1,8 @@
 #pragma once
 
-#include "config.hpp"
-#include "donations.hpp"
-#include "polls.hpp"
+#include <eosstrawpoll/config.hpp>
+#include <eosstrawpoll/donations.hpp>
+#include <eosstrawpoll/polls.hpp>
 
 namespace eosstrawpoll
 {
