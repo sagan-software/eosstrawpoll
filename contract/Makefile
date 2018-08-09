@@ -56,7 +56,20 @@ chain-accounts:
 $(DIST):
 	mkdir -p $(DIST)
 
+bash:
+	docker run \
+		--interactive \
+		--tty \
+		--rm \
+		--entrypoint /bin/bash \
+		--volume $(PWD):/contract:ro \
+		--volume $(DIST):/dist \
+		--volume $(PWD)/eosio.contracts:/eosio.contracts \
+		sagansoftware/eos:v1.1.3
+.PHONY: bash
+
 build: $(DIST)
+	mkdir -p ./build
 	# $(EOSIOCPP) \
 	# 	--outname /contracts/eosstrawpoll/eosstrawpoll.wast \
 	# 	/contracts/eosstrawpoll/eosstrawpoll.cpp
@@ -64,9 +77,11 @@ build: $(DIST)
 		--interactive \
 		--tty \
 		--rm \
-		--entrypoint eosio-cpp \
+		# --entrypoint eosio-cpp \
+		--entrypoint cmake
 		--volume $(PWD):/contract:ro \
 		--volume $(DIST):/dist \
+		--volume $(PWD)/build:/build \
 		sagansoftware/eos:v1.1.3 \
 		-I=/contract/include \
 		-I=/root/opt/boost/include \
@@ -78,6 +93,24 @@ build: $(DIST)
 		/contract/src/eosstrawpoll.cpp
 .PHONY: contract
 
-test: $(DIST)
-	$(DOCKER) /build_contracts.sh
+test-in-docker:
+	cd /build && \
+		cmake /contract && \
+		make && \
+		./tests/unit_test
+.PHONY: test-in-docker
+
+test:
+	rm -Rf ./build
+	mkdir -p ./build
+	docker run \
+		--interactive \
+		--tty \
+		--rm \
+		--workdir /contract \
+		--volume $(PWD):/contract:ro \
+		--volume $(PWD)/build:/build \
+		--entrypoint make \
+		sagansoftware/eos:v1.1.3 \
+		test-in-docker
 .PHONY: test-contract

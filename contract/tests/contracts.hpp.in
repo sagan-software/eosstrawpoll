@@ -1,0 +1,27 @@
+#pragma once
+#include <eosio/testing/tester.hpp>
+
+namespace eosstrawpoll
+{
+namespace testing
+{
+
+struct contracts
+{
+    static std::vector<uint8_t> wasm()
+    {
+        return eosio::testing::read_wasm("${CMAKE_BINARY_DIR}/../eosstrawpoll.wasm");
+    }
+
+    static std::string wast()
+    {
+        return eosio::testing::read_wast("${CMAKE_BINARY_DIR}/../eosstrawpoll.wast");
+    }
+
+    static std::vector<char> abi()
+    {
+        return eosio::testing::read_abi("${CMAKE_BINARY_DIR}/../eosstrawpoll.abi");
+    }
+};
+} // namespace testing
+} // namespace eosstrawpoll

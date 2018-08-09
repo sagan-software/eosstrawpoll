@@ -5,6 +5,6 @@
 /contract/*.wast
 /contract/*.wasm
 /contract/*.abi
-/contract/dist
+/contract/build
 /website/dist
 .DS_Store
