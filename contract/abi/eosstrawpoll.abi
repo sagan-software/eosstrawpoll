@@ -2,11 +2,399 @@
     "version": "eosio::abi/1.0",
     "types": [
         {
+            "new_type_name": "account_name",
+            "type": "name"
+        },
+        {
             "new_type_name": "poll_name",
-            "type": "account_name"
+            "type": "name"
+        },
+        {
+            "new_type_name": "time",
+            "type": "uint32"
         }
     ],
-    "structs": [],
-    "actions": [],
-    "tables": []
+    "structs": [
+        {
+            "name": "config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "max_new_polls",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_popular_polls",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_top_donors",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_new_donations",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_title_size",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_options_size",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_option_size",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_whitelist_size",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_blacklist_size",
+                    "type": "uint16"
+                },
+                {
+                    "name": "min_duration",
+                    "type": "uint32"
+                },
+                {
+                    "name": "blacklist",
+                    "type": "account_name[]"
+                },
+                {
+                    "name": "graylist",
+                    "type": "account_name[]"
+                },
+                {
+                    "name": "popularity_gravity",
+                    "type": "float64"
+                },
+                {
+                    "name": "max_metadata_size",
+                    "type": "uint16"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "createpoll",
+            "base": "",
+            "fields": [
+                {
+                    "name": "creator",
+                    "type": "account_name"
+                },
+                {
+                    "name": "slug",
+                    "type": "poll_name"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "options",
+                    "type": "string[]"
+                },
+                {
+                    "name": "min_num_choices",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_num_choices",
+                    "type": "uint16"
+                },
+                {
+                    "name": "whitelist",
+                    "type": "account_name[]"
+                },
+                {
+                    "name": "blacklist",
+                    "type": "account_name[]"
+                },
+                {
+                    "name": "open_time",
+                    "type": "time"
+                },
+                {
+                    "name": "close_time",
+                    "type": "time"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "poll",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "creator",
+                    "type": "account_name"
+                },
+                {
+                    "name": "slug",
+                    "type": "poll_name"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "options",
+                    "type": "string[]"
+                },
+                {
+                    "name": "min_num_choices",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_num_choices",
+                    "type": "uint16"
+                },
+                {
+                    "name": "votes",
+                    "type": "vote[]"
+                },
+                {
+                    "name": "whitelist",
+                    "type": "account_name[]"
+                },
+                {
+                    "name": "blacklist",
+                    "type": "account_name[]"
+                },
+                {
+                    "name": "create_time",
+                    "type": "time"
+                },
+                {
+                    "name": "open_time",
+                    "type": "time"
+                },
+                {
+                    "name": "close_time",
+                    "type": "time"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                },
+                {
+                    "name": "popularity",
+                    "type": "float64"
+                }
+            ]
+        },
+        {
+            "name": "vote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "voter",
+                    "type": "account_name"
+                },
+                {
+                    "name": "created",
+                    "type": "time"
+                },
+                {
+                    "name": "staked",
+                    "type": "uint64"
+                },
+                {
+                    "name": "choices",
+                    "type": "uint16[]"
+                }
+            ]
+        },
+        {
+            "name": "destroypoll",
+            "base": "",
+            "fields": [
+                {
+                    "name": "creator",
+                    "type": "account_name"
+                },
+                {
+                    "name": "slug",
+                    "type": "poll_name"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "createvote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "creator",
+                    "type": "account_name"
+                },
+                {
+                    "name": "slug",
+                    "type": "poll_name"
+                },
+                {
+                    "name": "voter",
+                    "type": "account_name"
+                },
+                {
+                    "name": "choices",
+                    "type": "uint16[]"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "destroyvote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "creator",
+                    "type": "account_name"
+                },
+                {
+                    "name": "slug",
+                    "type": "poll_name"
+                },
+                {
+                    "name": "voter",
+                    "type": "account_name"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "donation",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "account",
+                    "type": "account_name"
+                },
+                {
+                    "name": "donated",
+                    "type": "uint64"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                },
+                {
+                    "name": "created",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "donor",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "account_name"
+                },
+                {
+                    "name": "donated",
+                    "type": "uint64"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "setconfig",
+            "type": "config",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createpoll",
+            "type": "createpoll",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "destroypoll",
+            "type": "destroypoll",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createvote",
+            "type": "createvote",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "destroyvote",
+            "type": "destroyvote",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "config",
+            "type": "config",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "polls",
+            "type": "poll",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "popularpolls",
+            "type": "poll",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "newpolls",
+            "type": "poll",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "newdonations",
+            "type": "donation",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "topdonors",
+            "type": "donor",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ]
 }

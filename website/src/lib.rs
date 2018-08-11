@@ -26,10 +26,7 @@ use home_page::HomePage;
 use router::Route;
 use services::scatter::{self, Identity, ScatterError, ScatterService};
 use stdweb::traits::IEvent;
-use stdweb::unstable::TryFrom;
-use stdweb::web::Node;
 use yew::prelude::*;
-use yew::virtual_dom::VNode;
 
 pub enum Page {
     Loading,
@@ -42,14 +39,14 @@ pub enum Page {
 
 const EOS_MAINNET: &'static str =
     "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
+
 const TELOS_TESTNET: &'static str =
     "9e46127b78e0a7f6906f549bba3d23b264c70ee6ec781aed9d4f1b72732f34fc";
 
 pub struct Model {
     page: Page,
     router: Box<Bridge<router::Router<()>>>,
-    context: Context,
-    scatter: ScatterService,
+    context: Box<Context>,
     link: ComponentLink<Model>,
 }
 
@@ -60,6 +57,7 @@ pub enum Msg {
     Login,
     Logout,
     GotIdentity(Result<Identity, ScatterError>),
+    ScatterConnected(Option<ScatterService>),
 }
 
 impl Component for Model {
@@ -71,17 +69,15 @@ impl Component for Model {
         let mut router = router::Router::bridge(callback);
         router.send(router::Request::GetCurrentRoute);
 
-        let scatter = ScatterService::new();
-        let mut context = Context::default();
-        if let Some(identity) = scatter.identity() {
-            context.identity = Some(Ok(identity));
-        }
+        let callback = link.send_back(Msg::ScatterConnected);
+        ScatterService::connect("eosstrawpoll", callback);
+
+        let context = Context::default();
 
         Model {
             page: Page::Loading,
             router,
-            context,
-            scatter,
+            context: Box::new(context),
             link,
         }
     }
@@ -136,23 +132,47 @@ impl Component for Model {
 
                 true
             }
-            Msg::Login => {
-                let callback = self.link.send_back(Msg::GotIdentity);
-                let chain_id = EOS_MAINNET.to_string();
-                self.scatter.get_identity_for_chain(chain_id, callback);
-                true
-            }
-            Msg::Logout => {
-                let callback = self.link.send_back(|_| Msg::Ignore);
-                self.scatter.forget_identity(callback);
-                self.context.identity = None;
-                true
-            }
+            Msg::Login => match self.context.scatter {
+                Some(ref scatter) => {
+                    info!("attempting to login");
+                    let callback = self.link.send_back(Msg::GotIdentity);
+                    let chain_id = EOS_MAINNET.to_string();
+                    scatter.get_identity_for_chain(chain_id, callback);
+                    true
+                }
+                None => {
+                    info!("no scatter");
+                    false
+                }
+            },
+            Msg::Logout => match self.context.scatter {
+                Some(ref scatter) => {
+                    let callback = self.link.send_back(|_| Msg::Ignore);
+                    scatter.forget_identity(callback);
+                    self.context.identity = None;
+                    true
+                }
+                None => false,
+            },
             Msg::GotIdentity(result) => {
                 info!("got identity {:#?}", result);
                 self.context.identity = Some(result);
                 true
             }
+            Msg::ScatterConnected(scatter) => match scatter {
+                Some(scatter) => {
+                    info!("connected to scatter: {:#?}", scatter);
+                    if let Some(identity) = scatter.identity() {
+                        self.context.identity = Some(Ok(identity));
+                    }
+                    self.context.scatter = Some(Box::new(scatter));
+                    true
+                }
+                None => {
+                    warn!("couldn't connect to scatter");
+                    false
+                }
+            },
         }
     }
 }
@@ -207,15 +227,9 @@ impl Model {
     fn view_nav_link(&self, text: &str) -> Html<Self> {
         html! {
             <a class="app__link", href="/", >
-                { self.view_icon() }
                 { text }
             </a>
         }
-    }
-
-    pub fn view_icon(&self) -> Html<Self> {
-        let node = Node::from_html("<svg></svg>").unwrap();
-        VNode::VRef(node)
     }
 
     fn view_user(&self) -> Html<Self> {
@@ -242,7 +256,7 @@ impl Model {
         }
     }
 
-    fn view_user_ok(&self, identity: &Identity) -> Html<Self> {
+    fn view_user_ok(&self, _identity: &Identity) -> Html<Self> {
         html! {
             <button
                 class="app__logout",
@@ -253,7 +267,7 @@ impl Model {
         }
     }
 
-    fn view_user_err(&self, error: &ScatterError) -> Html<Self> {
+    fn view_user_err(&self, _error: &ScatterError) -> Html<Self> {
         html! {
             <button
                 class="app__login",

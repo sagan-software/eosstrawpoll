@@ -1,43 +1,175 @@
+#include <boost/test/unit_test.hpp>
+#include <eosio/chain/contract_table_objects.hpp>
+#include <eosio/chain/global_property_object.hpp>
+#include <eosio/chain/resource_limits.hpp>
+#include <eosio/chain/wast_to_wasm.hpp>
+#include <cstdlib>
+#include <iostream>
+#include <fc/log/logger.hpp>
+#include <eosio/chain/exceptions.hpp>
+#include <Runtime/Runtime.h>
+
 #include "eosstrawpoll_tester.hpp"
 
+using namespace eosstrawpoll;
+
 BOOST_AUTO_TEST_SUITE(eosstrawpoll_tests)
+
+BOOST_FIXTURE_TEST_CASE(can_set_config, eosstrawpoll_tester)
+try
+{
+    {
+        auto out = setconfig(
+            N(eosstrawpoll),
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            vector<account_name>{},
+            vector<account_name>{},
+            vector<account_name>{},
+            vector<account_name>{},
+            1.1,
+            1,
+            "");
+        BOOST_REQUIRE_EQUAL(success(), out);
+    }
+    {
+        auto out = setconfig(
+            N(alice1111111),
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            vector<account_name>{},
+            vector<account_name>{},
+            vector<account_name>{},
+            vector<account_name>{},
+            1.1,
+            1,
+            "");
+        BOOST_REQUIRE_EQUAL(
+            "missing authority of eosstrawpoll",
+            out);
+    }
+}
+FC_LOG_AND_RETHROW()
 
 BOOST_FIXTURE_TEST_CASE(can_create_polls, eosstrawpoll_tester)
 try
 {
-    const account_name creator = N(alice);
-    const string title = "Test poll";
-    const vector<string> options{"Option A", "Option B", "Option C"};
-    const vector<account_name> blacklist{N(name1), N(name2)};
-    const vector<account_name> whitelist{N(name3), N(name4)};
-    const uint8_t min_num_choices = 1;
-    const uint8_t max_num_choices = 3;
-    const timestamp open_time = 0;
-    const timestamp close_time = 0;
-
-    const uuid id = require_create_poll(
-        creator,
-        title,
-        options,
-        whitelist,
-        blacklist,
-        min_num_choices,
-        max_num_choices,
-        open_time,
-        close_time);
-
-    const poll_t p = get_poll(creator, id);
-    BOOST_REQUIRE_EQUAL(p.id, id);
-    BOOST_REQUIRE_EQUAL(p.title, title);
-    BOOST_REQUIRE_MESSAGE(p.options == options, "options are different");
-    BOOST_REQUIRE_MESSAGE(p.blacklist == blacklist, "blacklist is different");
-    BOOST_REQUIRE_MESSAGE(p.whitelist == whitelist, "whitelist is different");
-    BOOST_REQUIRE_EQUAL(p.min_num_choices, min_num_choices);
-    BOOST_REQUIRE_EQUAL(p.max_num_choices, max_num_choices);
-    BOOST_REQUIRE_EQUAL(p.open_time, now());
-    BOOST_REQUIRE_EQUAL(p.close_time, close_time);
+    {
+        const account_name creator = N(alice1111111);
+        const poll_name slug = N(test);
+        const string title = "Test poll";
+        const vector<string> options{"Option A", "Option B", "Option C"};
+        const vector<account_name> blacklist{N(bob111111111)};
+        const vector<account_name> whitelist{N(carol1111111)};
+        const uint8_t min_num_choices = 1;
+        const uint8_t max_num_choices = 3;
+        const timestamp open_time = 0;
+        const timestamp close_time = now() + 700;
+        const string metadata = "test";
+        auto out = createpoll(
+            creator,
+            slug,
+            title,
+            options,
+            min_num_choices,
+            max_num_choices,
+            whitelist,
+            blacklist,
+            open_time,
+            close_time,
+            metadata);
+        BOOST_REQUIRE_EQUAL(success(), out);
+        const poll p = get_poll(creator, N(polls), slug);
+        // BOOST_REQUIRE_EQUAL(p.id, slug);
+        BOOST_REQUIRE_EQUAL(p.creator, creator);
+        // BOOST_REQUIRE_EQUAL(p.slug, slug);
+        BOOST_REQUIRE_EQUAL(p.title, title);
+        BOOST_REQUIRE_MESSAGE(p.options == options, "options are different");
+        BOOST_REQUIRE_EQUAL(p.min_num_choices, min_num_choices);
+        BOOST_REQUIRE_EQUAL(p.max_num_choices, max_num_choices);
+        BOOST_REQUIRE_MESSAGE(p.whitelist == whitelist, "whitelist is different");
+        BOOST_REQUIRE_MESSAGE(p.blacklist == blacklist, "blacklist is different");
+        BOOST_REQUIRE_EQUAL(p.open_time, open_time);
+        BOOST_REQUIRE_EQUAL(p.close_time, close_time);
+        BOOST_REQUIRE_EQUAL(p.metadata, metadata);
+    }
 }
 FC_LOG_AND_RETHROW()
+
+BOOST_FIXTURE_TEST_CASE(tmptest2, eosstrawpoll_tester)
+try
+{
+    BOOST_REQUIRE_EQUAL(1, 1);
+}
+FC_LOG_AND_RETHROW()
+
+BOOST_FIXTURE_TEST_CASE(tmptest3, eosstrawpoll_tester)
+try
+{
+    BOOST_REQUIRE_EQUAL(1, 1);
+}
+FC_LOG_AND_RETHROW()
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// BOOST_AUTO_TEST_SUITE(eosstrawpoll_tests)
+
+// BOOST_FIXTURE_TEST_CASE(can_create_polls, eosstrawpoll_tester)
+// try
+// {
+//     const account_name creator = N(alice);
+//     const string title = "Test poll";
+//     const vector<string> options{"Option A", "Option B", "Option C"};
+//     const vector<account_name> blacklist{N(name1), N(name2)};
+//     const vector<account_name> whitelist{N(name3), N(name4)};
+//     const uint8_t min_num_choices = 1;
+//     const uint8_t max_num_choices = 3;
+//     const timestamp open_time = 0;
+//     const timestamp close_time = 0;
+
+//     const uuid id = require_create_poll(
+//         creator,
+//         title,
+//         options,
+//         whitelist,
+//         blacklist,
+//         min_num_choices,
+//         max_num_choices,
+//         open_time,
+//         close_time);
+
+//     const poll_t p = get_poll(creator, id);
+//     BOOST_REQUIRE_EQUAL(p.id, id);
+//     BOOST_REQUIRE_EQUAL(p.title, title);
+//     BOOST_REQUIRE_MESSAGE(p.options == options, "options are different");
+//     BOOST_REQUIRE_MESSAGE(p.blacklist == blacklist, "blacklist is different");
+//     BOOST_REQUIRE_MESSAGE(p.whitelist == whitelist, "whitelist is different");
+//     BOOST_REQUIRE_EQUAL(p.min_num_choices, min_num_choices);
+//     BOOST_REQUIRE_EQUAL(p.max_num_choices, max_num_choices);
+//     BOOST_REQUIRE_EQUAL(p.open_time, now());
+//     BOOST_REQUIRE_EQUAL(p.close_time, close_time);
+// }
+// FC_LOG_AND_RETHROW()
 
 // BOOST_FIXTURE_TEST_CASE(can_destroy_polls, eosstrawpoll_tester)
 // try
@@ -690,4 +822,4 @@ FC_LOG_AND_RETHROW()
 // }
 // FC_LOG_AND_RETHROW()
 
-BOOST_AUTO_TEST_SUITE_END()
+// BOOST_AUTO_TEST_SUITE_END()

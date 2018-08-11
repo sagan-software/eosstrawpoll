@@ -2,8 +2,8 @@ use serde_json;
 use stdweb::Value;
 use yew::prelude::*;
 
-#[derive(Default)]
-pub struct ScatterService {}
+#[derive(Debug, Clone)]
+pub struct ScatterService(Value);
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct RequiredFields {
@@ -68,14 +68,44 @@ impl PartialEq for Identity {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScatterError {
+    NotConnected,
     Locked,
     Rejected,
     Unknown,
 }
 
 impl ScatterService {
-    pub fn new() -> Self {
-        Self {}
+    pub fn connect(_appname: &str, callback: Callback<Option<ScatterService>>) {
+        let callback = move |connected: bool, lib: Value| {
+            let scatter = if connected {
+                Some(ScatterService(lib))
+            } else {
+                None
+            };
+            callback.emit(scatter);
+        };
+        js! { @(no_return)
+            var callback = @{callback};
+
+            if (window.scatter) {
+                var scatter = window.scatter;
+                window.scatter = null;
+                callback(true, scatter);
+                callback.drop();
+            } else {
+                var timeout = setTimeout(function () {
+                    callback(false, null);
+                    callback.drop();
+                }, 10000);
+                document.addEventListener("scatterLoaded", function () {
+                    clearTimeout(timeout);
+                    var scatter = window.scatter;
+                    window.scatter = null;
+                    callback(true, scatter);
+                    callback.drop();
+                });
+            }
+        };
     }
 
     pub fn get_identity(
@@ -83,6 +113,7 @@ impl ScatterService {
         required_fields: Option<RequiredFields>,
         callback: Callback<Result<Identity, ScatterError>>,
     ) {
+        let lib = self.0.as_ref();
         let callback = move |data: Option<String>, error: String| {
             let result = match (data, error.as_str()) {
                 (_, "locked") => Err(ScatterError::Locked),
@@ -91,11 +122,18 @@ impl ScatterService {
                     let identity = serde_json::from_str::<Identity>(&data).unwrap();
                     Ok(identity)
                 }
-                _ => Err(ScatterError::Unknown),
+                _ => {
+                    if error.contains("Connect and Authenticate first") {
+                        Err(ScatterError::NotConnected)
+                    } else {
+                        Err(ScatterError::Unknown)
+                    }
+                }
             };
             callback.emit(result);
         };
         js! { @(no_return)
+            var scatter = @{lib};
             var callback = @{callback};
             var required_fields = @{required_fields};
             try {
@@ -106,13 +144,15 @@ impl ScatterService {
                         callback.drop();
                     })
                     .catch(function (error) {
-                        console.log("error from scatter", error);
-                        callback(null, error.type);
+                        console.log("error from scatter");
+                        console.dir(error);
+                        callback(null, error.type || error.message);
                         callback.drop();
                     });
             } catch (error) {
-                console.log("caught error from scatter", error);
-                callback(null, error);
+                console.log("error from scatter");
+                console.dir(error);
+                callback(null, error.type || error.message);
                 callback.drop();
             }
         };
@@ -136,10 +176,12 @@ impl ScatterService {
     }
 
     pub fn forget_identity(&self, callback: Callback<bool>) {
+        let lib = self.0.as_ref();
         let callback = move |logged_out: bool| {
             callback.emit(logged_out);
         };
         js! { @(no_return)
+            var scatter = @{lib};
             var callback = @{callback};
             try {
                 scatter
@@ -160,7 +202,9 @@ impl ScatterService {
     }
 
     pub fn identity(&self) -> Option<Identity> {
+        let lib = self.0.as_ref();
         let value: Value = js!{
+            var scatter = @{lib};
             try {
                 return JSON.stringify(scatter.identity);
             } catch (_) {

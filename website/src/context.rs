@@ -1,4 +1,4 @@
-use scatter::{Identity, ScatterError};
+use scatter::{Identity, ScatterError, ScatterService};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Lang {
@@ -12,12 +12,13 @@ impl Default for Lang {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Context {
     pub lang: Lang,
     pub endpoint: String,
     pub identity: Option<Result<Identity, ScatterError>>,
     pub chain_id: Option<String>,
+    pub scatter: Option<Box<ScatterService>>,
 }
 
 impl Default for Context {
@@ -27,6 +28,7 @@ impl Default for Context {
             endpoint: "http://api.eosnewyork.io".to_string(),
             identity: None,
             chain_id: None,
+            scatter: None,
         }
     }
 }
@@ -37,5 +39,14 @@ impl PartialEq for Context {
             && self.endpoint == other.endpoint
             && self.identity == other.identity
             && self.chain_id == other.chain_id
+    }
+}
+
+impl Context {
+    pub fn is_logged_in(&self) -> bool {
+        match &self.identity {
+            Some(ref result) => result.is_ok(),
+            None => false,
+        }
     }
 }

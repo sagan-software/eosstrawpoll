@@ -1,11 +1,11 @@
 use context::Context;
 use global_config::GlobalConfig;
+use services::scatter::{self, Identity, ScatterError, ScatterService};
 use std::cmp::{max, min};
 use stdweb::traits::IEvent;
 use stdweb::web::Date;
 use yew::prelude::*;
 
-#[derive(Debug)]
 pub struct PollForm {
     pub title: String,
     pub options: Vec<String>,
@@ -16,38 +16,11 @@ pub struct PollForm {
     pub open_time: u32,
     pub close_time: u32,
     pub submitting: bool,
-    pub context: Context,
+    pub context: Box<Context>,
     pub global_config: GlobalConfig,
     pub active_bps: Vec<String>,
     pub standby_bps: Vec<String>,
-}
-
-impl Default for PollForm {
-    fn default() -> PollForm {
-        PollForm {
-            title: "".to_string(),
-            options: vec!["".to_string(), "".to_string(), "".to_string()],
-            whitelist: vec![],
-            blacklist: vec![],
-            min_num_choices: 1,
-            max_num_choices: 1,
-            open_time: 0,
-            close_time: 0,
-            submitting: false,
-            context: Context::default(),
-            global_config: GlobalConfig::default(),
-            active_bps: vec![
-                "starteosiobp".to_string(),
-                "eoscanadacom".to_string(),
-                "eosnewyorkio".to_string(),
-            ],
-            standby_bps: vec![
-                "eoshuobipool".to_string(),
-                "zbeosbp11111".to_string(),
-                "libertyblock".to_string(),
-            ],
-        }
-    }
+    pub link: ComponentLink<PollForm>,
 }
 
 pub enum Msg {
@@ -66,20 +39,49 @@ pub enum Msg {
     SetMaxChoices(String),
     SetOpenTime(String),
     SetCloseTime(String),
+    GotIdentity(Result<Identity, ScatterError>),
 }
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
-    pub context: Context,
+    pub context: Box<Context>,
 }
+
+const EOS_MAINNET: &'static str =
+    "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
+
+const TELOS_TESTNET: &'static str =
+    "9e46127b78e0a7f6906f549bba3d23b264c70ee6ec781aed9d4f1b72732f34fc";
 
 impl Component for PollForm {
     type Message = Msg;
     type Properties = Props;
-    fn create(props: Self::Properties, _: ComponentLink<Self>) -> Self {
-        let mut poll_form = PollForm::default();
-        poll_form.context = props.context;
-        poll_form
+
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        PollForm {
+            title: "".to_string(),
+            options: vec!["".to_string(), "".to_string(), "".to_string()],
+            whitelist: vec![],
+            blacklist: vec![],
+            min_num_choices: 1,
+            max_num_choices: 1,
+            open_time: 0,
+            close_time: 0,
+            submitting: false,
+            context: props.context,
+            global_config: GlobalConfig::default(),
+            active_bps: vec![
+                "starteosiobp".to_string(),
+                "eoscanadacom".to_string(),
+                "eosnewyorkio".to_string(),
+            ],
+            standby_bps: vec![
+                "eoshuobipool".to_string(),
+                "zbeosbp11111".to_string(),
+                "libertyblock".to_string(),
+            ],
+            link,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -161,8 +163,28 @@ impl Component for PollForm {
                 // TODO change open time based on global config
                 true
             }
+            Msg::GotIdentity(result) => {
+                info!("got identity {:#?}", result);
+                self.context.identity = Some(result);
+                true
+            }
             Msg::Submit => {
-                info!("submitting form {:#?}", self);
+                info!("submitting form");
+                if self.context.is_logged_in() {
+                    info!("logged in, do some stuff");
+                } else {
+                    match self.context.scatter {
+                        Some(ref scatter) => {
+                            info!("attempting to login");
+                            let callback = self.link.send_back(Msg::GotIdentity);
+                            let chain_id = EOS_MAINNET.to_string();
+                            scatter.get_identity_for_chain(chain_id, callback);
+                        }
+                        None => {
+                            info!("no scatter");
+                        }
+                    }
+                }
                 true
             }
         }
@@ -176,6 +198,11 @@ impl Component for PollForm {
 
 impl Renderable<PollForm> for PollForm {
     fn view(&self) -> Html<Self> {
+        let submit_text = if self.context.is_logged_in() {
+            "Create Poll"
+        } else {
+            "Login & Create Poll"
+        };
         html! {
             <form
                 class="poll_form",
@@ -202,7 +229,7 @@ impl Renderable<PollForm> for PollForm {
                         Msg::Submit
                     },
                 >
-                    { "Create Poll" }
+                    { submit_text }
                 </button>
             </form>
         }

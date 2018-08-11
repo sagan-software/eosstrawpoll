@@ -2,7 +2,7 @@ PWD := `pwd`
 PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
 DOCKER := docker-compose exec nodeosd
-CLEOS := $(DOCKER) cleos --url http://nodeosd:8888 --wallet-url http://localhost:8888
+CLEOS := $(DOCKER) cleos --url http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8888
 EOSIOCPP := $(DOCKER) eosiocpp
 DIST := $(PWD)/dist
 
@@ -36,11 +36,11 @@ chain-bios:
 	$(CLEOS) create account eosio eosio.vpay $(PUBKEY) $(PUBKEY)
 	$(CLEOS) create account eosio eosio.saving $(PUBKEY) $(PUBKEY)
 	$(CLEOS) create account eosio eosio.names $(PUBKEY) $(PUBKEY)
-	$(CLEOS) set contract eosio.token /eos/build/contracts/eosio.token
-	$(CLEOS) set contract eosio.msig /eos/build/contracts/eosio.msig
+	$(CLEOS) set contract eosio.token /build/eosio.contracts/eosio.token
+	$(CLEOS) set contract eosio.msig /build/eosio.contracts/eosio.msig
 	$(CLEOS) push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token
 	$(CLEOS) push action eosio.token issue '[ "eosio", "10000000000.0000 SYS", "memo" ]' -p eosio
-	$(CLEOS) set contract eosio /eos/build/contracts/eosio.system
+	$(CLEOS) set contract eosio /build/eosio.contracts/eosio.system
 .PHONY: chain-bios
 
 chain-accounts:
@@ -52,6 +52,9 @@ chain-accounts:
 	$(CLEOS) system newaccount eosio --transfer saganonroids $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 	$(CLEOS) system newaccount eosio --transfer g4ydegenesis $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 .PHONY: chain-accounts
+
+init-chain: build chain-bios chain-accounts deploy
+.PHONY: init-chain
 
 $(DIST):
 	mkdir -p $(DIST)
@@ -68,40 +71,27 @@ bash:
 		sagansoftware/eos:v1.1.3
 .PHONY: bash
 
-build: $(DIST)
+start:
 	mkdir -p ./build
-	# $(EOSIOCPP) \
-	# 	--outname /contracts/eosstrawpoll/eosstrawpoll.wast \
-	# 	/contracts/eosstrawpoll/eosstrawpoll.cpp
-	docker run \
-		--interactive \
+	docker container create \
 		--tty \
-		--rm \
-		# --entrypoint eosio-cpp \
-		--entrypoint cmake
 		--volume $(PWD):/contract:ro \
 		--volume $(DIST):/dist \
 		--volume $(PWD)/build:/build \
-		sagansoftware/eos:v1.1.3 \
-		-I=/contract/include \
-		-I=/root/opt/boost/include \
-		-o=/dist/test2.wasm \
-		-O=3 \
-		-lto-opt=O3 \
-		-fmerge-all-constants \
-		-fstrict-return \
-		/contract/src/eosstrawpoll.cpp
-.PHONY: contract
+		--name eosstrawpoll \
+		sagansoftware/eos:v1.1.3 || exit 0
+	docker start --interactive eosstrawpoll
+.PHONY: start
 
-test-in-docker:
+
+build_docker:
 	cd /build && \
 		cmake /contract && \
 		make && \
-		./tests/unit_test
-.PHONY: test-in-docker
+		./tests/unit_test --show_progress=yes
+.PHONY: build_docker
 
-test:
-	rm -Rf ./build
+build:
 	mkdir -p ./build
 	docker run \
 		--interactive \
@@ -112,5 +102,8 @@ test:
 		--volume $(PWD)/build:/build \
 		--entrypoint make \
 		sagansoftware/eos:v1.1.3 \
-		test-in-docker
-.PHONY: test-contract
+		build_docker
+.PHONY: build
+
+deploy: build
+	$(CLEOS) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi
