@@ -11,19 +11,22 @@ extern crate yew;
 extern crate http;
 #[macro_use]
 extern crate stdweb;
+extern crate rand;
 
+mod agents;
 mod context;
-mod eos;
+mod contract;
 mod global_config;
 mod home_page;
 mod poll_form;
-mod router;
 mod services;
 mod svg;
 
+use agents::router::{self, Route};
 use context::Context;
+use contract::Contract;
 use home_page::HomePage;
-use router::Route;
+use services::eos::{self, EosConfig, EosService};
 use services::scatter::{self, Identity, ScatterError, ScatterService};
 use stdweb::traits::IEvent;
 use yew::prelude::*;
@@ -37,16 +40,16 @@ pub enum Page {
     NotFound(String),
 }
 
-const EOS_MAINNET: &'static str =
-    "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
+const DEVNET: &str = "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f";
 
-const TELOS_TESTNET: &'static str =
-    "9e46127b78e0a7f6906f549bba3d23b264c70ee6ec781aed9d4f1b72732f34fc";
+const EOS_MAINNET: &str = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
+
+const TELOS_TESTNET: &str = "9e46127b78e0a7f6906f549bba3d23b264c70ee6ec781aed9d4f1b72732f34fc";
 
 pub struct Model {
     page: Page,
-    router: Box<Bridge<router::Router<()>>>,
-    context: Box<Context>,
+    router: Box<Bridge<agents::router::Router<()>>>,
+    context: Context,
     link: ComponentLink<Model>,
 }
 
@@ -58,6 +61,8 @@ pub enum Msg {
     Logout,
     GotIdentity(Result<Identity, ScatterError>),
     ScatterConnected(Option<ScatterService>),
+    GotInfo(Result<eos::Info, String>),
+    GotContract(Result<Contract, String>),
 }
 
 impl Component for Model {
@@ -68,16 +73,34 @@ impl Component for Model {
         let callback = link.send_back(Msg::HandleRoute);
         let mut router = router::Router::bridge(callback);
         router.send(router::Request::GetCurrentRoute);
+        {
+            let callback = link.send_back(Msg::ScatterConnected);
+            ScatterService::connect("eosstrawpoll", callback);
+        }
 
-        let callback = link.send_back(Msg::ScatterConnected);
-        ScatterService::connect("eosstrawpoll", callback);
+        let eos = EosService::new(EosConfig {
+            chain_id: Some(DEVNET.to_string()),
+            key_provider: None,
+            http_endpoint: Some("http://localhost:8888".to_string()),
+            expire_in_seconds: None,
+            broadcast: None,
+            verbose: None,
+            debug: None,
+            sign: None,
+        });
 
-        let context = Context::default();
+        {
+            let callback = link.send_back(Msg::GotInfo);
+            eos.get_info(callback);
+        }
+
+        let mut context = Context::default();
+        context.eos = Some(Box::new(eos));
 
         Model {
             page: Page::Loading,
             router,
-            context: Box::new(context),
+            context,
             link,
         }
     }
@@ -136,7 +159,7 @@ impl Component for Model {
                 Some(ref scatter) => {
                     info!("attempting to login");
                     let callback = self.link.send_back(Msg::GotIdentity);
-                    let chain_id = EOS_MAINNET.to_string();
+                    let chain_id = DEVNET.to_string();
                     scatter.get_identity_for_chain(chain_id, callback);
                     true
                 }
@@ -157,6 +180,34 @@ impl Component for Model {
             Msg::GotIdentity(result) => {
                 info!("got identity {:#?}", result);
                 self.context.identity = Some(result);
+
+                let scatter = self.context.scatter.as_ref().unwrap();
+                let mut eos_config = EosConfig::default();
+                eos_config.chain_id = Some(DEVNET.to_string());
+                let eos = scatter.eos(
+                    scatter::Network {
+                        chain_id: Some(DEVNET.to_string()),
+                        protocol: Some("http".to_string()),
+                        blockchain: Some("eos".to_string()),
+                        host: Some("localhost".to_string()),
+                        port: Some(8888),
+                    },
+                    eos_config,
+                );
+                let callback = self.link.send_back(Msg::GotContract);
+                Contract::from_eos(
+                    eos,
+                    scatter::RequiredFields {
+                        accounts: Some(vec![scatter::Network {
+                            chain_id: Some(DEVNET.to_string()),
+                            protocol: Some("http".to_string()),
+                            blockchain: Some("eos".to_string()),
+                            host: Some("localhost".to_string()),
+                            port: Some(8888),
+                        }]),
+                    },
+                    callback,
+                );
                 true
             }
             Msg::ScatterConnected(scatter) => match scatter {
@@ -173,6 +224,24 @@ impl Component for Model {
                     false
                 }
             },
+            Msg::GotInfo(result) => {
+                info!("got info {:#?}", result);
+                true
+            }
+            Msg::GotContract(result) => {
+                info!("got contract {:#?}", result);
+                match result {
+                    Ok(contract) => {
+                        self.context.endpoint = self.context.endpoint.clone(); // do this to force updating props
+                        self.context.contract = Some(Box::new(contract));
+                        true
+                    }
+                    Err(error) => {
+                        error!("error getting contract: {:#?}", error);
+                        false
+                    }
+                }
+            }
         }
     }
 }
@@ -257,7 +326,9 @@ impl Model {
     }
 
     fn view_user_ok(&self, _identity: &Identity) -> Html<Self> {
+        let account_name = self.context.account_name().unwrap_or("Anon".to_string());
         html! {
+            <p>{ "Logged in as " }{ account_name }</p>
             <button
                 class="app__logout",
                 onclick=|_| Msg::Logout,
@@ -297,6 +368,7 @@ impl Model {
     }
 
     fn view_page(&self) -> Html<Model> {
+        info!("RENDERING PAGE");
         match self.page {
             Page::Home => html! {
                 <HomePage: context=&self.context, />

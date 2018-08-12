@@ -98,7 +98,6 @@ watch-css: $(DIST)
 start-server:
 	$(NPM)/browser-sync start \
 		--port 1337 \
-		--https \
 		--single \
 		--server $(DIST) \
 		--no-open \

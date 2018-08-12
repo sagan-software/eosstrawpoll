@@ -1,4 +1,5 @@
 use serde_json;
+use services::eos::{EosConfig, EosService};
 use stdweb::Value;
 use yew::prelude::*;
 
@@ -8,14 +9,14 @@ pub struct ScatterService(Value);
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct RequiredFields {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub accounts: Option<Vec<RequiredAccount>>,
+    pub accounts: Option<Vec<Network>>,
 }
 
 js_serializable!(RequiredFields);
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct RequiredAccount {
+pub struct Network {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chain_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,7 +29,7 @@ pub struct RequiredAccount {
     pub port: Option<u16>,
 }
 
-js_serializable!(RequiredAccount);
+js_serializable!(Network);
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Account {
@@ -75,7 +76,7 @@ pub enum ScatterError {
 }
 
 impl ScatterService {
-    pub fn connect(_appname: &str, callback: Callback<Option<ScatterService>>) {
+    pub fn connect(appname: &str, callback: Callback<Option<ScatterService>>) {
         let callback = move |connected: bool, lib: Value| {
             let scatter = if connected {
                 Some(ScatterService(lib))
@@ -86,10 +87,34 @@ impl ScatterService {
         };
         js! { @(no_return)
             var callback = @{callback};
+            var appname = @{appname};
+
+            // try {
+            //     var ScatterJS = require("scatter-js/dist/scatter.cjs");
+            //     console.time("Test!");
+            //     window.ScatterJS = ScatterJS;
+            //     ScatterJS.scatter
+            //         .connect(appname)
+            //         .then(function (connected) {
+            //             console.log("balls 1");
+            //             console.timeEnd("Test!");
+            //             callback(true, ScatterJS.scatter);
+            //             callback.drop();
+            //         })
+            //         .catch(function (error) {
+            //             console.log("balls 2", error);
+            //             callback(false, null);
+            //             callback.drop();
+            //         })
+            // } catch (error) {
+            //     console.log("balls 3", error, ScatterJS);
+            //     callback(false, null);
+            //     callback.drop();
+            // }
 
             if (window.scatter) {
                 var scatter = window.scatter;
-                window.scatter = null;
+                // window.scatter = null;
                 callback(true, scatter);
                 callback.drop();
             } else {
@@ -100,7 +125,7 @@ impl ScatterService {
                 document.addEventListener("scatterLoaded", function () {
                     clearTimeout(timeout);
                     var scatter = window.scatter;
-                    window.scatter = null;
+                    // window.scatter = null;
                     callback(true, scatter);
                     callback.drop();
                 });
@@ -164,7 +189,7 @@ impl ScatterService {
         callback: Callback<Result<Identity, ScatterError>>,
     ) {
         let required_fields = RequiredFields {
-            accounts: Some(vec![RequiredAccount {
+            accounts: Some(vec![Network {
                 chain_id: Some(chain_id),
                 protocol: None,
                 blockchain: None,
@@ -215,6 +240,19 @@ impl ScatterService {
             Value::String(json) => serde_json::from_str::<Identity>(&json).ok(),
             _ => None,
         }
+    }
+
+    pub fn eos(&self, network: Network, config: EosConfig) -> EosService {
+        let lib = self.0.as_ref();
+        let eos = js! {
+            var scatter = @{lib};
+            var network = @{network};
+            var config = @{config};
+            console.log("scatter.eos", scatter, network, config);
+            var Eos = require("eosjs");
+            return scatter.eos(network, Eos, config);
+        };
+        EosService::from_value(eos)
     }
 
     // pub fn forget_identity

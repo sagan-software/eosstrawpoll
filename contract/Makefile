@@ -72,15 +72,9 @@ bash:
 .PHONY: bash
 
 start:
-	mkdir -p ./build
-	docker container create \
-		--tty \
-		--volume $(PWD):/contract:ro \
-		--volume $(DIST):/dist \
-		--volume $(PWD)/build:/build \
-		--name eosstrawpoll \
-		sagansoftware/eos:v1.1.3 || exit 0
-	docker start --interactive eosstrawpoll
+	docker volume create --name=nodeos-data-volume
+	docker volume create --name=keosd-data-volume
+	docker-compose up
 .PHONY: start
 
 
@@ -107,3 +101,6 @@ build:
 
 deploy: build
 	$(CLEOS) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi
+
+generate-certs:
+	openssl req -x509 -newkey rsa:4096 -keyout docker/key.pem -out docker/cert.pem -days 365 -subj '/CN=localhost' -nodes

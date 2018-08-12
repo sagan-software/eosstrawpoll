@@ -1,8 +1,10 @@
 use context::Context;
+use contract::CreatePoll;
 use global_config::GlobalConfig;
-use services::scatter::{self, Identity, ScatterError, ScatterService};
+use services::scatter::{Identity, ScatterError};
 use std::cmp::{max, min};
 use stdweb::traits::IEvent;
+use stdweb::unstable::TryInto;
 use stdweb::web::Date;
 use yew::prelude::*;
 
@@ -16,7 +18,7 @@ pub struct PollForm {
     pub open_time: u32,
     pub close_time: u32,
     pub submitting: bool,
-    pub context: Box<Context>,
+    pub context: Context,
     pub global_config: GlobalConfig,
     pub active_bps: Vec<String>,
     pub standby_bps: Vec<String>,
@@ -26,6 +28,7 @@ pub struct PollForm {
 pub enum Msg {
     NoOp,
     Submit,
+    SubmitResult(Result<String, String>),
     SetTitle(String),
     AddOption,
     SetOption(usize, String),
@@ -42,9 +45,9 @@ pub enum Msg {
     GotIdentity(Result<Identity, ScatterError>),
 }
 
-#[derive(PartialEq, Clone, Default)]
+#[derive(PartialEq, Clone, Default, Debug)]
 pub struct Props {
-    pub context: Box<Context>,
+    pub context: Context,
 }
 
 const EOS_MAINNET: &'static str =
@@ -170,8 +173,42 @@ impl Component for PollForm {
             }
             Msg::Submit => {
                 info!("submitting form");
+                self.submitting = true;
                 if self.context.is_logged_in() {
-                    info!("logged in, do some stuff");
+                    info!("logged in, do some stuff {:#?}", self.context.contract);
+                    match &self.context.contract {
+                        Some(contract) => {
+                            info!("attempting to submit");
+                            let callback = self.link.send_back(Msg::SubmitResult);
+                            let slug: String = js! {
+                                var text = "";
+                                var possible = "abcdefghijklmnopqrstuvwxyz12345";
+                                for (var i = 0; i < 5; i++) {
+                                    text += possible.charAt(Math.floor(Math.random() * possible.length));
+                                }
+                                return text;
+                            }.try_into().unwrap();
+
+                            let creator = self.context.account_name().unwrap();
+                            let params = CreatePoll {
+                                creator,
+                                slug,
+                                title: self.title.clone(),
+                                options: self.options.clone(),
+                                min_num_choices: self.min_num_choices,
+                                max_num_choices: self.max_num_choices,
+                                whitelist: self.whitelist.clone(),
+                                blacklist: self.blacklist.clone(),
+                                open_time: self.open_time,
+                                close_time: self.close_time,
+                                metadata: "".to_string(),
+                            };
+                            contract.createpoll(params, callback);
+                        }
+                        None => {
+                            info!("no contract");
+                        }
+                    }
                 } else {
                     match self.context.scatter {
                         Some(ref scatter) => {
@@ -187,10 +224,15 @@ impl Component for PollForm {
                 }
                 true
             }
+            Msg::SubmitResult(result) => {
+                info!("submit result: {:#?}", result);
+                true
+            }
         }
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        info!("PROPS CHANGED {:#?}", props);
         self.context = props.context;
         true
     }
@@ -241,6 +283,7 @@ impl PollForm {
         html! {
             <label class="poll_form__title", >
                 <input
+                    disabled=self.submitting,
                     placeholder="Poll title",
                     class="poll_form__input",
                     value=&self.title,
@@ -267,6 +310,7 @@ impl PollForm {
         html! {
             <div class="poll_form__option", >
                 <input
+                    disabled=self.submitting,
                     placeholder="Poll option...",
                     value=option,
                     onfocus=|_| {
@@ -279,16 +323,17 @@ impl PollForm {
                     oninput=|e| Msg::SetOption(index, e.value),
                     maxlength=self.global_config.max_option_len,
                 />
-                <a
+                <button
                     class="poll_form__option__delete",
-                    disabled=options_len <= 2,
+                    tabindex=-1,
+                    disabled=options_len <= 2 || self.submitting,
                     onclick=|e| {
                         e.prevent_default();
                         Msg::DelOption(index)
                     },
                 >
                     { "Delete" }
-                </a>
+                </button>
             </div>
         }
     }
@@ -318,6 +363,7 @@ impl PollForm {
                     { "Only Standby BPs" }
                 </a>
                 <input
+                    disabled=self.submitting,
                     class="poll_form__input",
                     oninput=|e| Msg::SetWhitelist(e.value),
                     value=self.whitelist.join(" "),
@@ -333,6 +379,7 @@ impl PollForm {
                     { "Blacklist" }
                 </strong>
                 <input
+                    disabled=self.submitting,
                     class="poll_form__input",
                     oninput=|e| Msg::SetBlacklist(e.value),
                     value=self.blacklist.join(" "),
@@ -368,6 +415,7 @@ impl PollForm {
         html! {
             <span class="multi-range", >
                 <input
+                    disabled=self.submitting,
                     type="range",
                     min=1,
                     max=options_len,
@@ -375,6 +423,7 @@ impl PollForm {
                     oninput=|e| Msg::SetMinChoices(e.value),
                 />
                 <input
+                    disabled=self.submitting,
                     type="range",
                     min=1,
                     max=options_len,
@@ -392,6 +441,7 @@ impl PollForm {
                     { "Min Choices" }
                 </strong>
                 <input
+                    disabled=self.submitting,
                     type="number",
                     class="poll_form__input",
                     value=self.min_num_choices,
@@ -410,6 +460,7 @@ impl PollForm {
                     { "Max Choices" }
                 </strong>
                 <input
+                    disabled=self.submitting,
                     type="number",
                     class="poll_form__input",
                     value=self.max_num_choices,
@@ -428,6 +479,7 @@ impl PollForm {
                     { "Open Time" }
                 </strong>
                 <input
+                    disabled=self.submitting,
                     type="datetime-local",
                     class="poll_form__input",
                     oninput=|e| Msg::SetOpenTime(e.value),
@@ -443,6 +495,7 @@ impl PollForm {
                     { "Close Time" }
                 </strong>
                 <input
+                    disabled=self.submitting,
                     type="datetime-local",
                     class="poll_form__input",
                     oninput=|e| Msg::SetCloseTime(e.value),

@@ -1,13 +1,13 @@
+use agents::router;
+use agents::router::Route;
 use context::Context;
 use poll_form::PollForm;
-use router;
-use router::Route;
 use yew::prelude::*;
 
 pub struct HomePage {
     sub_path: Option<String>,
     router: Box<Bridge<router::Router<()>>>,
-    context: Box<Context>,
+    context: Context,
 }
 
 pub enum Msg {
@@ -17,7 +17,7 @@ pub enum Msg {
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
-    pub context: Box<Context>,
+    pub context: Context,
 }
 
 impl Component for HomePage {
