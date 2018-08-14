@@ -1,6 +1,5 @@
 use context::Context;
-use contract::CreatePoll;
-use global_config::GlobalConfig;
+use contract::{CreatePoll, GlobalConfig};
 use services::scatter::{Identity, ScatterError};
 use std::cmp::{max, min};
 use stdweb::traits::IEvent;
@@ -42,7 +41,7 @@ pub enum Msg {
     SetMaxChoices(String),
     SetOpenTime(String),
     SetCloseTime(String),
-    GotIdentity(Result<Identity, ScatterError>),
+    // GotIdentity(Result<Identity, ScatterError>),
 }
 
 #[derive(PartialEq, Clone, Default, Debug)]
@@ -166,62 +165,62 @@ impl Component for PollForm {
                 // TODO change open time based on global config
                 true
             }
-            Msg::GotIdentity(result) => {
-                info!("got identity {:#?}", result);
-                self.context.identity = Some(result);
-                true
-            }
+            // Msg::GotIdentity(result) => {
+            //     info!("got identity {:#?}", result);
+            //     self.context.identity = Some(result);
+            //     true
+            // }
             Msg::Submit => {
                 info!("submitting form");
                 self.submitting = true;
-                if self.context.is_logged_in() {
-                    info!("logged in, do some stuff {:#?}", self.context.contract);
-                    match &self.context.contract {
-                        Some(contract) => {
-                            info!("attempting to submit");
-                            let callback = self.link.send_back(Msg::SubmitResult);
-                            let slug: String = js! {
-                                var text = "";
-                                var possible = "abcdefghijklmnopqrstuvwxyz12345";
-                                for (var i = 0; i < 5; i++) {
-                                    text += possible.charAt(Math.floor(Math.random() * possible.length));
-                                }
-                                return text;
-                            }.try_into().unwrap();
+                // if self.context.is_logged_in() {
+                //     info!("logged in, do some stuff {:#?}", self.context.contract);
+                //     match &self.context.contract {
+                //         Some(contract) => {
+                //             info!("attempting to submit");
+                //             let callback = self.link.send_back(Msg::SubmitResult);
+                //             let slug: String = js! {
+                //                 var text = "";
+                //                 var possible = "abcdefghijklmnopqrstuvwxyz12345";
+                //                 for (var i = 0; i < 5; i++) {
+                //                     text += possible.charAt(Math.floor(Math.random() * possible.length));
+                //                 }
+                //                 return text;
+                //             }.try_into().unwrap();
 
-                            let creator = self.context.account_name().unwrap();
-                            let params = CreatePoll {
-                                creator,
-                                slug,
-                                title: self.title.clone(),
-                                options: self.options.clone(),
-                                min_num_choices: self.min_num_choices,
-                                max_num_choices: self.max_num_choices,
-                                whitelist: self.whitelist.clone(),
-                                blacklist: self.blacklist.clone(),
-                                open_time: self.open_time,
-                                close_time: self.close_time,
-                                metadata: "".to_string(),
-                            };
-                            contract.createpoll(params, callback);
-                        }
-                        None => {
-                            info!("no contract");
-                        }
-                    }
-                } else {
-                    match self.context.scatter {
-                        Some(ref scatter) => {
-                            info!("attempting to login");
-                            let callback = self.link.send_back(Msg::GotIdentity);
-                            let chain_id = EOS_MAINNET.to_string();
-                            scatter.get_identity_for_chain(chain_id, callback);
-                        }
-                        None => {
-                            info!("no scatter");
-                        }
-                    }
-                }
+                //             let creator = self.context.account_name().unwrap();
+                //             let params = CreatePoll {
+                //                 creator,
+                //                 slug,
+                //                 title: self.title.clone(),
+                //                 options: self.options.clone(),
+                //                 min_num_choices: self.min_num_choices,
+                //                 max_num_choices: self.max_num_choices,
+                //                 whitelist: self.whitelist.clone(),
+                //                 blacklist: self.blacklist.clone(),
+                //                 open_time: self.open_time,
+                //                 close_time: self.close_time,
+                //                 metadata: "".to_string(),
+                //             };
+                //             contract.createpoll(params, callback);
+                //         }
+                //         None => {
+                //             info!("no contract");
+                //         }
+                //     }
+                // } else {
+                //     match self.context.scatter {
+                //         Some(ref scatter) => {
+                //             info!("attempting to login");
+                //             let callback = self.link.send_back(Msg::GotIdentity);
+                //             let chain_id = EOS_MAINNET.to_string();
+                //             scatter.get_identity_for_chain(chain_id, callback);
+                //         }
+                //         None => {
+                //             info!("no scatter");
+                //         }
+                //     }
+                // }
                 true
             }
             Msg::SubmitResult(result) => {
@@ -240,11 +239,7 @@ impl Component for PollForm {
 
 impl Renderable<PollForm> for PollForm {
     fn view(&self) -> Html<Self> {
-        let submit_text = if self.context.is_logged_in() {
-            "Create Poll"
-        } else {
-            "Login & Create Poll"
-        };
+        let submit_text = "Create Poll";
         html! {
             <form
                 class="poll_form",

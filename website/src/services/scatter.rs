@@ -1,5 +1,4 @@
 use serde_json;
-use services::eos::{EosConfig, EosService};
 use stdweb::Value;
 use yew::prelude::*;
 
@@ -10,6 +9,12 @@ pub struct ScatterService(Value);
 pub struct RequiredFields {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accounts: Option<Vec<Network>>,
+}
+
+impl PartialEq for RequiredFields {
+    fn eq(&self, other: &RequiredFields) -> bool {
+        self.accounts == other.accounts
+    }
 }
 
 js_serializable!(RequiredFields);
@@ -27,6 +32,16 @@ pub struct Network {
     pub host: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub port: Option<u16>,
+}
+
+impl PartialEq for Network {
+    fn eq(&self, other: &Network) -> bool {
+        self.chain_id == other.chain_id
+            && self.protocol == other.protocol
+            && self.blockchain == other.blockchain
+            && self.host == other.host
+            && self.port == other.port
+    }
 }
 
 js_serializable!(Network);
@@ -57,6 +72,15 @@ pub struct Identity {
     pub accounts: Vec<Account>,
 }
 
+impl Identity {
+    pub fn account_name(&self) -> Option<String> {
+        match self.accounts.first() {
+            Some(account) => Some(account.name.clone()),
+            None => None,
+        }
+    }
+}
+
 impl PartialEq for Identity {
     fn eq(&self, other: &Identity) -> bool {
         self.hash == other.hash
@@ -67,6 +91,36 @@ impl PartialEq for Identity {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct EosJsConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chain_id: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_provider: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_endpoint: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expire_in_seconds: Option<u32>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verbose: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debug: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sign: Option<bool>,
+}
+
+js_serializable!(EosJsConfig);
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScatterError {
     NotConnected,
@@ -76,18 +130,23 @@ pub enum ScatterError {
 }
 
 impl ScatterService {
-    pub fn connect(appname: &str, callback: Callback<Option<ScatterService>>) {
+    pub fn connect(
+        appname: String,
+        timeout: u32,
+        callback: Callback<Result<ScatterService, ScatterError>>,
+    ) {
         let callback = move |connected: bool, lib: Value| {
-            let scatter = if connected {
-                Some(ScatterService(lib))
+            let result = if connected {
+                Ok(ScatterService(lib))
             } else {
-                None
+                Err(ScatterError::NotConnected)
             };
-            callback.emit(scatter);
+            callback.emit(result);
         };
         js! { @(no_return)
             var callback = @{callback};
             var appname = @{appname};
+            var timeout = @{timeout};
 
             // try {
             //     var ScatterJS = require("scatter-js/dist/scatter.cjs");
@@ -121,7 +180,7 @@ impl ScatterService {
                 var timeout = setTimeout(function () {
                     callback(false, null);
                     callback.drop();
-                }, 10000);
+                }, timeout);
                 document.addEventListener("scatterLoaded", function () {
                     clearTimeout(timeout);
                     var scatter = window.scatter;
@@ -133,9 +192,13 @@ impl ScatterService {
         };
     }
 
+    pub fn to_value(&self) -> &Value {
+        self.0.as_ref()
+    }
+
     pub fn get_identity(
         &self,
-        required_fields: Option<RequiredFields>,
+        required_fields: RequiredFields,
         callback: Callback<Result<Identity, ScatterError>>,
     ) {
         let lib = self.0.as_ref();
@@ -197,13 +260,13 @@ impl ScatterService {
                 port: None,
             }]),
         };
-        self.get_identity(Some(required_fields), callback);
+        self.get_identity(required_fields, callback);
     }
 
-    pub fn forget_identity(&self, callback: Callback<bool>) {
+    pub fn forget_identity(&self, callback: Callback<Result<(), ScatterError>>) {
         let lib = self.0.as_ref();
         let callback = move |logged_out: bool| {
-            callback.emit(logged_out);
+            callback.emit(Ok(()));
         };
         js! { @(no_return)
             var scatter = @{lib};
@@ -242,26 +305,20 @@ impl ScatterService {
         }
     }
 
-    pub fn eos(&self, network: Network, config: EosConfig) -> EosService {
-        let lib = self.0.as_ref();
-        let eos = js! {
-            var scatter = @{lib};
-            var network = @{network};
-            var config = @{config};
-            console.log("scatter.eos", scatter, network, config);
-            var Eos = require("eosjs");
-            return scatter.eos(network, Eos, config);
-        };
-        EosService::from_value(eos)
-    }
-
-    // pub fn forget_identity
-
-    // authenticate
+    // pub fn eos(&self, network: Network, config: EosConfig) -> EosService {
+    //     let lib = self.0.as_ref();
+    //     let eos = js! {
+    //         var scatter = @{lib};
+    //         var network = @{network};
+    //         var config = @{config};
+    //         console.log("scatter.eos", scatter, network, config);
+    //         var Eos = require("eosjs");
+    //         return scatter.eos(network, Eos, config);
+    //     };
+    //     EosService::from_value(eos)
+    // }
 
     // suggest_network
-
-    // eos
 
     // require_version
 }

@@ -1,3 +1,4 @@
 pub mod eos;
-pub mod routing;
+pub mod gravatar;
+pub mod history;
 pub mod scatter;
