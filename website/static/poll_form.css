@@ -10,11 +10,17 @@
         margin: 0;
         display: block;
         font-size: 1.4rem;
+        transition: 300ms opacity;
 
         &:focus {
             outline: 0;
             border-color: var(--brand-color);
         }
+    }
+
+    & [disabled=true] {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
 }
@@ -37,6 +43,10 @@
 
 .poll_form__option {
     display: flex;
+}
+
+.poll_form__option:last-of-type input {
+    cursor: copy;
 }
 
 .poll_form__option:not(:last-of-type) {

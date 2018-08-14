@@ -111,7 +111,11 @@ struct poll
         (metadata)(popularity))
 };
 
-typedef multi_index<N(polls), poll> polls_table;
+typedef multi_index<
+    N(polls), poll,
+    indexed_by<N(popularity), const_mem_fun<poll, double, &poll::by_popularity>>,
+    indexed_by<N(created), const_mem_fun<poll, uint64_t, &poll::by_created>>>
+    polls_table;
 typedef multi_index<
     N(popularpolls), poll,
     indexed_by<N(popularity), const_mem_fun<poll, double, &poll::by_popularity>>>

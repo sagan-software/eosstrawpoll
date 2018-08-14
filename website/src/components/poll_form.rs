@@ -1,13 +1,17 @@
+use agents::router::{RouterAgent, RouterInput, RouterOutput};
+use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
 use context::Context;
-use contract::{CreatePoll, GlobalConfig};
-use services::scatter::{Identity, ScatterError};
+use route::Route;
+use serde_json;
 use std::cmp::{max, min};
 use stdweb::traits::IEvent;
 use stdweb::unstable::TryInto;
 use stdweb::web::Date;
+use types::*;
 use yew::prelude::*;
 
 pub struct PollForm {
+    pub slug: String,
     pub title: String,
     pub options: Vec<String>,
     pub whitelist: Vec<String>,
@@ -22,12 +26,16 @@ pub struct PollForm {
     pub active_bps: Vec<String>,
     pub standby_bps: Vec<String>,
     pub link: ComponentLink<PollForm>,
+    pub scatter_agent: Box<Bridge<ScatterAgent>>,
+    pub scatter_connected: Option<Result<(), ScatterError>>,
+    pub scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
+    pub pushed_poll: Option<Result<scatter::PushedTransaction, ScatterError>>,
+    pub router: Box<Bridge<RouterAgent<()>>>,
 }
 
 pub enum Msg {
     NoOp,
     Submit,
-    SubmitResult(Result<String, String>),
     SetTitle(String),
     AddOption,
     SetOption(usize, String),
@@ -41,7 +49,8 @@ pub enum Msg {
     SetMaxChoices(String),
     SetOpenTime(String),
     SetCloseTime(String),
-    // GotIdentity(Result<Identity, ScatterError>),
+    Scatter(ScatterOutput),
+    Router(RouterOutput<()>),
 }
 
 #[derive(PartialEq, Clone, Default, Debug)]
@@ -60,7 +69,23 @@ impl Component for PollForm {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let callback = link.send_back(Msg::Scatter);
+        let mut scatter_agent = ScatterAgent::bridge(callback);
+        scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
+        let callback = link.send_back(Msg::Router);
+        let router = RouterAgent::bridge(callback);
+        let slug: String = js! {
+            var text = "";
+            var possible = "abcdefghijklmnopqrstuvwxyz12345";
+            for (var i = 0; i < 12; i++) {
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
+            }
+            return text;
+        }.try_into()
+        .unwrap();
+
         PollForm {
+            slug,
             title: "".to_string(),
             options: vec!["".to_string(), "".to_string(), "".to_string()],
             whitelist: vec![],
@@ -83,11 +108,17 @@ impl Component for PollForm {
                 "libertyblock".to_string(),
             ],
             link,
+            scatter_agent,
+            scatter_connected: None,
+            scatter_identity: None,
+            pushed_poll: None,
+            router,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::Router(_output) => false,
             Msg::NoOp => false,
             Msg::SetTitle(value) => {
                 self.title = value;
@@ -165,68 +196,92 @@ impl Component for PollForm {
                 // TODO change open time based on global config
                 true
             }
-            // Msg::GotIdentity(result) => {
-            //     info!("got identity {:#?}", result);
-            //     self.context.identity = Some(result);
-            //     true
-            // }
             Msg::Submit => {
                 info!("submitting form");
-                self.submitting = true;
-                // if self.context.is_logged_in() {
-                //     info!("logged in, do some stuff {:#?}", self.context.contract);
-                //     match &self.context.contract {
-                //         Some(contract) => {
-                //             info!("attempting to submit");
-                //             let callback = self.link.send_back(Msg::SubmitResult);
-                //             let slug: String = js! {
-                //                 var text = "";
-                //                 var possible = "abcdefghijklmnopqrstuvwxyz12345";
-                //                 for (var i = 0; i < 5; i++) {
-                //                     text += possible.charAt(Math.floor(Math.random() * possible.length));
-                //                 }
-                //                 return text;
-                //             }.try_into().unwrap();
 
-                //             let creator = self.context.account_name().unwrap();
-                //             let params = CreatePoll {
-                //                 creator,
-                //                 slug,
-                //                 title: self.title.clone(),
-                //                 options: self.options.clone(),
-                //                 min_num_choices: self.min_num_choices,
-                //                 max_num_choices: self.max_num_choices,
-                //                 whitelist: self.whitelist.clone(),
-                //                 blacklist: self.blacklist.clone(),
-                //                 open_time: self.open_time,
-                //                 close_time: self.close_time,
-                //                 metadata: "".to_string(),
-                //             };
-                //             contract.createpoll(params, callback);
-                //         }
-                //         None => {
-                //             info!("no contract");
-                //         }
-                //     }
-                // } else {
-                //     match self.context.scatter {
-                //         Some(ref scatter) => {
-                //             info!("attempting to login");
-                //             let callback = self.link.send_back(Msg::GotIdentity);
-                //             let chain_id = EOS_MAINNET.to_string();
-                //             scatter.get_identity_for_chain(chain_id, callback);
-                //         }
-                //         None => {
-                //             info!("no scatter");
-                //         }
-                //     }
-                // }
+                let creator = match self.creator() {
+                    Some(creator) => creator,
+                    None => return false,
+                };
+
+                let chain_id =
+                    "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f".to_string();
+                let network = scatter::Network {
+                    blockchain: Some("eos".into()),
+                    chain_id: Some(chain_id.clone()),
+                    protocol: Some("http".into()),
+                    host: Some("localhost".into()),
+                    port: Some(8888),
+                };
+
+                let config = scatter::EosConfig {
+                    chain_id: Some(chain_id.clone()),
+                    key_provider: None,
+                    http_endpoint: None,
+                    expire_in_seconds: None,
+                    broadcast: None,
+                    verbose: None,
+                    debug: None,
+                    sign: None,
+                };
+
+                let action_data = CreatePollAction {
+                    creator: creator.to_string(),
+                    slug: self.slug.clone(),
+                    title: self.title.clone(),
+                    options: self.options.clone(),
+                    min_num_choices: self.min_num_choices,
+                    max_num_choices: self.max_num_choices,
+                    whitelist: self.whitelist.clone(),
+                    blacklist: self.blacklist.clone(),
+                    open_time: self.open_time,
+                    close_time: self.close_time,
+                    metadata: "".to_string(),
+                };
+
+                let data = serde_json::to_value(action_data).unwrap();
+
+                let action = scatter::Action {
+                    account: "eosstrawpoll".into(),
+                    name: "createpoll".into(),
+                    authorization: vec![scatter::Authorization {
+                        actor: creator.to_string(),
+                        permission: "active".into(),
+                    }],
+                    data,
+                };
+
+                let actions = vec![action];
+
+                self.submitting = true;
+                self.scatter_agent
+                    .send(ScatterInput::PushActions(network, config, actions));
                 true
             }
-            Msg::SubmitResult(result) => {
-                info!("submit result: {:#?}", result);
-                true
-            }
+            Msg::Scatter(output) => match output {
+                ScatterOutput::GotIdentity(result) => {
+                    info!("got identity {:#?}", result);
+                    self.scatter_identity = Some(result);
+                    true
+                }
+                ScatterOutput::ForgotIdentity(_result) => {
+                    self.scatter_identity = None;
+                    true
+                }
+                ScatterOutput::Connected(result) => {
+                    self.scatter_connected = Some(result);
+                    true
+                }
+                ScatterOutput::PushedActions(result) => {
+                    self.pushed_poll = Some(result.clone());
+                    if let (Ok(_), Some(creator)) = (result, self.creator()) {
+                        let route = Route::Poll(creator, self.slug.clone());
+                        let url = route.to_string();
+                        self.router.send(RouterInput::ChangeRoute(url, ()));
+                    }
+                    true
+                }
+            },
         }
     }
 
@@ -239,7 +294,11 @@ impl Component for PollForm {
 
 impl Renderable<PollForm> for PollForm {
     fn view(&self) -> Html<Self> {
-        let submit_text = "Create Poll";
+        let submit_text = if self.submitting {
+            "Creating..."
+        } else {
+            "Create Poll"
+        };
         html! {
             <form
                 class="poll_form",
@@ -261,6 +320,7 @@ impl Renderable<PollForm> for PollForm {
                 <button
                     class="poll_form__submit",
                     type="submit",
+                    disabled=self.submitting,
                     onclick=|e| {
                         e.prevent_default();
                         Msg::Submit
@@ -274,6 +334,23 @@ impl Renderable<PollForm> for PollForm {
 }
 
 impl PollForm {
+    fn creator(&self) -> Option<String> {
+        let result = match &self.scatter_identity {
+            Some(result) => result,
+            None => return None,
+        };
+
+        let identity = match result {
+            Ok(identity) => identity,
+            Err(_error) => return None,
+        };
+
+        match identity.accounts.first() {
+            Some(ref account) => Some(account.name.clone()),
+            None => None,
+        }
+    }
+
     fn view_title(&self) -> Html<PollForm> {
         html! {
             <label class="poll_form__title", >

@@ -21,6 +21,7 @@ class contract
     void prune_new_donations();
     void prune_new_polls();
     void prune_popular_polls();
+    bool is_popular_polls_full();
 
   public:
     contract(account_name self);

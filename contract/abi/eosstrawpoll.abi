@@ -365,36 +365,58 @@
             "name": "polls",
             "type": "poll",
             "index_type": "i64",
-            "key_names": [],
-            "key_types": []
+            "key_names": [
+                "popularity",
+                "created"
+            ],
+            "key_types": [
+                "double",
+                "i64"
+            ]
         },
         {
             "name": "popularpolls",
             "type": "poll",
             "index_type": "i64",
-            "key_names": [],
-            "key_types": []
+            "key_names": [
+                "popularity"
+            ],
+            "key_types": [
+                "double"
+            ]
         },
         {
             "name": "newpolls",
             "type": "poll",
             "index_type": "i64",
-            "key_names": [],
-            "key_types": []
+            "key_names": [
+                "created"
+            ],
+            "key_types": [
+                "i64"
+            ]
         },
         {
             "name": "newdonations",
             "type": "donation",
             "index_type": "i64",
-            "key_names": [],
-            "key_types": []
+            "key_names": [
+                "created"
+            ],
+            "key_types": [
+                "i64"
+            ]
         },
         {
             "name": "topdonors",
             "type": "donor",
             "index_type": "i64",
-            "key_names": [],
-            "key_types": []
+            "key_names": [
+                "donated"
+            ],
+            "key_types": [
+                "i64"
+            ]
         }
     ]
 }

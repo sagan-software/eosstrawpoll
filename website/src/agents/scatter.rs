@@ -1,5 +1,6 @@
 //! Agent that exposes a usable routing interface to components.
 
+use serde_json;
 pub use services::scatter::*;
 use std::collections::HashSet;
 use yew::prelude::worker::*;
@@ -9,6 +10,7 @@ pub enum ScatterInput {
     Connect(String, u32),
     GetIdentity(RequiredFields),
     ForgetIdentity,
+    PushActions(Network, EosConfig, Vec<Action>),
 }
 
 impl Transferable for ScatterInput {}
@@ -18,6 +20,7 @@ pub enum ScatterOutput {
     Connected(Result<(), ScatterError>),
     GotIdentity(Result<Identity, ScatterError>),
     ForgotIdentity(Result<(), ScatterError>),
+    PushedActions(Result<PushedTransaction, ScatterError>),
 }
 
 impl Transferable for ScatterOutput {}
@@ -26,6 +29,7 @@ pub enum ScatterMsg {
     Connected(Result<ScatterService, ScatterError>),
     GotIdentity(Result<Identity, ScatterError>),
     ForgotIdentity(Result<(), ScatterError>),
+    PushedActions(Result<PushedTransaction, ScatterError>),
 }
 
 pub struct ScatterAgent {
@@ -78,6 +82,16 @@ impl Agent for ScatterAgent {
                     self.link.response(who, output);
                 }
             },
+            ScatterInput::PushActions(network, config, actions) => match &self.scatter_service {
+                Some(scatter_service) => {
+                    let callback = self.link.send_back(ScatterMsg::PushedActions);
+                    scatter_service.push_actions(network, config, actions, callback);
+                }
+                None => {
+                    let output = ScatterOutput::PushedActions(Err(ScatterError::NotConnected));
+                    self.link.response(who, output);
+                }
+            },
         }
     }
 
@@ -95,6 +109,7 @@ impl Agent for ScatterAgent {
             },
             ScatterMsg::GotIdentity(result) => ScatterOutput::GotIdentity(result),
             ScatterMsg::ForgotIdentity(result) => ScatterOutput::ForgotIdentity(result),
+            ScatterMsg::PushedActions(result) => ScatterOutput::PushedActions(result),
         };
         for sub in &self.subscribers {
             self.link.response(*sub, output.clone());

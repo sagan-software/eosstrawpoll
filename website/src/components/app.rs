@@ -2,7 +2,7 @@ use agents::router::{RouterAgent, RouterInput, RouterOutput};
 use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
 use context::Context;
 // use contract::Contract;
-use pages::{HomePage, PopularPollsPage};
+use pages::*;
 use route::{Route, RouteError};
 // use services::eos::{self, EosConfig, EosService};
 use stdweb::traits::IEvent;
@@ -87,7 +87,7 @@ impl Component for App {
                 false
             }
             Msg::Router(output) => {
-                self.route = Some(Route::from_string(output.pathname));
+                self.route = Some(output.pathname.parse());
                 true
             }
             Msg::Scatter(output) => match output {
@@ -104,6 +104,7 @@ impl Component for App {
                     self.scatter_connected = Some(result);
                     true
                 }
+                ScatterOutput::PushedActions(_result) => false,
             },
             Msg::Login => {
                 let chain_id = DEVNET.to_string();
@@ -197,12 +198,12 @@ impl App {
     fn view_nav_link(&self, route: Route, text: &str) -> Html<Self> {
         html! {
             <a
-            class="app__link",
-            href=route.to_string(),
-            onclick=|e| {
-                e.prevent_default();
-                Msg::NavigateTo(route.clone())
-            },
+                class="app__link",
+                href=route.to_string(),
+                onclick=|e| {
+                    e.prevent_default();
+                    Msg::NavigateTo(route.clone())
+                },
             >
                 { text }
             </a>
@@ -299,9 +300,7 @@ impl App {
                         <PopularPollsPage: context=&self.context, />
                     },
                     Route::NewPolls => html! {
-                        <>
-                            { "New polls"}
-                        </>
+                        <NewPollsPage: context=&self.context, />
                     },
                     Route::Donors => html! {
                         <>
@@ -309,14 +308,10 @@ impl App {
                         </>
                     },
                     Route::Profile(ref account) => html! {
-                        <>
-                            {format!("Profile page {}", account)}
-                        </>
+                        <ProfilePage: context=&self.context, account=account, />
                     },
-                    Route::Poll(ref poll_creator, ref poll_name) => html! {
-                        <>
-                            {format!("Poll page: '{}' '{}'", poll_creator, poll_name)}
-                        </>
+                    Route::Poll(ref creator, ref slug) => html! {
+                        <PollPage: context=&self.context, creator=creator, slug=slug, />
                     },
                     Route::PollResults(ref poll_creator, ref poll_name) => html! {
                         <>

@@ -79,7 +79,7 @@ try
         const poll_name slug = N(test);
         const string title = "Test poll";
         const vector<string> options{"Option A", "Option B", "Option C"};
-        const vector<account_name> blacklist{N(bob111111111)};
+        const vector<account_name> blacklist{};
         const vector<account_name> whitelist{N(carol1111111)};
         const uint8_t min_num_choices = 1;
         const uint8_t max_num_choices = 3;

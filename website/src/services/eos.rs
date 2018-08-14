@@ -29,6 +29,7 @@ impl EosService {
     {
         let handler = move |response: Response<Json<Result<TableRows<Row>, Error>>>| {
             let (meta, Json(data)) = response.into_parts();
+            info!("META! {:#?}", meta);
             if meta.status.is_success() {
                 callback.emit(data)
             } else {
@@ -42,7 +43,7 @@ impl EosService {
         // let request = get_table_rows_request(endpoint, params);
         let params_value = serde_json::to_value(params).unwrap();
         let request = Request::builder()
-            .method("GET")
+            .method("POST")
             .uri(format!("{}/v1/chain/get_table_rows", endpoint))
             .body(Json(&params_value))
             .unwrap();

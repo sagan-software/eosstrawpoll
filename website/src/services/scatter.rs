@@ -93,7 +93,7 @@ impl PartialEq for Identity {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct EosJsConfig {
+pub struct EosConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chain_id: Option<String>,
 
@@ -119,7 +119,7 @@ pub struct EosJsConfig {
     pub sign: Option<bool>,
 }
 
-js_serializable!(EosJsConfig);
+js_serializable!(EosConfig);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScatterError {
@@ -128,6 +128,42 @@ pub enum ScatterError {
     Rejected,
     Unknown,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Authorization {
+    pub actor: String,
+    pub permission: String,
+}
+
+js_serializable!(Authorization);
+js_deserializable!(Authorization);
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Action {
+    pub account: String,
+    pub name: String,
+    pub authorization: Vec<Authorization>,
+    pub data: serde_json::Value,
+}
+
+js_serializable!(Action);
+js_deserializable!(Action);
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Transaction {
+    pub actions: Vec<Action>,
+}
+
+js_serializable!(Transaction);
+js_deserializable!(Transaction);
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PushedTransaction {
+    pub transaction_id: String,
+}
+
+js_serializable!(PushedTransaction);
+js_deserializable!(PushedTransaction);
 
 impl ScatterService {
     pub fn connect(
@@ -144,6 +180,7 @@ impl ScatterService {
             callback.emit(result);
         };
         js! { @(no_return)
+            window.Eos = require("eosjs");
             var callback = @{callback};
             var appname = @{appname};
             var timeout = @{timeout};
@@ -305,18 +342,55 @@ impl ScatterService {
         }
     }
 
-    // pub fn eos(&self, network: Network, config: EosConfig) -> EosService {
-    //     let lib = self.0.as_ref();
-    //     let eos = js! {
-    //         var scatter = @{lib};
-    //         var network = @{network};
-    //         var config = @{config};
-    //         console.log("scatter.eos", scatter, network, config);
-    //         var Eos = require("eosjs");
-    //         return scatter.eos(network, Eos, config);
-    //     };
-    //     EosService::from_value(eos)
-    // }
+    pub fn push_actions(
+        &self,
+        network: Network,
+        config: EosConfig,
+        actions: Vec<Action>,
+        callback: Callback<Result<PushedTransaction, ScatterError>>,
+    ) {
+        let scatter = self.0.as_ref();
+        let callback = move |data: Option<String>, error: String| {
+            let result = match (data, error.as_str()) {
+                (_, "locked") => Err(ScatterError::Locked),
+                (_, "identity_rejected") => Err(ScatterError::Rejected),
+                (Some(json), "") => serde_json::from_str::<PushedTransaction>(&json)
+                    .map_err(|_| ScatterError::Unknown),
+                _ => {
+                    if error.contains("Connect and Authenticate first") {
+                        Err(ScatterError::NotConnected)
+                    } else {
+                        Err(ScatterError::Unknown)
+                    }
+                }
+            };
+            callback.emit(result);
+        };
+        let transaction = Transaction { actions };
+        js! { @(no_return)
+            try {
+                var scatter = @{scatter};
+                var network = @{network};
+                var config = @{config};
+                var transaction = @{transaction};
+                var callback = @{callback};
+                var Eos = require("eosjs");
+                var eos = scatter.eos(network, Eos, config);
+                eos.transaction(transaction)
+                    .then(function (pushed_transaction) {
+                        callback(JSON.stringify(pushed_transaction), "");
+                        callback.drop();
+                    })
+                    .catch(function (error) {
+                        callback(null, JSON.stringify(error));
+                        callback.drop();
+                    });
+            } catch (error) {
+                callback(null, JSON.stringify(error));
+                callback.drop();
+            }
+        };
+    }
 
     // suggest_network
 

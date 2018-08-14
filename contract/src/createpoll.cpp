@@ -68,9 +68,17 @@ void contract::createpoll(
         close_time == 0 || close_time > current_time,
         "close_time must be 0 or in the future");
 
+    // doesn't make sense to have a whitelist and blacklist
+    auto whitelist_size = whitelist.size();
+    auto blacklist_size = blacklist.size();
+    if (whitelist_size > 0)
+    {
+        eosio_assert(blacklist_size == 0, "whitelist and blacklist cannot both be populated -- pick one or the other");
+    }
+
     // check whitelist
     eosio_assert(
-        whitelist.size() <= _config.max_whitelist_size,
+        whitelist_size <= _config.max_whitelist_size,
         "whitelist is too long");
     for (auto &account : whitelist)
     {
@@ -79,7 +87,7 @@ void contract::createpoll(
 
     // check blacklist
     eosio_assert(
-        blacklist.size() <= _config.max_blacklist_size,
+        blacklist_size <= _config.max_blacklist_size,
         "blacklist is too long");
     for (auto &account : blacklist)
     {
@@ -128,6 +136,25 @@ void contract::createpoll(
     });
 
     prune_new_polls();
+
+    if (!is_popular_polls_full())
+    {
+        _popular_polls.emplace(creator, [&](auto &p) {
+            p.id = _popular_polls.available_primary_key();
+            p.creator = creator;
+            p.slug = slug;
+            p.title = title;
+            p.options = options;
+            p.min_num_choices = min_num_choices;
+            p.max_num_choices = max_num_choices;
+            p.whitelist = whitelist;
+            p.blacklist = blacklist;
+            p.create_time = current_time;
+            p.open_time = open_time;
+            p.close_time = close_time;
+            p.metadata = metadata;
+        });
+    }
 }
 
 void contract::prune_new_polls()
@@ -146,6 +173,22 @@ void contract::prune_new_polls()
             ++it;
         }
     }
+}
+
+bool contract::is_popular_polls_full()
+{
+    auto num_left = _config.max_popular_polls;
+    for (auto it = _popular_polls.begin(); it != _popular_polls.end();)
+    {
+        num_left -= 1;
+        if (num_left <= 0)
+        {
+            return true;
+        }
+        ++it;
+    }
+
+    return false;
 }
 
 } // namespace eosstrawpoll

@@ -6,7 +6,6 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
-#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate yew;
@@ -19,10 +18,10 @@ extern crate failure;
 mod agents;
 mod components;
 mod context;
-mod contract;
 mod eos;
 mod pages;
 mod route;
 mod services;
+mod types;
 
 pub use components::App as Model;

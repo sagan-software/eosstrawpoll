@@ -21,7 +21,7 @@ impl Default for Context {
     fn default() -> Context {
         Context {
             lang: Lang::default(),
-            endpoint: "https://api.eosnewyork.io".to_string(),
+            endpoint: "http://localhost:8888".to_string(),
             chain_id: None,
         }
     }

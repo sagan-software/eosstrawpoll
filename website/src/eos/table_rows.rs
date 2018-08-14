@@ -16,17 +16,21 @@ pub struct TableRowsParams {
     pub table: String,
     pub json: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub lower_bound: Option<u64>,
+    pub lower_bound: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub upper_bound: Option<u64>,
+    pub upper_bound: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index_position: Option<String>,
 }
 
 pub fn get_table_rows_request(endpoint: &str, params: TableRowsParams) -> Request<Json<Value>> {
     let params_value = serde_json::to_value(params).unwrap();
     Request::builder()
-        .method("GET")
+        .method("POST")
         .uri(format!("{}/v1/chain/get_table_rows", endpoint))
         .body(Json(params_value))
         .unwrap()
