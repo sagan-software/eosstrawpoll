@@ -14,6 +14,7 @@ pub struct PollForm {
     pub slug: String,
     pub title: String,
     pub options: Vec<String>,
+    pub use_whitelist: bool,
     pub whitelist: Vec<String>,
     pub blacklist: Vec<String>,
     pub min_num_choices: usize,
@@ -72,6 +73,7 @@ impl Component for PollForm {
         let callback = link.send_back(Msg::Scatter);
         let mut scatter_agent = ScatterAgent::bridge(callback);
         scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
+
         let callback = link.send_back(Msg::Router);
         let router = RouterAgent::bridge(callback);
         let slug: String = js! {
@@ -87,7 +89,8 @@ impl Component for PollForm {
         PollForm {
             slug,
             title: "".to_string(),
-            options: vec!["".to_string(), "".to_string(), "".to_string()],
+            options: vec!["".to_string(), "".to_string()],
+            use_whitelist: true,
             whitelist: vec![],
             blacklist: vec![],
             min_num_choices: 1,
@@ -140,6 +143,9 @@ impl Component for PollForm {
                 let options_len = self.options.len();
                 if i < options_len && options_len > 2 {
                     self.options.remove(i);
+                    let options_len = self.options.len();
+                    self.max_num_choices = min(self.max_num_choices, options_len);
+                    self.min_num_choices = min(self.max_num_choices, self.min_num_choices);
                     true
                 } else {
                     false
@@ -269,6 +275,9 @@ impl Component for PollForm {
                     true
                 }
                 ScatterOutput::Connected(result) => {
+                    if result.is_ok() {
+                        self.scatter_agent.send(ScatterInput::CurrentIdentity);
+                    }
                     self.scatter_connected = Some(result);
                     true
                 }
@@ -300,25 +309,29 @@ impl Renderable<PollForm> for PollForm {
             "Create Poll"
         };
         html! {
-            <form
-                class="poll_form",
-            >
+            <form class="poll_form app_container", >
                 { self.view_title() }
                 { self.view_options() }
-                <div class="poll_form__advanced", >
-                    { self.view_num_choices() }
-                    <div class="poll_form__times", >
+                { self.view_num_choices() }
+                <section class="poll_form_times", >
+                    <header><h2>{ "Times" }</h2></header>
+                    <main>
                         { self.view_open_time() }
-                        <div class="poll_form__time_info", >
-                            {"Open for 2 days"}
-                        </div>
                         { self.view_close_time() }
-                    </div>
-                    { self.view_whitelist() }
-                    { self.view_blacklist() }
-                </div>
+                    </main>
+                    <aside>
+                        {"Open for 2 days"}
+                    </aside>
+                </section>
+                {
+                    if self.use_whitelist {
+                        self.view_whitelist()
+                    } else {
+                        self.view_blacklist()
+                    }
+                }
                 <button
-                    class="poll_form__submit",
+                    class="poll_form_submit",
                     type="submit",
                     disabled=self.submitting,
                     onclick=|e| {
@@ -353,25 +366,35 @@ impl PollForm {
 
     fn view_title(&self) -> Html<PollForm> {
         html! {
-            <label class="poll_form__title", >
-                <input
-                    disabled=self.submitting,
-                    placeholder="Poll title",
-                    class="poll_form__input",
-                    value=&self.title,
-                    oninput=|e| Msg::SetTitle(e.value),
-                    required=true,
-                    maxlength=self.global_config.max_title_len,
-                />
-            </label>
+            <section class="poll_form_title", >
+                <header><h2>{ "Title" }</h2></header>
+                <main>
+                    <input
+                        disabled=self.submitting,
+                        placeholder="What is your question?",
+                        class="poll_form_input",
+                        value=&self.title,
+                        oninput=|e| Msg::SetTitle(e.value),
+                        required=true,
+                        maxlength=self.global_config.max_title_len,
+                    />
+                </main>
+                <aside>
+                    { "Required. Must be between 1-30 characters" }
+                </aside>
+            </section>
         }
     }
 
     fn view_options(&self) -> Html<PollForm> {
         html! {
-            <div class="poll_form__options", >
-                { for self.options.iter().enumerate().map(|(i, o)| self.view_option(i, o)) }
-            </div>
+            <section class="poll_form_options", >
+                <header><h2>{ "Options" }</h2></header>
+                <main>
+                    { for self.options.iter().enumerate().map(|(i, o)| self.view_option(i, o)) }
+                </main>
+                <aside>{ "Info" }</aside>
+            </section>
         }
     }
 
@@ -380,10 +403,10 @@ impl PollForm {
         let is_last = index == options_len - 1;
         let is_not_full = options_len < self.global_config.max_options_len;
         html! {
-            <div class="poll_form__option", >
+            <div class="poll_form_option", >
                 <input
                     disabled=self.submitting,
-                    placeholder="Poll option...",
+                    placeholder=format!("Option {}", index + 1),
                     value=option,
                     onfocus=|_| {
                         if is_last && is_not_full {
@@ -396,7 +419,7 @@ impl PollForm {
                     maxlength=self.global_config.max_option_len,
                 />
                 <button
-                    class="poll_form__option__delete",
+                    class="poll_form_option_delete",
                     tabindex=-1,
                     disabled=options_len <= 2 || self.submitting,
                     onclick=|e| {
@@ -412,81 +435,111 @@ impl PollForm {
 
     fn view_whitelist(&self) -> Html<PollForm> {
         html! {
-            <label class="poll_form__whitelist", >
-                <strong class="poll_form__label", >
-                    { "Whitelist" }
-                </strong>
-                <a href="#", onclick=|e| {
-                    e.prevent_default();
-                    Msg::SetOnlyBPs
-                }, >
-                    { "Only BPs" }
-                </a>
-                <a href="#", onclick=|e| {
-                    e.prevent_default();
-                    Msg::SetOnlyActiveBPs
-                }, >
-                    { "Only Active BPs" }
-                </a>
-                <a href="#", onclick=|e| {
-                    e.prevent_default();
-                    Msg::SetOnlyStandbyBPs
-                }, >
-                    { "Only Standby BPs" }
-                </a>
-                <input
-                    disabled=self.submitting,
-                    class="poll_form__input",
-                    oninput=|e| Msg::SetWhitelist(e.value),
-                    value=self.whitelist.join(" "),
-                />
-            </label>
+            <section class="poll_form_voter_requirements", >
+                <header><h2>{ "Voter requirements" }</h2></header>
+                <main>
+                    <div class="field", >
+                        <strong class="poll_form_label", >
+                            { "Whitelist" }
+                        </strong>
+                        <div class="prefill_links", >
+                            <a href="#", onclick=|e| {
+                                e.prevent_default();
+                                Msg::SetOnlyBPs
+                            }, >
+                                { "Only BPs" }
+                            </a>
+                            <a href="#", onclick=|e| {
+                                e.prevent_default();
+                                Msg::SetOnlyActiveBPs
+                            }, >
+                                { "Only Active BPs" }
+                            </a>
+                            <a href="#", onclick=|e| {
+                                e.prevent_default();
+                                Msg::SetOnlyStandbyBPs
+                            }, >
+                                { "Only Standby BPs" }
+                            </a>
+                        </div>
+                        <input
+                            disabled=self.submitting,
+                            class="poll_form_input",
+                            oninput=|e| Msg::SetWhitelist(e.value),
+                            value=self.whitelist.join(" "),
+                        />
+                    </div>
+                </main>
+                <aside>{ "May select up to 30 accounts. Accounts must exist." }</aside>
+            </section>
         }
     }
 
     fn view_blacklist(&self) -> Html<PollForm> {
         html! {
-            <label class="poll_form__blacklist", >
-                <strong class="poll_form__label", >
+            <section class="poll_form_blacklist", >
+                <strong class="poll_form_label", >
                     { "Blacklist" }
                 </strong>
                 <input
                     disabled=self.submitting,
-                    class="poll_form__input",
+                    class="poll_form_input",
                     oninput=|e| Msg::SetBlacklist(e.value),
                     value=self.blacklist.join(" "),
                 />
-            </label>
+            </section>
         }
     }
 
     fn view_num_choices(&self) -> Html<PollForm> {
         html! {
-            <div class="poll_form__num_choices", >
-                { self.view_min_num_choices() }
-                <div>
+            <section class="poll_form_num_choices", >
+                <header>
+                    <h2>{ "Number of choices" }</h2>
+                </header>
+                <main>
+                    { self.view_min_num_choices() }
+                    { self.view_num_choices_ranges() }
+                    { self.view_max_num_choices() }
+                </main>
+                <aside>
                     { self.view_num_choices_info() }
-                    { self.view_num_choices_range() }
-                </div>
-                { self.view_max_num_choices() }
-            </div>
+                </aside>
+            </section>
         }
     }
 
     fn view_num_choices_info(&self) -> Html<PollForm> {
         let options_len = self.options.len();
+        let min_num_choices = self.min_num_choices;
+        let max_num_choices = self.max_num_choices;
+        let text = if min_num_choices == max_num_choices {
+            if min_num_choices == options_len {
+                "Voters must rank all options".to_string()
+            } else if min_num_choices == 1 {
+                "Voters must select one option".to_string()
+            } else {
+                format!("Voters must select {} options", min_num_choices)
+            }
+        } else {
+            format!(
+                "Voters can select {} to {} options",
+                min_num_choices, max_num_choices
+            )
+        };
         html! {
-            <span class="multi-range", >
-                { "Voters must select 5 options" }
+            <span class="info", >
+                { text }
             </span>
         }
     }
 
-    fn view_num_choices_range(&self) -> Html<PollForm> {
+    fn view_num_choices_ranges(&self) -> Html<PollForm> {
         let options_len = self.options.len();
         html! {
-            <span class="multi-range", >
+            <>
                 <input
+                    class="poll_form_min_num_choices_range",
                     disabled=self.submitting,
                     type="range",
                     min=1,
@@ -495,6 +548,7 @@ impl PollForm {
                     oninput=|e| Msg::SetMinChoices(e.value),
                 />
                 <input
+                    class="poll_form_max_num_choices_range",
                     disabled=self.submitting,
                     type="range",
                     min=1,
@@ -502,20 +556,17 @@ impl PollForm {
                     value=self.max_num_choices,
                     oninput=|e| Msg::SetMaxChoices(e.value),
                 />
-            </span>
+            </>
         }
     }
 
     fn view_min_num_choices(&self) -> Html<PollForm> {
         html! {
-            <label class="poll_form__min_num_choices", >
-                <strong class="poll_form__label", >
-                    { "Min Choices" }
-                </strong>
+            <label class="min_num_choices", >
+                <strong>{ "Min" }</strong>
                 <input
                     disabled=self.submitting,
                     type="number",
-                    class="poll_form__input",
                     value=self.min_num_choices,
                     oninput=|e| Msg::SetMinChoices(e.value),
                     min=1,
@@ -527,33 +578,30 @@ impl PollForm {
 
     fn view_max_num_choices(&self) -> Html<PollForm> {
         html! {
-            <div class="poll_form__max_num_choices", >
-                <strong class="poll_form__label", >
-                    { "Max Choices" }
-                </strong>
+            <label class="max_num_choices", >
+                <strong>{ "Max" }</strong>
                 <input
                     disabled=self.submitting,
                     type="number",
-                    class="poll_form__input",
                     value=self.max_num_choices,
                     oninput=|e| Msg::SetMaxChoices(e.value),
                     min=1,
                     max=self.options.len(),
                 />
-            </div>
+            </label>
         }
     }
 
     fn view_open_time(&self) -> Html<PollForm> {
         html! {
-            <div class="poll_form__open_time", >
-                <strong class="poll_form__label", >
-                    { "Open Time" }
+            <div class="poll_form_open_time", >
+                <strong class="poll_form_label", >
+                    { "Open" }
                 </strong>
                 <input
                     disabled=self.submitting,
                     type="datetime-local",
-                    class="poll_form__input",
+                    class="poll_form_input",
                     oninput=|e| Msg::SetOpenTime(e.value),
                 />
             </div>
@@ -562,14 +610,14 @@ impl PollForm {
 
     fn view_close_time(&self) -> Html<PollForm> {
         html! {
-            <div class="poll_form__close_time", >
-                <strong class="poll_form__label", >
-                    { "Close Time" }
+            <div class="poll_form_close_time", >
+                <strong class="poll_form_label", >
+                    { "Close" }
                 </strong>
                 <input
                     disabled=self.submitting,
                     type="datetime-local",
-                    class="poll_form__input",
+                    class="poll_form_input",
                     oninput=|e| Msg::SetCloseTime(e.value),
                 />
             </div>

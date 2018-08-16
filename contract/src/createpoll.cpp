@@ -53,20 +53,19 @@ void contract::createpoll(
         "max_num_choices cannot be greater than the total number of options");
 
     // check times
-    const time current_time = now();
-    const time start_time = std::max(current_time, open_time);
-    eosio_assert(
-        open_time == 0 || open_time > current_time,
-        "open_time must be 0 or in the future");
-    eosio_assert(
-        close_time == 0 || close_time > start_time + _config.min_duration,
-        "poll is not open long enough");
     eosio_assert(
         close_time == 0 || close_time > open_time,
         "close_time must be 0 or after open_time");
+
+    const time current_time = now();
     eosio_assert(
         close_time == 0 || close_time > current_time,
         "close_time must be 0 or in the future");
+
+    const time start_time = std::max(current_time, open_time);
+    eosio_assert(
+        close_time == 0 || close_time > start_time + _config.min_duration,
+        "poll is not open long enough");
 
     // doesn't make sense to have a whitelist and blacklist
     auto whitelist_size = whitelist.size();
@@ -113,7 +112,7 @@ void contract::createpoll(
         p.whitelist = whitelist;
         p.blacklist = blacklist;
         p.create_time = current_time;
-        p.open_time = open_time;
+        p.open_time = start_time;
         p.close_time = close_time;
         p.metadata = metadata;
     });
@@ -130,7 +129,7 @@ void contract::createpoll(
         p.whitelist = whitelist;
         p.blacklist = blacklist;
         p.create_time = current_time;
-        p.open_time = open_time;
+        p.open_time = start_time;
         p.close_time = close_time;
         p.metadata = metadata;
     });
@@ -150,7 +149,7 @@ void contract::createpoll(
             p.whitelist = whitelist;
             p.blacklist = blacklist;
             p.create_time = current_time;
-            p.open_time = open_time;
+            p.open_time = start_time;
             p.close_time = close_time;
             p.metadata = metadata;
         });

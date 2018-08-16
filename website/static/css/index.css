@@ -1,0 +1,6 @@
+@import 'normalize.css';
+@import './variables';
+@import './global';
+@import './components/app';
+@import './components/poll_form';
+@import './pages/home';

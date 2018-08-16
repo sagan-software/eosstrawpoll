@@ -1,13 +1,3 @@
-:root {
-    --brand-color: #0342bf;
-    --text-color: #444;
-    --background-color: #fff;
-    --spacing: 1rem;
-    --border-radius: 0.3rem;
-    --container-width: 70rem;
-    font-size: 62.5%;
-}
-
 * {
     box-sizing: border-box;
     font-family: system-ui;

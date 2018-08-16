@@ -69,8 +69,8 @@ pub struct Poll {
 pub struct Vote {
     pub voter: String,
     pub created: u32,
-    pub staked: String,
-    pub choices: Vec<String>,
+    pub staked: u64,
+    pub choices: Vec<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -85,5 +85,14 @@ pub struct CreatePollAction {
     pub blacklist: Vec<String>,
     pub open_time: u32,
     pub close_time: u32,
+    pub metadata: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct CreateVoteAction {
+    pub creator: String,
+    pub slug: String,
+    pub voter: String,
+    pub choices: Vec<usize>,
     pub metadata: String,
 }

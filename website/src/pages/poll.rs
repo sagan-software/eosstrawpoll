@@ -1,10 +1,12 @@
 use agents::router::{RouterAgent, RouterInput};
+use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
 use context::Context;
 use failure::Error;
 use route::Route;
+use serde_json;
 use services::eos::{self, EosService};
 use stdweb::traits::IEvent;
-use types::Poll;
+use types::{CreateVoteAction, Poll};
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 
@@ -15,6 +17,11 @@ pub struct PollPage {
     poll: Option<Result<Poll, Error>>,
     creator: String,
     slug: String,
+    scatter_agent: Box<Bridge<ScatterAgent>>,
+    scatter_connected: Option<Result<(), ScatterError>>,
+    scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
+    pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
+    choices: Vec<usize>,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -28,6 +35,9 @@ pub enum Msg {
     Ignore,
     NavigateTo(Route),
     Polls(Result<eos::TableRows<Poll>, Error>),
+    Scatter(ScatterOutput),
+    ToggleChoice(usize),
+    Vote,
 }
 
 impl Component for PollPage {
@@ -51,6 +61,11 @@ impl Component for PollPage {
             key_type: None,
             index_position: None,
         };
+
+        let callback = link.send_back(Msg::Scatter);
+        let mut scatter_agent = ScatterAgent::bridge(callback);
+        scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
+
         let context = props.context;
         let callback = link.send_back(Msg::Polls);
         let task = eos.get_table_rows(context.endpoint.as_str(), params.clone(), callback);
@@ -62,6 +77,11 @@ impl Component for PollPage {
             poll: None,
             slug: props.slug.clone(),
             creator: creator.clone(),
+            scatter_agent,
+            scatter_connected: None,
+            scatter_identity: None,
+            pushed: None,
+            choices: vec![],
         }
     }
 
@@ -82,6 +102,95 @@ impl Component for PollPage {
                     Err(error) => Some(Err(error)),
                 };
                 self.task = None;
+                true
+            }
+            Msg::Scatter(output) => match output {
+                ScatterOutput::GotIdentity(result) => {
+                    info!("got identity {:#?}", result);
+                    self.scatter_identity = Some(result);
+                    true
+                }
+                ScatterOutput::ForgotIdentity(_result) => {
+                    self.scatter_identity = None;
+                    true
+                }
+                ScatterOutput::Connected(result) => {
+                    if result.is_ok() {
+                        self.scatter_agent.send(ScatterInput::CurrentIdentity);
+                    }
+                    self.scatter_connected = Some(result);
+                    true
+                }
+                ScatterOutput::PushedActions(result) => {
+                    self.pushed = Some(result.clone());
+                    let results = Route::PollResults(self.creator.clone(), self.slug.clone());
+                    let url = results.to_string();
+                    self.router.send(RouterInput::ChangeRoute(url, ()));
+                    true
+                }
+            },
+            Msg::ToggleChoice(choice) => {
+                info!("CHOICES: {:#?}, CHOICE: {:#?}", self.choices, choice);
+                if self.choices.contains(&choice) {
+                    self.choices.retain(|&c| c != choice);
+                } else {
+                    self.choices.push(choice);
+                }
+                true
+            }
+            Msg::Vote => {
+                info!("submitting form");
+
+                let voter = match self.voter() {
+                    Some(voter) => voter,
+                    None => return false,
+                };
+
+                let chain_id =
+                    "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f".to_string();
+                let network = scatter::Network {
+                    blockchain: Some("eos".into()),
+                    chain_id: Some(chain_id.clone()),
+                    protocol: Some("http".into()),
+                    host: Some("localhost".into()),
+                    port: Some(8888),
+                };
+
+                let config = scatter::EosConfig {
+                    chain_id: Some(chain_id.clone()),
+                    key_provider: None,
+                    http_endpoint: None,
+                    expire_in_seconds: None,
+                    broadcast: None,
+                    verbose: None,
+                    debug: None,
+                    sign: None,
+                };
+
+                let action_data = CreateVoteAction {
+                    creator: self.creator.to_string(),
+                    slug: self.slug.clone(),
+                    voter: voter.clone(),
+                    choices: self.choices.clone(),
+                    metadata: "".to_string(),
+                };
+
+                let data = serde_json::to_value(action_data).unwrap();
+
+                let action = scatter::Action {
+                    account: "eosstrawpoll".into(),
+                    name: "createvote".into(),
+                    authorization: vec![scatter::Authorization {
+                        actor: voter.to_string(),
+                        permission: "active".into(),
+                    }],
+                    data,
+                };
+
+                let actions = vec![action];
+
+                self.scatter_agent
+                    .send(ScatterInput::PushActions(network, config, actions));
                 true
             }
         }
@@ -105,6 +214,23 @@ impl Renderable<PollPage> for PollPage {
 }
 
 impl PollPage {
+    fn voter(&self) -> Option<String> {
+        let result = match &self.scatter_identity {
+            Some(result) => result,
+            None => return None,
+        };
+
+        let identity = match result {
+            Ok(identity) => identity,
+            Err(_error) => return None,
+        };
+
+        match identity.accounts.first() {
+            Some(ref account) => Some(account.name.clone()),
+            None => None,
+        }
+    }
+
     fn view_loading(&self) -> Html<Self> {
         html! {
             <div>
@@ -122,20 +248,49 @@ impl PollPage {
     }
 
     fn view_ok(&self, poll: &Poll) -> Html<Self> {
+        let results = Route::PollResults(poll.creator.clone(), poll.slug.clone());
         html! {
-            <div>
+            <form>
                 <h1>{ &poll.title }</h1>
                 <ul>
-                    { for poll.options.iter().map(|option| self.view_option(option)) }
+                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i, option)) }
                 </ul>
-            </div>
+                <p>
+                    <a
+                        href=results.to_string(),
+                        onclick=|e| {
+                            e.prevent_default();
+                            Msg::NavigateTo(results.clone())
+                        },
+                    >
+                        { "View results" }
+                    </a>
+                </p>
+                <button
+                    type="submit",
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::Vote
+                    },
+                >
+                    {"Vote"}
+                </button>
+            </form>
         }
     }
 
-    fn view_option(&self, option: &str) -> Html<Self> {
+    fn view_option(&self, index: usize, option: &str) -> Html<Self> {
+        let is_selected = self.choices.contains(&index);
         html! {
             <li>
-                { option }
+                <label>
+                    <input
+                        type="checkbox",
+                        onchange=|_| Msg::ToggleChoice(index),
+                        checked=is_selected,
+                    />
+                    { option }
+                </label>
             </li>
         }
     }

@@ -186,15 +186,19 @@ impl ScatterService {
             var timeout = @{timeout};
 
             // try {
-            //     var ScatterJS = require("scatter-js/dist/scatter.cjs");
+            //     // var ScatterJS = require("scatter-js/dist/scatter.cjs.js");
+            //     var Scatter = require("scatter-core");
+            //     var ScatterEos = require("scatter-plugin-eos");
+            //     console.log("SCATTER", Scatter, ScatterEos);
+            //     Scatter.plugins(new ScatterEos());
             //     console.time("Test!");
-            //     window.ScatterJS = ScatterJS;
-            //     ScatterJS.scatter
+            //     window.Scatter = Scatter;
+            //     Scatter.scatter
             //         .connect(appname)
             //         .then(function (connected) {
             //             console.log("balls 1");
             //             console.timeEnd("Test!");
-            //             callback(true, ScatterJS.scatter);
+            //             callback(true, Scatter.scatter);
             //             callback.drop();
             //         })
             //         .catch(function (error) {
@@ -203,7 +207,7 @@ impl ScatterService {
             //             callback.drop();
             //         })
             // } catch (error) {
-            //     console.log("balls 3", error, ScatterJS);
+            //     console.log("balls 3", error, Scatter);
             //     callback(false, null);
             //     callback.drop();
             // }

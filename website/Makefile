@@ -13,7 +13,7 @@ install: node_modules
 	cargo install --force cargo-web
 .PHONY: install
 
-build: cargo webpack css
+build: css cargo webpack
 .PHONY: build
 
 clean: clean-cargo clean-webpack clean-css
@@ -37,14 +37,14 @@ node_modules:
 	yarn install
 
 cargo:
-	cargo web deploy \
+	cargo web build \
 		--target=wasm32-unknown-unknown \
 		--release \
 		--verbose
 .PHONY: cargo
 
 clean-cargo:
-	rm -Rf target/deploy
+	rm -Rf target/wasm32-unknown-unknown
 .PHONY: clean-cargo
 
 full-clean-cargo:
@@ -58,7 +58,7 @@ watch-cargo:
 		-i '*.js*' \
 		-i '*.sh' \
 		-i 'node_modules' \
-		-x "web deploy --target=wasm32-unknown-unknown --release --verbose"
+		-x "web build --target=wasm32-unknown-unknown --release --verbose"
 .PHONY: watch-cargo
 
 $(DIST):
@@ -80,7 +80,7 @@ watch-webpack: $(DIST)
 
 css: $(DIST)
 	$(NPM)/postcss \
-        static/index.css \
+        static/css/index.css \
         --output $(DIST)/index.css
 .PHONY: css
 
@@ -90,7 +90,7 @@ clean-css:
 
 watch-css: $(DIST)
 	$(NPM)/postcss \
-        static/index.css \
+        static/css/index.css \
         --output $(DIST)/index.css \
 		--watch
 .PHONY: watch-css

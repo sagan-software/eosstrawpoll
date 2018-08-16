@@ -1,6 +1,6 @@
 .home_page {
 
-    & .page__title {
+    & .page_title {
         text-align: center;
         margin: 0;
         height: 10rem;
@@ -10,9 +10,12 @@
         font-size: 3rem;
     }
 
-    & .poll_form {
-        margin: 0 auto;
-        width: var(--container-width);
+    & .poll_list.-popular {
+        grid-column: 2 / span 2;
+    }
+
+    & .poll_list.-new {
+        grid-column: 4;
     }
 
 }

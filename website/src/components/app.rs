@@ -48,24 +48,7 @@ impl Component for App {
         let mut scatter = ScatterAgent::bridge(callback);
         scatter.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
 
-        // let eos = EosService::new(EosConfig {
-        //     chain_id: Some(DEVNET.to_string()),
-        //     key_provider: None,
-        //     http_endpoint: Some("http://localhost:8888".to_string()),
-        //     expire_in_seconds: None,
-        //     broadcast: None,
-        //     verbose: None,
-        //     debug: None,
-        //     sign: None,
-        // });
-
-        // {
-        //     let callback = link.send_back(Msg::GotInfo);
-        //     eos.get_info(callback);
-        // }
-
-        let mut context = Context::default();
-        // context.eos = Some(Box::new(eos));
+        let context = Context::default();
 
         App {
             route: None,
@@ -125,24 +108,7 @@ impl Component for App {
             Msg::Logout => {
                 self.scatter.send(ScatterInput::ForgetIdentity);
                 false
-            } // Msg::GotInfo(result) => {
-              //     info!("got info {:#?}", result);
-              //     true
-              // }
-              // Msg::GotContract(result) => {
-              //     info!("got contract {:#?}", result);
-              //     match result {
-              //         Ok(contract) => {
-              //             self.context.endpoint = self.context.endpoint.clone(); // do this to force updating props
-              //             self.context.contract = Some(Box::new(contract));
-              //             true
-              //         }
-              //         Err(error) => {
-              //             error!("error getting contract: {:#?}", error);
-              //             false
-              //         }
-              //     }
-              // }
+            }
         }
     }
 }
@@ -162,10 +128,10 @@ impl Renderable<App> for App {
 impl App {
     fn view_header(&self) -> Html<Self> {
         html! {
-            <header class="app__header", >
-                <div class="app__container", >
+            <header class="app_header", >
+                <div class="app_container", >
                     <a
-                        class="app__logo",
+                        class="app_logo",
                         href="/",
                         onclick=|e| {
                             e.prevent_default();
@@ -183,22 +149,23 @@ impl App {
 
     fn view_nav(&self) -> Html<Self> {
         html! {
-            <nav class="app__nav", >
-                { self.view_nav_link(Route::PopularPolls, "Popular") }
-                { self.view_nav_link(Route::NewPolls, "New") }
-                { self.view_nav_link(Route::Donors, "Donors") }
-                // <button onclick=|_| Msg::NavigateTo(Page::Home),>{ "Go to Home" }</button>
-                // <button onclick=|_| Msg::NavigateTo(Page::Profile("balls".into())),>{ "Go to Profile" }</button>
-                // <button onclick=|_| Msg::NavigateTo(Page::Poll("balls".into(), "balls".into())),>{ "Go to Poll" }</button>
-                // <button onclick=|_| Msg::NavigateTo(Page::PollResults("balls".into(), "balls".into())),>{ "Go to Poll Results" }</button>
-            </nav>
+            <>
+                <nav class="app_nav -primary", >
+                    { self.view_nav_link(Route::PopularPolls, "Popular") }
+                    { self.view_nav_link(Route::NewPolls, "New") }
+                    { self.view_nav_link(Route::Donors, "Donors") }
+                </nav>
+                <nav class="app_nav -secondary", >
+                    { self.view_nav_link(Route::Home, "EOS MainNet") }
+                </nav>
+            </>
         }
     }
 
     fn view_nav_link(&self, route: Route, text: &str) -> Html<Self> {
         html! {
             <a
-                class="app__link",
+                class="app_link",
                 href=route.to_string(),
                 onclick=|e| {
                     e.prevent_default();
@@ -217,7 +184,7 @@ impl App {
             Some(Err(error)) => self.view_user_err(error),
         };
         html! {
-            <nav class="app__user", >
+            <nav class="app_user", >
                 { view }
             </nav>
         }
@@ -226,16 +193,18 @@ impl App {
     fn view_user_none(&self) -> Html<Self> {
         html! {
             <button
-                class="app__login",
+                class="app_login",
                 onclick=|_| Msg::Login,
             >
-                { "Login" }
+                { "Login with Scatter" }
             </button>
         }
     }
 
     fn view_user_ok(&self, identity: &scatter::Identity) -> Html<Self> {
-        let account_name = identity.account_name().unwrap_or("Anon".to_string());
+        let account_name = identity
+            .account_name()
+            .unwrap_or_else(|| "Anon".to_string());
         let profile_route = Route::Profile(account_name.clone());
         html! {
             <p>
@@ -251,7 +220,7 @@ impl App {
                 </a>
             </p>
             <button
-                class="app__logout",
+                class="app_logout",
                 onclick=|_| Msg::Logout,
             >
                 { "Logout" }
@@ -262,7 +231,7 @@ impl App {
     fn view_user_err(&self, _error: &ScatterError) -> Html<Self> {
         html! {
             <button
-                class="app__login",
+                class="app_login",
                 onclick=|_| Msg::Login,
             >
                 { "Login (error)" }
@@ -272,7 +241,7 @@ impl App {
 
     fn view_content(&self) -> Html<Self> {
         html! {
-            <div class="app__content", >
+            <div class="app_content", >
                 {self.view_page()}
             </div>
         }
@@ -280,11 +249,73 @@ impl App {
 
     fn view_footer(&self) -> Html<Self> {
         html!{
-            <footer class="app__footer", >
-                <div class="app__container", >
-                    { "Footer" }
+            <footer class="app_footer", >
+                <div class="app_container", >
+                    { self.view_donation_form() }
+                    { self.view_donor_list() }
+                    { self.view_donation_list() }
+                    { self.view_footer_links() }
                 </div>
             </footer>
+        }
+    }
+
+    fn view_donation_form(&self) -> Html<Self> {
+        html! {
+            <form class="donation_form", >
+                <h2>{ "Donate" }</h2>
+                <p>
+                    { "Filler text" }
+                </p>
+                <input placeholder="1.0000 EOS", />
+                <button type="submit", >
+                    { "Donate" }
+                </button>
+            </form>
+        }
+    }
+
+    fn view_donor_list(&self) -> Html<Self> {
+        html! {
+            <div class="donor_list", >
+                <h2>{ "Top Donors" }</h2>
+                <ol>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                </ol>
+            </div>
+        }
+    }
+
+    fn view_donation_list(&self) -> Html<Self> {
+        html! {
+            <div class="donation_list", >
+                <h2>{ "New Donations" }</h2>
+                <ol>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                    <li>{ "saganonroids" }</li>
+                </ol>
+            </div>
+        }
+    }
+
+    fn view_footer_links(&self) -> Html<Self> {
+        html! {
+            <div class="footer_links", >
+                <h2>{ "Links" }</h2>
+                <ul>
+                    <li>{ "Github" }</li>
+                    <li>{ "Twitter" }</li>
+                    <li>{ "Telegram" }</li>
+                    <li>{ "Medium" }</li>
+                </ul>
+            </div>
         }
     }
 
@@ -313,10 +344,8 @@ impl App {
                     Route::Poll(ref creator, ref slug) => html! {
                         <PollPage: context=&self.context, creator=creator, slug=slug, />
                     },
-                    Route::PollResults(ref poll_creator, ref poll_name) => html! {
-                        <>
-                            {format!("Poll results page: '{}' '{}'", poll_creator, poll_name)}
-                        </>
+                    Route::PollResults(ref creator, ref slug) => html! {
+                        <PollResultsPage: context=&self.context, creator=creator, slug=slug, />
                     },
                 },
                 Err(error) => match error {

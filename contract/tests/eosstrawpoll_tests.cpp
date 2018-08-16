@@ -83,7 +83,7 @@ try
         const vector<account_name> whitelist{N(carol1111111)};
         const uint8_t min_num_choices = 1;
         const uint8_t max_num_choices = 3;
-        const timestamp open_time = 0;
+        const timestamp open_time = now();
         const timestamp close_time = now() + 700;
         const string metadata = "test";
         auto out = createpoll(

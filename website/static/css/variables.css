@@ -1,0 +1,10 @@
+:root {
+    --brand-color: #0342bf;
+    --text-color: #444;
+    --background-color: #eee;
+    --border-color: #d4d4d4;
+    --spacing: 0.8rem;
+    --border-radius: 0.3rem;
+    --container-width: 96rem;
+    font-size: 62.5%;
+}

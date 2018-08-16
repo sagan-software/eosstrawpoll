@@ -9,6 +9,7 @@ use yew::prelude::worker::*;
 pub enum ScatterInput {
     Connect(String, u32),
     GetIdentity(RequiredFields),
+    CurrentIdentity,
     ForgetIdentity,
     PushActions(Network, EosConfig, Vec<Action>),
 }
@@ -36,6 +37,7 @@ pub struct ScatterAgent {
     link: AgentLink<ScatterAgent>,
     scatter_service: Option<ScatterService>,
     subscribers: HashSet<HandlerId>,
+    current_identity: Option<Result<Identity, ScatterError>>,
 }
 
 impl Agent for ScatterAgent {
@@ -49,6 +51,7 @@ impl Agent for ScatterAgent {
             link,
             scatter_service: None,
             subscribers: HashSet::new(),
+            current_identity: None,
         }
     }
 
@@ -72,6 +75,12 @@ impl Agent for ScatterAgent {
                     self.link.response(who, output);
                 }
             },
+            ScatterInput::CurrentIdentity => {
+                if let Some(result) = &self.current_identity {
+                    let output = ScatterOutput::GotIdentity(result.clone());
+                    self.link.response(who, output);
+                }
+            }
             ScatterInput::ForgetIdentity => match &self.scatter_service {
                 Some(scatter_service) => {
                     let callback = self.link.send_back(ScatterMsg::ForgotIdentity);
@@ -107,8 +116,14 @@ impl Agent for ScatterAgent {
                     ScatterOutput::Connected(Err(error))
                 }
             },
-            ScatterMsg::GotIdentity(result) => ScatterOutput::GotIdentity(result),
-            ScatterMsg::ForgotIdentity(result) => ScatterOutput::ForgotIdentity(result),
+            ScatterMsg::GotIdentity(result) => {
+                self.current_identity = Some(result.clone());
+                ScatterOutput::GotIdentity(result)
+            }
+            ScatterMsg::ForgotIdentity(result) => {
+                self.current_identity = None;
+                ScatterOutput::ForgotIdentity(result)
+            }
             ScatterMsg::PushedActions(result) => ScatterOutput::PushedActions(result),
         };
         for sub in &self.subscribers {

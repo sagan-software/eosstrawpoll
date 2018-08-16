@@ -1,0 +1,233 @@
+.poll_form {
+
+    & input,
+    & textarea {
+        border: 1px solid var(--border-color);
+        padding: var(--spacing);
+        margin: 0;
+        display: block;
+        font-size: 1.4rem;
+        transition: 300ms opacity;
+
+        &:focus {
+            outline: 0;
+            border-color: var(--brand-color);
+        }
+    }
+
+    & [disabled=true] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+}
+
+.poll_form section {
+    display: contents;
+
+    &:first-of-type main {
+        border-top-width: 0.1rem;
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+    }
+
+    &:last-of-type main {
+        border-bottom-width: 0.1rem;
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+    }
+
+    & > * {
+        padding: var(--spacing);
+        align-content: center;
+        justify-content: center;
+        display: flex;
+        flex-direction: column;
+    }
+
+    & header {
+        grid-column: 1;
+        text-align: right;
+        opacity: 0.3;
+    }
+
+    & main {
+        grid-column: 2 / span 3;
+        background-color: #fff;
+        margin-bottom: 0.1rem;
+        border-color: var(--border-color);
+        border-style: solid;
+        border-width: 0 0.1rem;
+    }
+
+    & aside {
+        grid-column: 5;
+        color: #666;
+        font-size: 1.2rem;
+        opacity: 0;
+    }
+
+}
+
+.poll_form_title {
+
+    & main {
+        padding: calc(var(--spacing) * 2);
+    }
+
+    & .poll_form_input {
+        padding: 1.6rem;
+        width: 100%;
+        font-weight: 700;
+    }
+
+}
+
+.poll_form_min_num_choices,
+.poll_form_max_num_choices {
+
+    & input {
+        text-align: center;
+    }
+
+}
+
+.poll_form_options,
+.poll_form_advanced {
+    padding: var(--spacing);
+}
+
+.poll_form_option {
+    display: flex;
+    padding: var(--spacing);
+
+    & + * {
+        padding-top: 0;
+    }
+
+    &:last-of-type input {
+        cursor: copy;
+    }
+
+    & input {
+        flex: 1;
+        margin-right: calc(var(--spacing) / 2);
+    }
+
+}
+
+
+.poll_form_times {
+
+    & main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+
+        & > * {
+            padding: var(--spacing);
+            width: 100%;
+
+            &:first-of-type {
+                grid-column: 1;
+            }
+
+            &:last-of-type {
+                grid-column: 2;
+            }
+        }
+
+        & input {
+            display: block;
+            width: 100%;
+        }
+
+    }
+}
+
+.poll_form_voter_requirements {
+
+    & .field {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+        padding: var(--spacing);
+
+        & strong {
+            grid-row: 1;
+            grid-column: 1;
+        }
+
+        & .prefill_links {
+            grid-row: 1;
+            grid-column: 2 / span 4;
+            text-align: right;
+        }
+
+        & input {
+            grid-row: 2;
+            grid-column: 1 / span 5;
+        }
+    }
+
+}
+
+.poll_form_whitelist input,
+.poll_form_blacklist input {
+    width: 100%;
+}
+
+.poll_form_num_choices {
+
+    & main {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+
+        & > * {
+            padding: var(--spacing);
+        }
+
+        & label,
+        & input {
+            width: 100%;
+            display: block;
+        }
+
+        & > label:first-of-type {
+            grid-column: 1;
+        }
+
+        & > input[type="range"] {
+            grid-column: 2 / span 3;
+            grid-row: 1;
+        }
+
+        & > label:last-of-type {
+            grid-column: 5;
+        }
+
+    }
+
+}
+
+.poll_form_open_time,
+.poll_form_close_time {
+    width: 200px;
+}
+
+.poll_form_open_time input,
+.poll_form_close_time input {
+    width: 100%;
+    padding-right: 0;
+}
+
+.poll_form_submit {
+    grid-column: 3;
+    display: block;
+    margin: calc(var(--spacing) * 2) auto;
+    padding: calc(var(--spacing) * 2);
+    font-size: 120%;
+    font-weight: 700;
+    background-color: var(--brand-color);
+    border: 0;
+    color: #fff;
+    width: 100%;
+}

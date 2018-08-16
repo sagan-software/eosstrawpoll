@@ -379,10 +379,12 @@
             "type": "poll",
             "index_type": "i64",
             "key_names": [
-                "popularity"
+                "popularity",
+                "created"
             ],
             "key_types": [
-                "double"
+                "double",
+                "i64"
             ]
         },
         {
@@ -390,9 +392,11 @@
             "type": "poll",
             "index_type": "i64",
             "key_names": [
+                "popularity",
                 "created"
             ],
             "key_types": [
+                "double",
                 "i64"
             ]
         },
