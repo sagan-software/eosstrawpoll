@@ -1,26 +1,32 @@
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const CompressionPlugin = require("compression-webpack-plugin");
-const CleanWebpackPlugin = require("clean-webpack-plugin");
 const path = require("path");
+const webpack = require("webpack");
 
 const DIST_DIR = path.resolve(__dirname, "dist");
 const IS_PROD = process.env.NODE_ENV === "production";
+const TARGET_DIR = "./target/wasm32-unknown-unknown/release/";
 
 console.log("PRODUCTION?", IS_PROD);
 
 function plugins() {
+    const common = [
+        new HtmlWebpackPlugin({
+            template: "static/index.html",
+            filename: "index.html",
+        }),
+        new webpack.EnvironmentPlugin([
+            "NODE_ENV",
+            "DEFAULT_ENDPOINT",
+            "DEFAULT_CHAIN_ID",
+        ]),
+    ]
     if (IS_PROD) {
         return [
-            new CleanWebpackPlugin(["dist"], {
-                verbose: true,
-            }),
-            new HtmlWebpackPlugin({
-                template: "static/index.html",
-                filename: "index.html",
-            }),
+            ...common,
             new CopyWebpackPlugin([{
-                from: "./target/deploy/eosstrawpoll.wasm",
+                from: TARGET_DIR + "eosstrawpoll.wasm",
                 to: "index.wasm"
             }, {
                 from: "./dist/index.css",
@@ -32,12 +38,9 @@ function plugins() {
         ];
     } else {
         return [
-            new HtmlWebpackPlugin({
-                template: "static/index.html",
-                filename: "index.html",
-            }),
+            ...common,
             new CopyWebpackPlugin([{
-                from: "./target/deploy/eosstrawpoll.wasm",
+                from: TARGET_DIR + "eosstrawpoll.wasm",
                 to: "index.wasm"
             }]),
         ];
@@ -47,7 +50,7 @@ function plugins() {
 const config = {
     mode: IS_PROD ? "production" : "development",
     entry: {
-        index: "./target/wasm32-unknown-unknown/release/eosstrawpoll.js",
+        index: TARGET_DIR + "eosstrawpoll.js",
     },
     node: {
         fs: "empty"

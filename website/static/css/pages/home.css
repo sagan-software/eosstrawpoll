@@ -1,21 +1,69 @@
 .home_page {
 
-    & .page_title {
-        text-align: center;
-        margin: 0;
-        height: 10rem;
+    & h1 {
+        grid-column: 1 / span 5;
+        grid-row: 1;
+    }
+
+    & aside {
+        padding: 0 calc(var(--spacing) * 3);
+
+        & ol,
+        & ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        & h2 {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            margin: 0;
+            margin-bottom: var(--spacing);
+        }
+
+        & > * {
+            margin-bottom: calc(var(--spacing) * 3);
+        }
+    }
+
+    & .poll_lists {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    & .poll_form_wrapper {
+        grid-column: 2 / span 3;
+        grid-row: 2;
+    }
+
+    & .donations {
+        grid-column: 5;
+        grid-row: 2;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 3rem;
+        flex-direction: column;
     }
 
-    & .poll_list.-popular {
-        grid-column: 2 / span 2;
+    & .donation_form {
+        order: 1;
     }
 
-    & .poll_list.-new {
-        grid-column: 4;
+    & .top_donors {
+        order: 2;
+    }
+
+    & .new_donations {
+        order: 3;
+    }
+
+    & .poll_list_item {
+        font-size: 1.2rem;
+        display: grid;
+        margin-bottom: var(--spacing);
+
+        & .poll_title {
+            font-weight: 700;
+        }
     }
 
 }

@@ -1,6 +1,5 @@
 #![recursion_limit = "500"]
 #![warn(clippy)]
-
 #[macro_use]
 extern crate log;
 #[macro_use]

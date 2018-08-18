@@ -126,7 +126,7 @@ impl Component for PollPage {
                     let results = Route::PollResults(self.creator.clone(), self.slug.clone());
                     let url = results.to_string();
                     self.router.send(RouterInput::ChangeRoute(url, ()));
-                    true
+                    false
                 }
             },
             Msg::ToggleChoice(choice) => {

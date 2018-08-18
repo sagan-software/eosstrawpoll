@@ -38,7 +38,7 @@ impl Renderable<ProfilePage> for ProfilePage {
             <div>
                 <h1>{ &self.account }</h1>
                 <PollList:
-                    endpoint=&self.context.endpoint,
+                    context=&self.context,
                     scope=self.account.clone(),
                     limit=Some(50),
                 />

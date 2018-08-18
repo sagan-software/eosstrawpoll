@@ -1,6 +1,3 @@
-//! Agent that exposes a usable routing interface to components.
-
-use serde_json;
 pub use services::scatter::*;
 use std::collections::HashSet;
 use yew::prelude::worker::*;

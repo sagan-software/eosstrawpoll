@@ -36,7 +36,7 @@ impl Renderable<PopularPollsPage> for PopularPollsPage {
             <div>
                 <h1>{ "Popular Polls" }</h1>
                 <PollList:
-                    endpoint=&self.context.endpoint.to_string(),
+                    context=&self.context,
                     limit=Some(50),
                     table=Some(PollsTable::PopularPolls),
                     order=Some(PollsOrder::Popularity),

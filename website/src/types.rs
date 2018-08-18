@@ -96,3 +96,18 @@ pub struct CreateVoteAction {
     pub choices: Vec<usize>,
     pub metadata: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct Donation {
+    pub id: String,
+    pub account: String,
+    pub donated: u64,
+    pub memo: String,
+    pub created: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct Donor {
+    pub account: String,
+    pub donated: u64,
+}

@@ -12,7 +12,7 @@
     max-width: var(--container-width);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 21rem 1fr 1fr 1fr 21rem;
 }
 
 .app_header {
@@ -25,7 +25,6 @@
             display: flex;
             align-items: center;
             height: 6rem;
-            padding: var(--spacing);
         }
     }
 
@@ -33,11 +32,9 @@
 
 .app_logo {
     grid-column: 1;
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 700;
     text-align: center;
-    background: var(--brand-color);
-    color: #fff !important;
     justify-content: center;
 }
 
@@ -49,27 +46,21 @@
     }
 
     &.-secondary {
-        grid-column: 4;
-        text-align: center;
-        padding-right: 0 !important;
-
-        & > * {
-            border-radius: var(--border-radius);
-            border: 1px solid #ccc;
-            width: 100%;
-            display: block;
-        }
+        display: none;
     }
 
     & > * {
-        padding: var(--spacing);
+        margin-right: calc(var(--spacing) * 3);
+        height: 100%;
+        display: flex;
+        align-items: center;
     }
 }
 
 .app_user {
     grid-column: 5;
     font-size: 1.4rem;
-    padding-right: 0 !important;
+    padding: var(--spacing) calc(var(--spacing) * 2);
 
     & > * {
         width: 100%;
@@ -83,6 +74,8 @@
 }
 
 .app_footer {
+    text-align: center;
+    padding: var(--spacing);
 
     & .donor_list {
         grid-column: 2 / span 2;

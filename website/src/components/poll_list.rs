@@ -1,4 +1,5 @@
 use agents::router::{RouterAgent, RouterInput, RouterOutput};
+use context::Context;
 use failure::Error;
 use route::Route;
 use services::eos::{self, EosService};
@@ -60,7 +61,7 @@ pub enum Msg {
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
-    pub endpoint: String,
+    pub context: Context,
     pub scope: String,
     pub table: Option<PollsTable>,
     pub lower_bound: Option<String>,
@@ -155,16 +156,16 @@ impl PollList {
         match order {
             PollsOrder::Id => {}
             PollsOrder::Popularity => {
-                params.key_type = Some("popularity".to_string());
+                params.key_type = Some("36257420722842541".to_string());
                 // params.index_position = Some("1".to_string());
             }
             PollsOrder::Created => {
-                params.key_type = Some("created".to_string());
+                params.key_type = Some("140281435205".to_string());
                 // params.index_position = Some("2".to_string());
             }
         }
         let callback = self.link.send_back(Msg::Polls);
-        let endpoint = &self.props.endpoint;
+        let endpoint = &self.props.context.endpoint;
         let task = self.eos.get_table_rows(endpoint, params, callback);
         self.task = Some(task);
     }
@@ -194,19 +195,31 @@ impl PollList {
     }
 
     fn view_item(&self, poll: &Poll) -> Html<Self> {
-        let route = Route::Poll(poll.creator.clone(), poll.slug.clone());
+        let poll_route = Route::Poll(poll.creator.clone(), poll.slug.clone());
+        let creator_route = Route::Profile(poll.creator.clone());
         html! {
             <li class="poll_list_item", >
-                <a
-                    href=route.to_string(),
+                <a class="poll_title",
+                    href=poll_route.to_string(),
                     onclick=|e| {
                         e.prevent_default();
-                        Msg::NavigateTo(route.clone())
+                        Msg::NavigateTo(poll_route.clone())
                     },
                 >
                     { &poll.title }
-                    { format!("({})", &poll.popularity)}
                 </a>
+                <a class="poll_creator",
+                    href=creator_route.to_string(),
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::NavigateTo(creator_route.clone())
+                    },
+                >
+                    { &poll.creator }
+                </a>
+                <div class="poll_votes", >
+                    { &poll.votes.len() } { " votes" }
+                </div>
             </li>
         }
     }

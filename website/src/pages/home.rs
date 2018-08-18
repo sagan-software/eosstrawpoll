@@ -1,4 +1,4 @@
-use components::{PollForm, PollList, PollsOrder, PollsTable};
+use components::*;
 use context::Context;
 use yew::prelude::*;
 
@@ -36,47 +36,44 @@ impl Component for HomePage {
 impl Renderable<HomePage> for HomePage {
     fn view(&self) -> Html<Self> {
         html! {
-            <div class="home_page", >
-                <h1 class="page_title", >
+            <div class="home_page app_container", >
+                <h1>
                     { "Create real-time polls on EOS blockchains" }
                 </h1>
                 <div class="poll_form_wrapper", >
                     <PollForm: context=&self.context, />
                 </div>
-                <div class="app_container", >
-                    { self.view_popular_polls() }
-                    { self.view_new_polls() }
-                </div>
-            </div>
-        }
-    }
-}
-
-impl HomePage {
-    fn view_popular_polls(&self) -> Html<Self> {
-        html! {
-            <div class="poll_list -popular", >
-                <h2> { "Popular" } </h2>
-                <PollList:
-                    endpoint=&self.context.endpoint.to_string(),
-                    limit=Some(10),
-                    table=Some(PollsTable::PopularPolls),
-                    order=Some(PollsOrder::Popularity),
-                />
-            </div>
-        }
-    }
-
-    fn view_new_polls(&self) -> Html<Self> {
-        html! {
-            <div class="poll_list -new", >
-                <h2> { "New" } </h2>
-                <PollList:
-                    endpoint=&self.context.endpoint.to_string(),
-                    limit=Some(10),
-                    table=Some(PollsTable::NewPolls),
-                    order=Some(PollsOrder::Created),
-                />
+                <aside class="poll_lists", >
+                    <div class="popular_polls", >
+                        <h2> { "Popular Polls" } </h2>
+                        <PollList:
+                            context=&self.context,
+                            limit=Some(10),
+                            table=Some(PollsTable::PopularPolls),
+                            order=Some(PollsOrder::Popularity),
+                        />
+                    </div>
+                    <div class="new_polls", >
+                        <h2> { "New Polls" } </h2>
+                        <PollList:
+                            context=&self.context,
+                            limit=Some(10),
+                            table=Some(PollsTable::NewPolls),
+                            order=Some(PollsOrder::Created),
+                        />
+                    </div>
+                </aside>
+                <aside class="donations", >
+                    <div class="top_donors", >
+                        <h2> { "Top Donors" } </h2>
+                        <DonorList: context=&self.context, />
+                    </div>
+                    <div class="new_donations", >
+                        <h2> { "New Donations" } </h2>
+                        <DonationList: context=&self.context, />
+                    </div>
+                    <DonationForm: context=&self.context, />
+                </aside>
             </div>
         }
     }

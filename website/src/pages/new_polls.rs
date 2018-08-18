@@ -36,7 +36,7 @@ impl Renderable<NewPollsPage> for NewPollsPage {
             <div>
                 <h1>{ "New Polls" }</h1>
                 <PollList:
-                    endpoint=&self.context.endpoint.to_string(),
+                    context=&self.context,
                     limit=Some(50),
                     table=Some(PollsTable::NewPolls),
                     order=Some(PollsOrder::Created),

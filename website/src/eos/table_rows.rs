@@ -1,8 +1,3 @@
-use serde_json;
-use serde_json::Value;
-use yew::format::Json;
-use yew::services::fetch::Request;
-
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct TableRows<Row> {
     pub rows: Vec<Row>,
@@ -25,13 +20,4 @@ pub struct TableRowsParams {
     pub key_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub index_position: Option<String>,
-}
-
-pub fn get_table_rows_request(endpoint: &str, params: TableRowsParams) -> Request<Json<Value>> {
-    let params_value = serde_json::to_value(params).unwrap();
-    Request::builder()
-        .method("POST")
-        .uri(format!("{}/v1/chain/get_table_rows", endpoint))
-        .body(Json(params_value))
-        .unwrap()
 }

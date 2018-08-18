@@ -1,18 +1,10 @@
 use agents::router::{RouterAgent, RouterInput, RouterOutput};
 use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
 use context::Context;
-// use contract::Contract;
 use pages::*;
 use route::{Route, RouteError};
-// use services::eos::{self, EosConfig, EosService};
 use stdweb::traits::IEvent;
 use yew::prelude::*;
-
-const DEVNET: &str = "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f";
-
-const EOS_MAINNET: &str = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
-
-const TELOS_TESTNET: &str = "9e46127b78e0a7f6906f549bba3d23b264c70ee6ec781aed9d4f1b72732f34fc";
 
 pub struct App {
     route: Option<Result<Route, RouteError>>,
@@ -48,13 +40,11 @@ impl Component for App {
         let mut scatter = ScatterAgent::bridge(callback);
         scatter.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
 
-        let context = Context::default();
-
         App {
             route: None,
             router,
             scatter,
-            context,
+            context: Context::default(),
             link,
             scatter_connected: None,
             scatter_identity: None,
@@ -90,17 +80,7 @@ impl Component for App {
                 ScatterOutput::PushedActions(_result) => false,
             },
             Msg::Login => {
-                let chain_id = DEVNET.to_string();
-                let network = scatter::Network {
-                    chain_id: Some(chain_id),
-                    protocol: None,
-                    blockchain: None,
-                    host: None,
-                    port: None,
-                };
-                let required_fields = scatter::RequiredFields {
-                    accounts: Some(vec![network]),
-                };
+                let required_fields = self.context.required_fields();
                 let scatter_msg = ScatterInput::GetIdentity(required_fields);
                 self.scatter.send(scatter_msg);
                 false
@@ -130,8 +110,7 @@ impl App {
         html! {
             <header class="app_header", >
                 <div class="app_container", >
-                    <a
-                        class="app_logo",
+                    <a class="app_logo",
                         href="/",
                         onclick=|e| {
                             e.prevent_default();
@@ -251,76 +230,19 @@ impl App {
         html!{
             <footer class="app_footer", >
                 <div class="app_container", >
-                    { self.view_donation_form() }
-                    { self.view_donor_list() }
-                    { self.view_donation_list() }
-                    { self.view_footer_links() }
+                    <p>
+                        <a href="#", >{ "Github" }</a>
+                        <a href="#", >{ "Twitter" }</a>
+                        <a href="#", >{ "Telegram" }</a>
+                        <a href="#", >{ "Steem" }</a>
+                    </p>
                 </div>
             </footer>
         }
     }
 
-    fn view_donation_form(&self) -> Html<Self> {
-        html! {
-            <form class="donation_form", >
-                <h2>{ "Donate" }</h2>
-                <p>
-                    { "Filler text" }
-                </p>
-                <input placeholder="1.0000 EOS", />
-                <button type="submit", >
-                    { "Donate" }
-                </button>
-            </form>
-        }
-    }
-
-    fn view_donor_list(&self) -> Html<Self> {
-        html! {
-            <div class="donor_list", >
-                <h2>{ "Top Donors" }</h2>
-                <ol>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                </ol>
-            </div>
-        }
-    }
-
-    fn view_donation_list(&self) -> Html<Self> {
-        html! {
-            <div class="donation_list", >
-                <h2>{ "New Donations" }</h2>
-                <ol>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                    <li>{ "saganonroids" }</li>
-                </ol>
-            </div>
-        }
-    }
-
-    fn view_footer_links(&self) -> Html<Self> {
-        html! {
-            <div class="footer_links", >
-                <h2>{ "Links" }</h2>
-                <ul>
-                    <li>{ "Github" }</li>
-                    <li>{ "Twitter" }</li>
-                    <li>{ "Telegram" }</li>
-                    <li>{ "Medium" }</li>
-                </ul>
-            </div>
-        }
-    }
-
     fn view_page(&self) -> Html<App> {
-        info!("RENDERING PAGE");
+        debug!("RENDERING PAGE");
         match &self.route {
             Some(result) => match result {
                 Ok(route) => match route {

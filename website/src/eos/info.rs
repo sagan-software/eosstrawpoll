@@ -1,5 +1,3 @@
-use http::Request;
-
 #[derive(Deserialize, Debug)]
 pub struct Info {
     pub server_version: String,
@@ -12,12 +10,4 @@ pub struct Info {
     pub last_irreversible_block_id: String,
     pub virtual_block_cpu_limit: u32,
     pub virtual_block_net_limit: u32,
-}
-
-pub fn get_info_request(endpoint: &str) -> Request<()> {
-    Request::builder()
-        .method("GET")
-        .uri(format!("{}/v1/chain/get_info", endpoint))
-        .body(())
-        .unwrap()
 }

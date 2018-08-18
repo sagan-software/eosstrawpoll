@@ -123,9 +123,9 @@ impl PollResultsPage {
 
     fn view_ok(&self, poll: &Poll) -> Html<Self> {
         html! {
-            <div>
+            <div class="app_container", >
                 <h1>{ &poll.title } { "(Results)" }</h1>
-                <ul>
+                <ul class="poll_options", >
                     { for poll.options.iter().map(|option| self.view_option(option)) }
                 </ul>
             </div>
@@ -134,9 +134,7 @@ impl PollResultsPage {
 
     fn view_option(&self, option: &str) -> Html<Self> {
         html! {
-            <li>
-                { option }
-            </li>
+            <li class="poll_option", >{ option }</li>
         }
     }
 }

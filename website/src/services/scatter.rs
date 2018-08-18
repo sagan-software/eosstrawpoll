@@ -287,23 +287,6 @@ impl ScatterService {
         };
     }
 
-    pub fn get_identity_for_chain(
-        &self,
-        chain_id: String,
-        callback: Callback<Result<Identity, ScatterError>>,
-    ) {
-        let required_fields = RequiredFields {
-            accounts: Some(vec![Network {
-                chain_id: Some(chain_id),
-                protocol: None,
-                blockchain: None,
-                host: None,
-                port: None,
-            }]),
-        };
-        self.get_identity(required_fields, callback);
-    }
-
     pub fn forget_identity(&self, callback: Callback<Result<(), ScatterError>>) {
         let lib = self.0.as_ref();
         let callback = move |logged_out: bool| {

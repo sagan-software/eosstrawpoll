@@ -4,7 +4,6 @@
 }
 
 body {
-    background-color: var(--background-color);
     color: var(--text-color);
 }
 
@@ -24,10 +23,44 @@ button {
     color: #fff;
     cursor: pointer;
     outline: 0;
+    font-weight: 700;
+    transition: 300ms background-color;
+
+    &:hover {
+        background-color: #003296;
+    }
 }
 
-input, textarea {
+input:not([type=range]),
+textarea {
+    border: 0;
     border-radius: var(--border-radius);
+    padding: var(--spacing);
+    margin: 0;
+    display: block;
+    font-size: 1.3rem;
+    transition: 300ms opacity, 300ms box-shadow;
+    box-shadow: var(--box-shadow) #b1bcce;
+
+    &:focus {
+        outline: 0;
+        border-color: #a1a5ad;
+    }
+
+    &[disabled=true] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+h1 {
+    text-align: center;
+    margin: 0;
+    height: 11rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
 }
 
 /* LastPass overrides */

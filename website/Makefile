@@ -9,17 +9,21 @@ install: node_modules
 	rustup install nightly
 	rustup default nightly
 	rustup component add rustfmt-preview --toolchain nightly
-	cargo install --force cargo-watch
-	cargo install --force cargo-web
+	cargo install cargo-watch
+	cargo install cargo-web
+	cargo install wasm-gc
+	cargo install wasm-snip
 .PHONY: install
 
-build: css cargo webpack
+build: clean css cargo webpack
 .PHONY: build
 
-clean: clean-cargo clean-webpack clean-css
+clean:
+	rm -Rf dist
+	mkdir -p dist
 .PHONY: clean
 
-start:
+start: build
 	$(NPM)/concurrently \
 		--raw \
 		--kill-others \
@@ -41,6 +45,8 @@ cargo:
 		--target=wasm32-unknown-unknown \
 		--release \
 		--verbose
+	mv target/wasm32-unknown-unknown/release/eosstrawpoll.wasm target/wasm32-unknown-unknown/release/eosstrawpoll-original.wasm
+	wasm-opt --output target/wasm32-unknown-unknown/release/eosstrawpoll.wasm -Oz target/wasm32-unknown-unknown/release/eosstrawpoll-original.wasm
 .PHONY: cargo
 
 clean-cargo:
@@ -65,17 +71,11 @@ $(DIST):
 	mkdir -p $(DIST)
 
 webpack: $(DIST)
-	NODE_ENV=production $(NPM)/webpack
+	$(NPM)/env-cmd .env.prod $(NPM)/webpack
 .PHONY: webpack
 
-clean-webpack:
-	rm -Rf $(DIST)/index.js
-	rm -Rf $(DIST)/index.wasm
-	rm -Rf $(DIST)/index.html
-.PHONY: clean-webpack
-
 watch-webpack: $(DIST)
-	$(NPM)/webpack --watch
+	$(NPM)/env-cmd .env.dev $(NPM)/webpack --watch
 .PHONY: watch-webpack
 
 css: $(DIST)
@@ -98,6 +98,7 @@ watch-css: $(DIST)
 start-server:
 	$(NPM)/browser-sync start \
 		--port 1337 \
+		--https \
 		--single \
 		--server $(DIST) \
 		--no-open \
