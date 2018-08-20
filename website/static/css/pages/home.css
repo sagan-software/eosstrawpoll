@@ -6,7 +6,7 @@
     }
 
     & aside {
-        padding: 0 calc(var(--spacing) * 3);
+        padding: calc(var(--spacing) * 3) calc(var(--spacing) * 3) 0;
 
         & ol,
         & ul {
@@ -20,6 +20,9 @@
             text-transform: uppercase;
             margin: 0;
             margin-bottom: var(--spacing);
+            border-bottom: 1px solid #ebebeb;
+            padding-bottom: var(--spacing);
+            color: #696969;
         }
 
         & > * {
@@ -37,6 +40,24 @@
         grid-row: 2;
     }
 
+
+    & .poll_list_empty,
+    & .poll_list_loading,
+    & .donor_list_empty,
+    & .donor_list_loading,
+    & .donation_list_empty,
+    & .donation_list_loading {
+        min-height: 10rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        font-weight: 700;
+        font-style: italic;
+        color: #e2e2e2;
+    }
+
     & .donations {
         grid-column: 5;
         grid-row: 2;
@@ -45,15 +66,38 @@
     }
 
     & .donation_form {
-        order: 1;
+        order: 3;
+
+        & p {
+            font-size: 1.1rem;
+        }
+
+        & .donation_input {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+
+            & input {
+                grid-row: 1;
+                grid-column: 1 / span 2;
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+
+            & button {
+                grid-row: 1;
+                grid-column: 3;
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+            }
+        }
     }
 
     & .top_donors {
-        order: 2;
+        order: 1;
     }
 
     & .new_donations {
-        order: 3;
+        order: 2;
     }
 
     & .poll_list_item {

@@ -130,9 +130,9 @@ impl App {
         html! {
             <>
                 <nav class="app_nav -primary", >
-                    { self.view_nav_link(Route::PopularPolls, "Popular") }
-                    { self.view_nav_link(Route::NewPolls, "New") }
-                    { self.view_nav_link(Route::Donors, "Donors") }
+                    { self.view_nav_link(Route::PopularPolls, "Polls") }
+                    { self.view_nav_link(Route::Donors, "Donations") }
+                    { self.view_nav_link(Route::Donors, "Roadmap") }
                 </nav>
                 <nav class="app_nav -secondary", >
                     { self.view_nav_link(Route::Home, "EOS MainNet") }
@@ -230,9 +230,14 @@ impl App {
         html!{
             <footer class="app_footer", >
                 <div class="app_container", >
-                    <p>
-                        <a href="#", >{ "Github" }</a>
-                        <a href="#", >{ "Twitter" }</a>
+                    <p class="app_footer_text", >
+                        { "Created by " }
+                        <a href="//www.sagan.software", >{ "sagan.software" }</a>
+                        { " © 2018" }
+                    </p>
+                    <p class="app_footer_links", >
+                        <a href="//www.github.com/sagan-software/eosstrawpoll", >{ "Github" }</a>
+                        <a href="//www.twitter.com/SaganSoftware", >{ "Twitter" }</a>
                         <a href="#", >{ "Telegram" }</a>
                         <a href="#", >{ "Steem" }</a>
                     </p>
@@ -264,10 +269,10 @@ impl App {
                         <ProfilePage: context=&self.context, account=account, />
                     },
                     Route::Poll(ref creator, ref slug) => html! {
-                        <PollPage: context=&self.context, creator=creator, slug=slug, />
+                        <PollPage: context=&self.context, creator=creator, slug=slug, show_results=false, />
                     },
                     Route::PollResults(ref creator, ref slug) => html! {
-                        <PollResultsPage: context=&self.context, creator=creator, slug=slug, />
+                        <PollPage: context=&self.context, creator=creator, slug=slug, show_results=true, />
                     },
                 },
                 Err(error) => match error {

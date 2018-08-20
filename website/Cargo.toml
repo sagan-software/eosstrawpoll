@@ -14,7 +14,7 @@ yew = { git = "https://github.com/DenisKolodin/yew" }
 http = "0.1"
 failure = "0.1"
 
-# [profile.release]
-# debug = false
-# lto = true
-# panic = 'abort'
+[profile.release]
+lto = true
+opt-level = "z"
+debug = false

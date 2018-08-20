@@ -149,6 +149,7 @@ impl Component for PollForm {
                 let options_len = self.options.len();
                 if i < options_len && options_len > 2 {
                     self.options.remove(i);
+                    debug!("deleted option {}, leaving options {:#?}", i, self.options);
                     let options_len = self.options.len();
                     self.max_num_choices = min(self.max_num_choices, options_len);
                     self.min_num_choices = min(self.max_num_choices, self.min_num_choices);
@@ -218,7 +219,7 @@ impl Component for PollForm {
                         let required_fields = self.context.required_fields();
                         let scatter_input = ScatterInput::GetIdentity(required_fields);
                         self.scatter_agent.send(scatter_input);
-                        return false;
+                        return true;
                     }
                 };
 
@@ -260,8 +261,12 @@ impl Component for PollForm {
             Msg::Scatter(output) => match output {
                 ScatterOutput::GotIdentity(result) => {
                     info!("got identity {:#?}", result);
+                    let is_ok = result.is_ok();
                     self.scatter_identity = Some(result);
-                    if self.submitting {
+                    if !is_ok && self.submitting {
+                        self.submitting = false;
+                    }
+                    if is_ok && self.submitting {
                         self.update(Msg::Submit)
                     } else {
                         true
@@ -279,13 +284,18 @@ impl Component for PollForm {
                     true
                 }
                 ScatterOutput::PushedActions(result) => {
-                    self.pushed_poll = Some(result.clone());
-                    if let (Ok(_), Some(creator)) = (result, self.creator()) {
-                        let route = Route::Poll(creator, self.slug.clone());
-                        let url = route.to_string();
-                        self.router.send(RouterInput::ChangeRoute(url, ()));
+                    if self.submitting {
+                        self.pushed_poll = Some(result.clone());
+                        self.submitting = false;
+                        if let (Ok(_), Some(creator)) = (result, self.creator()) {
+                            let route = Route::Poll(creator, self.slug.clone());
+                            let url = route.to_string();
+                            self.router.send(RouterInput::ChangeRoute(url, ()));
+                        }
+                        true
+                    } else {
+                        false
                     }
-                    true
                 }
             },
             Msg::GotGlobalConfig(result) => {
@@ -318,11 +328,6 @@ impl Component for PollForm {
 
 impl Renderable<PollForm> for PollForm {
     fn view(&self) -> Html<Self> {
-        let submit_text = if self.submitting {
-            "Creating..."
-        } else {
-            "Create Poll"
-        };
         html! {
             <form class="poll_form", >
                 { self.view_title() }
@@ -337,19 +342,7 @@ impl Renderable<PollForm> for PollForm {
                         self.view_blacklist()
                     }
                 }
-                <div class="submit_area", >
-                    <div class="submit_bg", >
-                        <button type="submit",
-                            disabled=self.submitting,
-                            onclick=|e| {
-                                e.prevent_default();
-                                Msg::Submit
-                            },
-                        >
-                            { submit_text }
-                        </button>
-                    </div>
-                </div>
+                { self.view_submit_area() }
             </form>
         }
     }
@@ -418,8 +411,9 @@ impl PollForm {
                 maxlength=self.global_config.max_title_len,
             />
         };
+        let max_title_len = self.global_config.max_title_len;
         let help: Html<Self> = html! {
-            <p>{ "Required. Must be between 1-30 characters" }</p>
+            <p>{ format!("Required. Must be between 1-{} characters", max_title_len) }</p>
         };
         self.view_field("Title", "title", input, help)
     }
@@ -428,8 +422,9 @@ impl PollForm {
         let input: Html<Self> = html! {
             { for self.options.iter().enumerate().map(|(i, o)| self.view_option(i, o)) }
         };
+        let max_options_len = self.global_config.max_options_len;
         let help: Html<Self> = html! {
-            <p>{ "Create 2-30 options" }</p>
+            <p>{ format!("Create 2-{} options", max_options_len) }</p>
         };
         self.view_field("Options", "options", input, help)
     }
@@ -439,7 +434,7 @@ impl PollForm {
         let is_last = index == options_len - 1;
         let is_not_full = options_len < self.global_config.max_options_len;
         html! {
-            <div class="option", >
+            <div class="option", key=format!("{}_{}", index, option), >
                 <input
                     disabled=self.submitting,
                     placeholder=format!("Option {}", index + 1),
@@ -601,5 +596,37 @@ impl PollForm {
         };
         let help = html! { <p>{ "Never closes" }</p> };
         self.view_field("Close Time", "close_time", input, help)
+    }
+
+    fn view_submit_area(&self) -> Html<PollForm> {
+        let creator = self.creator();
+        let submit_text = if self.submitting {
+            if creator.is_none() {
+                "Logging in..."
+            } else {
+                "Creating..."
+            }
+        } else {
+            if creator.is_none() {
+                "Login & Create Poll"
+            } else {
+                "Create Poll"
+            }
+        };
+        html! {
+            <div class="submit_area", >
+                <div class="submit_bg", >
+                    <button type="submit",
+                        disabled=self.submitting,
+                        onclick=|e| {
+                            e.prevent_default();
+                            Msg::Submit
+                        },
+                    >
+                        { submit_text }
+                    </button>
+                </div>
+            </div>
+        }
     }
 }

@@ -4,3 +4,4 @@
 @import './components/app';
 @import './components/poll_form';
 @import './pages/home';
+@import './pages/poll';

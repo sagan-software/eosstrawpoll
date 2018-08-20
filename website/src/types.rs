@@ -99,7 +99,7 @@ pub struct CreateVoteAction {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Donation {
-    pub id: String,
+    pub id: u64,
     pub account: String,
     pub donated: u64,
     pub memo: String,
@@ -110,4 +110,12 @@ pub struct Donation {
 pub struct Donor {
     pub account: String,
     pub donated: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct TransferAction {
+    pub from: String,
+    pub to: String,
+    pub quantity: String,
+    pub memo: String,
 }

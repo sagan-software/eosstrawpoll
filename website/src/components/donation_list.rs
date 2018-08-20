@@ -147,10 +147,7 @@ impl DonationList {
                     { &donation.account }
                 </a>
                 <div class="donation_donated", >
-                    { &donation.donated } { " EOS" }
-                </div>
-                <div class="donation_memo", >
-                    { &donation.memo }
+                    { &donation.donated / 1000. } { " EOS" }
                 </div>
             </li>
         }

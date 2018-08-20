@@ -12,11 +12,10 @@
     max-width: var(--container-width);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 21rem 1fr 1fr 1fr 21rem;
+    grid-template-columns: 25rem 1fr 1fr 1fr 25rem;
 }
 
 .app_header {
-    background: #fff;
     border-bottom: 1px solid var(--border-color);
 
     & .app_container {
@@ -74,13 +73,27 @@
 }
 
 .app_footer {
-    text-align: center;
-    padding: var(--spacing);
+    border-top: 1px solid #ebebeb;
+    padding: var(--spacing) 0;
+    margin-top: calc(var(--spacing) * 3);
+    font-size: 1.1rem;
+    color: #999;
 
-    & .donor_list {
-        grid-column: 2 / span 2;
+    & .app_container {
+        grid-template-columns: 25rem 1fr 1fr 25rem;
     }
 
+    & .app_footer_text {
+        grid-column: 2;
+    }
 
+    & .app_footer_links {
+        grid-column: 3;
+        text-align: right;
+
+        & > * {
+            margin-left: var(--spacing);
+        }
+    }
 
 }

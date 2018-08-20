@@ -51,6 +51,7 @@ chain-accounts:
 	$(CLEOS) system newaccount eosio --transfer williamcurry $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 	$(CLEOS) system newaccount eosio --transfer saganonroids $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 	$(CLEOS) system newaccount eosio --transfer g4ydegenesis $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "alice", "2500.0000 SYS", "memo" ]' -p eosio
 .PHONY: chain-accounts
 
 init-chain: build chain-bios chain-accounts deploy

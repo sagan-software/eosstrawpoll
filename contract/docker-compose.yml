@@ -47,9 +47,3 @@ services:
       - nodeosd
     # volumes:
     #   - keosd-data-volume:/eos/build/data-dir
-
-volumes:
-  nodeos-data-volume:
-    external: true
-  keosd-data-volume:
-    external: true

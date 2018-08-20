@@ -412,7 +412,7 @@
             ]
         },
         {
-            "name": "topdonors",
+            "name": "donors",
             "type": "donor",
             "index_type": "i64",
             "key_names": [

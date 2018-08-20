@@ -3,6 +3,7 @@
     grid-template-columns: 1fr 1fr;
     background-color: #f4f5f7;
     border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
 
     & p {
         margin: 0;
@@ -16,7 +17,7 @@
     & .field {
         display: grid;
         grid-template-columns: 1fr 2fr;
-        padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+        padding: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
 
         &:first-of-type {
             padding-top: calc(var(--spacing) * 3);
@@ -151,7 +152,7 @@
         grid-column: 1 / span 2;
         display: grid;
         grid-template-columns: 1fr 3fr 1fr;
-        padding: calc(var(--spacing) * 2) calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+        padding: calc(var(--spacing) * 1) calc(var(--spacing) * 2) calc(var(--spacing) * 2);
         border-bottom-right-radius: var(--border-radius);
         border-bottom-left-radius: var(--border-radius);
 

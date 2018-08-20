@@ -96,7 +96,7 @@ impl DonorList {
             json: true,
             scope: "eosstrawpoll".to_string(),
             code: "eosstrawpoll".to_string(),
-            table: "topdonors".to_string(),
+            table: "donors".to_string(),
             lower_bound: self.props.lower_bound.clone(),
             upper_bound: self.props.upper_bound.clone(),
             limit: self.props.limit,

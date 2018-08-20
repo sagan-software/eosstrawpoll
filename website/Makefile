@@ -9,10 +9,10 @@ install: node_modules
 	rustup install nightly
 	rustup default nightly
 	rustup component add rustfmt-preview --toolchain nightly
-	cargo install cargo-watch
-	cargo install cargo-web
-	cargo install wasm-gc
-	cargo install wasm-snip
+	cargo install --force cargo-watch
+	cargo install --force cargo-web
+	cargo install --force wasm-gc
+	cargo install --force wasm-snip
 .PHONY: install
 
 build: clean css cargo webpack
@@ -45,8 +45,8 @@ cargo:
 		--target=wasm32-unknown-unknown \
 		--release \
 		--verbose
-	mv target/wasm32-unknown-unknown/release/eosstrawpoll.wasm target/wasm32-unknown-unknown/release/eosstrawpoll-original.wasm
-	wasm-opt --output target/wasm32-unknown-unknown/release/eosstrawpoll.wasm -Oz target/wasm32-unknown-unknown/release/eosstrawpoll-original.wasm
+	wasm-gc target/wasm32-unknown-unknown/release/eosstrawpoll.wasm target/wasm32-unknown-unknown/release/eosstrawpoll.wasm
+	wasm-opt --output target/wasm32-unknown-unknown/release/eosstrawpoll.wasm -Oz target/wasm32-unknown-unknown/release/eosstrawpoll.wasm
 .PHONY: cargo
 
 clean-cargo:
