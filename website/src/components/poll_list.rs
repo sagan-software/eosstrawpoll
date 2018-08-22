@@ -1,20 +1,15 @@
-use agents::router::{RouterAgent, RouterInput, RouterOutput};
+use agents::tables::*;
+use components::{Link, RelativeTime};
 use context::Context;
-use failure::Error;
 use route::Route;
-use services::eos::{self, EosService};
-use stdweb::traits::IEvent;
 use types::Poll;
 use yew::prelude::*;
-use yew::services::fetch::FetchTask;
 
 pub struct PollList {
     props: Props,
-    link: ComponentLink<PollList>,
-    router: Box<Bridge<RouterAgent<()>>>,
-    eos: EosService,
-    task: Option<FetchTask>,
-    polls: Option<Result<eos::TableRows<Poll>, Error>>,
+    polls: Option<Result<Vec<Poll>, String>>,
+    table: PollsTable,
+    tables: Box<Bridge<TablesAgent>>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -27,16 +22,6 @@ pub enum PollsTable {
 impl Default for PollsTable {
     fn default() -> PollsTable {
         PollsTable::Polls
-    }
-}
-
-impl ToString for PollsTable {
-    fn to_string(&self) -> String {
-        match self {
-            PollsTable::Polls => "polls".to_string(),
-            PollsTable::PopularPolls => "popularpolls".to_string(),
-            PollsTable::NewPolls => "newpolls".to_string(),
-        }
     }
 }
 
@@ -54,9 +39,7 @@ impl Default for PollsOrder {
 }
 
 pub enum Msg {
-    Router(RouterOutput<()>),
-    NavigateTo(Route),
-    Polls(Result<eos::TableRows<Poll>, Error>),
+    Tables(TablesOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -75,33 +58,48 @@ impl Component for PollList {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(Msg::Router);
-        let router = RouterAgent::bridge(callback);
-        let mut poll_list = PollList {
+        let tables_config = props.context.tables_config();
+        let mut tables = TablesAgent::new(tables_config, link.send_back(Msg::Tables));
+
+        let table = props.clone().table.unwrap_or_else(|| PollsTable::Polls);
+
+        if table == PollsTable::NewPolls {
+            tables.send(TablesInput::GetNewPolls);
+        } else if table == PollsTable::PopularPolls {
+            tables.send(TablesInput::GetPopularPolls);
+        }
+
+        PollList {
             props,
-            link,
-            router,
-            eos: EosService::new(),
-            task: None,
             polls: None,
-        };
-        poll_list.fetch_polls();
-        poll_list
+            tables,
+            table,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Router(_output) => true,
-            Msg::NavigateTo(route) => {
-                let url = route.to_string();
-                self.router.send(RouterInput::ChangeRoute(url, ()));
-                false
-            }
-            Msg::Polls(result) => {
-                self.polls = Some(result);
-                self.task = None;
-                true
-            }
+            Msg::Tables(output) => match (&self.table, output) {
+                (PollsTable::NewPolls, TablesOutput::NewPolls(polls)) => {
+                    self.polls = Some(polls);
+                    if let Some(Ok(ref mut polls)) = self.polls {
+                        polls.sort_by(|a, b| b.create_time.cmp(&a.create_time));
+                    }
+                    true
+                }
+                (PollsTable::PopularPolls, TablesOutput::PopularPolls(polls)) => {
+                    self.polls = Some(polls);
+                    if let Some(Ok(ref mut polls)) = self.polls {
+                        polls.sort_by(|a, b| {
+                            let a_pop: f64 = a.popularity.parse().unwrap();
+                            let b_pop: f64 = b.popularity.parse().unwrap();
+                            b_pop.partial_cmp(&a_pop).unwrap()
+                        });
+                    }
+                    true
+                }
+                _ => false,
+            },
         }
     }
 
@@ -116,10 +114,10 @@ impl Renderable<PollList> for PollList {
         match &self.polls {
             Some(result) => match result {
                 Ok(table) => {
-                    if table.rows.is_empty() {
+                    if table.is_empty() {
                         self.view_empty()
                     } else {
-                        self.view_items(&table.rows)
+                        self.view_items(&table)
                     }
                 }
                 Err(error) => self.view_error(error),
@@ -130,65 +128,33 @@ impl Renderable<PollList> for PollList {
 }
 
 impl PollList {
-    fn fetch_polls(&mut self) {
-        let table = self
-            .props
-            .table
-            .clone()
-            .unwrap_or_else(|| PollsTable::Polls);
-        let mut params = eos::TableRowsParams {
-            json: true,
-            scope: self.props.scope.clone(),
-            code: "eosstrawpoll".to_string(),
-            table: table.to_string(),
-            lower_bound: self.props.lower_bound.clone(),
-            upper_bound: self.props.upper_bound.clone(),
-            limit: self.props.limit,
-            key_type: None,
-            index_position: None,
-        };
-
-        if table != PollsTable::Polls {
-            params.scope = "eosstrawpoll".to_string();
-        }
-
-        let order = self.props.order.clone().unwrap_or_else(|| PollsOrder::Id);
-        match order {
-            PollsOrder::Id => {}
-            PollsOrder::Popularity => {
-                params.key_type = Some("36257420722842541".to_string());
-                // params.index_position = Some("1".to_string());
-            }
-            PollsOrder::Created => {
-                params.key_type = Some("140281435205".to_string());
-                // params.index_position = Some("2".to_string());
-            }
-        }
-        let callback = self.link.send_back(Msg::Polls);
-        let endpoint = &self.props.context.endpoint;
-        let task = self.eos.get_table_rows(endpoint, params, callback);
-        self.task = Some(task);
-    }
-
     fn view_loading(&self) -> Html<Self> {
         html! {
-            <div class="poll_list_loading", >
+            <div class="poll_list -loading", >
                 { "Loading..." }
             </div>
         }
     }
 
-    fn view_error(&self, error: &Error) -> Html<Self> {
+    fn view_error(&self, error: &str) -> Html<Self> {
         html! {
-            <div class="poll_list_loading", >
+            <div class="poll_list -error", >
                 { "Error: " }{ error }
+            </div>
+        }
+    }
+
+    fn view_empty(&self) -> Html<Self> {
+        html! {
+            <div class="poll_list -empty", >
+                { "Empty" }
             </div>
         }
     }
 
     fn view_items(&self, polls: &[Poll]) -> Html<Self> {
         html! {
-            <ul class="poll_list_items", >
+            <ul class="poll_list -loaded", >
                 { for polls.iter().map(|poll| self.view_item(poll)) }
             </ul>
         }
@@ -198,37 +164,25 @@ impl PollList {
         let poll_route = Route::Poll(poll.creator.clone(), poll.slug.clone());
         let creator_route = Route::Profile(poll.creator.clone());
         html! {
-            <li class="poll_list_item", >
-                <a class="poll_title",
-                    href=poll_route.to_string(),
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::NavigateTo(poll_route.clone())
-                    },
-                >
-                    { &poll.title }
-                </a>
-                <a class="poll_creator",
-                    href=creator_route.to_string(),
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::NavigateTo(creator_route.clone())
-                    },
-                >
-                    { &poll.creator }
-                </a>
-                <div class="poll_votes", >
-                    { &poll.votes.len() } { " votes" }
+            <li class="poll", >
+                <Link: class="poll_title",
+                    route=poll_route,
+                    text=poll.title.clone(),
+                />
+                <div class="poll_details", >
+                    <Link: class="poll_creator",
+                        route=creator_route,
+                        text=poll.creator.clone(),
+                    />
+                    <div class="poll_open_time", >
+                        { if poll.is_open() { "Opened " } else { "Opens " } }
+                        <RelativeTime: timestamp=poll.open_time, />
+                    </div>
+                    <div class="poll_votes", >
+                        { &poll.votes.len() } { " votes" }
+                    </div>
                 </div>
             </li>
-        }
-    }
-
-    fn view_empty(&self) -> Html<Self> {
-        html! {
-            <div class="poll_list_empty", >
-                { "Empty" }
-            </div>
         }
     }
 }

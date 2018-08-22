@@ -103,4 +103,5 @@ start-server:
 		--server $(DIST) \
 		--no-open \
 		--no-ui \
-		--watch
+		--watch \
+		--no-ghost-mode

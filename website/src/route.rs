@@ -2,7 +2,7 @@ use std::str::FromStr;
 use stdweb::web::error::SecurityError;
 use stdweb::web::Location;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Route {
     Home,
     PopularPolls,
@@ -11,6 +11,12 @@ pub enum Route {
     Profile(String),
     Poll(String, String),
     PollResults(String, String),
+}
+
+impl Default for Route {
+    fn default() -> Route {
+        Route::Home
+    }
 }
 
 pub enum RouteError {

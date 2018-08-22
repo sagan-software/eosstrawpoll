@@ -1,26 +1,18 @@
-use agents::router::{RouterAgent, RouterInput, RouterOutput};
+use agents::tables::*;
+use components::Link;
 use context::Context;
-use failure::Error;
 use route::Route;
-use services::eos::{self, EosService};
-use stdweb::traits::IEvent;
 use types::Donor;
 use yew::prelude::*;
-use yew::services::fetch::FetchTask;
 
 pub struct DonorList {
     props: Props,
-    link: ComponentLink<DonorList>,
-    router: Box<Bridge<RouterAgent<()>>>,
-    eos: EosService,
-    task: Option<FetchTask>,
-    donors: Option<Result<eos::TableRows<Donor>, Error>>,
+    donors: Option<Result<Vec<Donor>, String>>,
+    tables: Box<Bridge<TablesAgent>>,
 }
 
 pub enum Msg {
-    Router(RouterOutput<()>),
-    NavigateTo(Route),
-    Donors(Result<eos::TableRows<Donor>, Error>),
+    Tables(TablesOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -36,33 +28,25 @@ impl Component for DonorList {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(Msg::Router);
-        let router = RouterAgent::bridge(callback);
-        let mut donor_list = DonorList {
+        let tables_config = props.context.tables_config();
+        let mut tables = TablesAgent::new(tables_config, link.send_back(Msg::Tables));
+        tables.send(TablesInput::GetDonors);
+        DonorList {
             props,
-            link,
-            router,
-            eos: EosService::new(),
-            task: None,
             donors: None,
-        };
-        donor_list.fetch_donors();
-        donor_list
+            tables,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Router(_output) => true,
-            Msg::NavigateTo(route) => {
-                let url = route.to_string();
-                self.router.send(RouterInput::ChangeRoute(url, ()));
-                false
-            }
-            Msg::Donors(result) => {
-                self.donors = Some(result);
-                self.task = None;
-                true
-            }
+            Msg::Tables(output) => match output {
+                TablesOutput::Donors(donors) => {
+                    self.donors = Some(donors);
+                    true
+                }
+                _ => false,
+            },
         }
     }
 
@@ -77,10 +61,10 @@ impl Renderable<DonorList> for DonorList {
         match &self.donors {
             Some(result) => match result {
                 Ok(table) => {
-                    if table.rows.is_empty() {
+                    if table.is_empty() {
                         self.view_empty()
                     } else {
-                        self.view_items(&table.rows)
+                        self.view_loaded(&table)
                     }
                 }
                 Err(error) => self.view_error(error),
@@ -91,73 +75,51 @@ impl Renderable<DonorList> for DonorList {
 }
 
 impl DonorList {
-    fn fetch_donors(&mut self) {
-        let mut params = eos::TableRowsParams {
-            json: true,
-            scope: "eosstrawpoll".to_string(),
-            code: "eosstrawpoll".to_string(),
-            table: "donors".to_string(),
-            lower_bound: self.props.lower_bound.clone(),
-            upper_bound: self.props.upper_bound.clone(),
-            limit: self.props.limit,
-            key_type: None,
-            index_position: None,
-        };
-        let callback = self.link.send_back(Msg::Donors);
-        let endpoint = &self.props.context.endpoint;
-        let task = self.eos.get_table_rows(endpoint, params, callback);
-        self.task = Some(task);
-    }
-
     fn view_loading(&self) -> Html<Self> {
         html! {
-            <div class="donor_list_loading", >
+            <div class="donor_list -loading", >
                 { "Loading..." }
             </div>
         }
     }
 
-    fn view_error(&self, error: &Error) -> Html<Self> {
+    fn view_error(&self, error: &str) -> Html<Self> {
         html! {
-            <div class="donor_list_loading", >
+            <div class="donor_list -error", >
                 { "Error: " }{ error }
             </div>
         }
     }
 
-    fn view_items(&self, donors: &[Donor]) -> Html<Self> {
+    fn view_loaded(&self, donors: &[Donor]) -> Html<Self> {
         html! {
-            <ul class="donor_list_items", >
+            <ul class="donor_list -loaded", >
                 { for donors.iter().map(|donor| self.view_item(donor)) }
             </ul>
         }
     }
 
-    fn view_item(&self, donor: &Donor) -> Html<Self> {
-        let donor_route = Route::Profile(donor.account.clone());
+    fn view_empty(&self) -> Html<Self> {
         html! {
-            <li class="donor_list_item", >
-                <a class="donor_creator",
-                    href=donor_route.to_string(),
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::NavigateTo(donor_route.clone())
-                    },
-                >
-                    { &donor.account }
-                </a>
-                <div class="donor_donated", >
-                    { &donor.donated } { " EOS" }
-                </div>
-            </li>
+            <div class="donor_list -empty", >
+                { "Empty" }
+            </div>
         }
     }
 
-    fn view_empty(&self) -> Html<Self> {
+    fn view_item(&self, donor: &Donor) -> Html<Self> {
+        let donor_route = Route::Profile(donor.account.clone());
+        let donated = donor.donated as f64;
         html! {
-            <div class="donor_list_empty", >
-                { "Empty" }
-            </div>
+            <li class="donor_list_item", >
+                <Link: class="donor_creator",
+                    route=donor_route,
+                    text=donor.account.clone(),
+                />
+                <div class="donor_donated", >
+                    { format!("{:.*}", 4, donated / 10000.) } { " EOS" }
+                </div>
+            </li>
         }
     }
 }

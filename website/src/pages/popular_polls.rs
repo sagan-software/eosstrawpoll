@@ -33,14 +33,16 @@ impl Component for PopularPollsPage {
 impl Renderable<PopularPollsPage> for PopularPollsPage {
     fn view(&self) -> Html<Self> {
         html! {
-            <div>
-                <h1>{ "Popular Polls" }</h1>
-                <PollList:
-                    context=&self.context,
-                    limit=Some(50),
-                    table=Some(PollsTable::PopularPolls),
-                    order=Some(PollsOrder::Popularity),
-                />
+            <div class="page", >
+                <h1 class="page_title", >{ "Polls" }</h1>
+                <div class="page_main", >
+                    <PollList:
+                        context=&self.context,
+                        limit=Some(50),
+                        table=Some(PollsTable::PopularPolls),
+                        order=Some(PollsOrder::Popularity),
+                    />
+                </div>
             </div>
         }
     }

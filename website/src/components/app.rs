@@ -132,7 +132,19 @@ impl App {
                 <nav class="app_nav -primary", >
                     { self.view_nav_link(Route::PopularPolls, "Polls") }
                     { self.view_nav_link(Route::Donors, "Donations") }
-                    { self.view_nav_link(Route::Donors, "Roadmap") }
+                    <a class="app_link",
+                        href="https://github.com/sagan-software/eosstrawpoll/projects/1",
+                        target="_blank",
+                    >
+                        { "Roadmap" }
+                    </a>
+                    <a
+                        class="app_link",
+                        href="https://eos-forum.org/#/e/eosstrawpoll",
+                        target="_blank",
+                    >
+                        { "Feedback" }
+                    </a>
                 </nav>
                 <nav class="app_nav -secondary", >
                     { self.view_nav_link(Route::Home, "EOS MainNet") }

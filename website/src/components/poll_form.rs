@@ -1,12 +1,13 @@
 use agents::router::{RouterAgent, RouterInput, RouterOutput};
 use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
-use components::{Svg, Symbol};
+use components::{RelativeTime, Svg, Symbol};
 use context::Context;
 use failure::Error;
 use route::Route;
 use serde_json;
 use services::eos::{self, EosService, TableRows};
 use std::cmp::{max, min};
+use std::collections::HashSet;
 use stdweb::traits::IEvent;
 use stdweb::unstable::TryInto;
 use stdweb::web::Date;
@@ -27,8 +28,6 @@ pub struct PollForm {
     close_time: u32,
     submitting: bool,
     context: Context,
-    active_bps: Vec<String>,
-    standby_bps: Vec<String>,
     link: ComponentLink<PollForm>,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
@@ -47,11 +46,8 @@ pub enum Msg {
     AddOption,
     SetOption(usize, String),
     DelOption(usize),
-    SetWhitelist(String),
-    SetOnlyBPs,
-    SetOnlyActiveBPs,
-    SetOnlyStandbyBPs,
-    SetBlacklist(String),
+    AddListAccount(String),
+    DelListAccount(usize),
     SetMinChoices(String),
     SetMaxChoices(String),
     SetOpenTime(String),
@@ -95,21 +91,11 @@ impl Component for PollForm {
             whitelist: vec![],
             blacklist: vec![],
             min_num_choices: 1,
-            max_num_choices: 2,
+            max_num_choices: 1,
             open_time: 0,
             close_time: 0,
             submitting: false,
             context: props.context,
-            active_bps: vec![
-                "starteosiobp".to_string(),
-                "eoscanadacom".to_string(),
-                "eosnewyorkio".to_string(),
-            ],
-            standby_bps: vec![
-                "eoshuobipool".to_string(),
-                "zbeosbp11111".to_string(),
-                "libertyblock".to_string(),
-            ],
             link,
             scatter_agent,
             scatter_connected: None,
@@ -131,19 +117,23 @@ impl Component for PollForm {
             Msg::NoOp => false,
             Msg::SetTitle(value) => {
                 self.title = value;
-                false
+                true
             }
             Msg::AddOption => {
                 info!("add option");
-                self.options.push("".to_string());
-                true
+                if self.options.len() < self.global_config.max_options_len {
+                    self.options.push("".to_string());
+                    true
+                } else {
+                    false
+                }
             }
             Msg::SetOption(i, value) => {
                 info!("setting option {} to {}", i, value);
                 if i < self.options.len() {
                     self.options[i] = value;
                 }
-                false
+                true
             }
             Msg::DelOption(i) => {
                 let options_len = self.options.len();
@@ -158,21 +148,8 @@ impl Component for PollForm {
                     false
                 }
             }
-            Msg::SetWhitelist(_value) => true,
-            Msg::SetOnlyBPs => {
-                self.whitelist = self.active_bps.clone();
-                self.whitelist.append(&mut self.standby_bps.clone());
-                true
-            }
-            Msg::SetOnlyActiveBPs => {
-                self.whitelist = self.active_bps.clone();
-                true
-            }
-            Msg::SetOnlyStandbyBPs => {
-                self.whitelist = self.standby_bps.clone();
-                true
-            }
-            Msg::SetBlacklist(_value) => true,
+            Msg::AddListAccount(value) => true,
+            Msg::DelListAccount(index) => true,
             Msg::SetMinChoices(value) => {
                 let num = value.parse::<usize>();
                 match num {
@@ -260,7 +237,6 @@ impl Component for PollForm {
             }
             Msg::Scatter(output) => match output {
                 ScatterOutput::GotIdentity(result) => {
-                    info!("got identity {:#?}", result);
                     let is_ok = result.is_ok();
                     self.scatter_identity = Some(result);
                     if !is_ok && self.submitting {
@@ -384,6 +360,44 @@ impl PollForm {
         self.global_config_task = Some(task);
     }
 
+    fn validate_options(&self) -> Result<(), String> {
+        let mut options = HashSet::new();
+        let max_option_len = self.global_config.max_option_len;
+
+        for option in &self.options {
+            let trimmed = option.trim();
+
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            if options.contains(trimmed) {
+                return Err("Duplicate options are not allowed".to_string());
+            }
+
+            if trimmed.len() > max_option_len {
+                return Err(format!(
+                    "Options cannot be longer than {} characters",
+                    max_option_len
+                ));
+            }
+
+            options.insert(trimmed);
+        }
+
+        let num_options = options.len();
+        if num_options < 2 {
+            return Err("Must have at least 2 options".to_string());
+        }
+
+        let max_options_len = self.global_config.max_options_len;
+        if num_options > max_options_len {
+            return Err(format!("Cannot have more than {} options", max_options_len));
+        }
+
+        Ok(())
+    }
+
     fn view_field(
         &self,
         label: &str,
@@ -413,7 +427,7 @@ impl PollForm {
         };
         let max_title_len = self.global_config.max_title_len;
         let help: Html<Self> = html! {
-            <p>{ format!("Required. Must be between 1-{} characters", max_title_len) }</p>
+            <p></p>
         };
         self.view_field("Title", "title", input, help)
     }
@@ -423,8 +437,14 @@ impl PollForm {
             { for self.options.iter().enumerate().map(|(i, o)| self.view_option(i, o)) }
         };
         let max_options_len = self.global_config.max_options_len;
-        let help: Html<Self> = html! {
-            <p>{ format!("Create 2-{} options", max_options_len) }</p>
+        let error = self.validate_options().err();
+        let help: Html<Self> = match error {
+            Some(error) => html! {
+                <p>{ error }</p>
+            },
+            None => html! {
+                <p></p>
+            },
         };
         self.view_field("Options", "options", input, help)
     }
@@ -468,32 +488,11 @@ impl PollForm {
             <input
                 disabled=self.submitting,
                 class="poll_form_input",
-                oninput=|e| Msg::SetWhitelist(e.value),
-                value=self.whitelist.join(" "),
+                oninput=|e| Msg::AddListAccount(e.value),
             />
         };
         let help = html! {
-            <p>
-                <strong>{ "Prefill: " }</strong>
-                <a href="#", onclick=|e| {
-                    e.prevent_default();
-                    Msg::SetOnlyBPs
-                }, >
-                    { "BPs" }
-                </a>
-                <a href="#", onclick=|e| {
-                    e.prevent_default();
-                    Msg::SetOnlyActiveBPs
-                }, >
-                    { "Active BPs" }
-                </a>
-                <a href="#", onclick=|e| {
-                    e.prevent_default();
-                    Msg::SetOnlyStandbyBPs
-                }, >
-                    { "Standby BPs" }
-                </a>
-            </p>
+            <p>{ format!("Up to {} accounts. Accounts must exist.", self.global_config.max_whitelist_len) }</p>
         };
         self.view_field("Whitelist", "whitelist", input, help)
     }
@@ -507,8 +506,6 @@ impl PollForm {
                 <input
                     disabled=self.submitting,
                     class="poll_form_input",
-                    oninput=|e| Msg::SetBlacklist(e.value),
-                    value=self.blacklist.join(" "),
                 />
             </section>
         }
@@ -582,7 +579,17 @@ impl PollForm {
                 oninput=|e| Msg::SetOpenTime(e.value),
             />
         };
-        let help = html! { <p>{ "Opens immediately" }</p> };
+        let now = (Date::now() / 1000.) as u32;
+        let help = if self.open_time <= now {
+            html! { { "Opens immediately" } }
+        } else {
+            html! {
+                <>
+                    { "Opens in " }
+                    <RelativeTime: timestamp=self.open_time, simple=true, />
+                </>
+            }
+        };
         self.view_field("Open Time", "open_time", input, help)
     }
 
@@ -594,24 +601,32 @@ impl PollForm {
                 oninput=|e| Msg::SetCloseTime(e.value),
             />
         };
-        let help = html! { <p>{ "Never closes" }</p> };
+        let help = if self.close_time == 0 {
+            html! { { "Never closes" } }
+        } else {
+            let now = (Date::now() / 1000.) as u32;
+            let start = max(self.open_time, now);
+            html! {
+                <>
+                    { "Closes after " }
+                    <RelativeTime:
+                        base_timestamp=Some(start),
+                        timestamp=self.close_time,
+                        simple=true,
+                    />
+                </>
+            }
+        };
         self.view_field("Close Time", "close_time", input, help)
     }
 
     fn view_submit_area(&self) -> Html<PollForm> {
-        let creator = self.creator();
-        let submit_text = if self.submitting {
-            if creator.is_none() {
-                "Logging in..."
-            } else {
-                "Creating..."
-            }
-        } else {
-            if creator.is_none() {
-                "Login & Create Poll"
-            } else {
-                "Create Poll"
-            }
+        let is_logged_in = self.creator().is_some();
+        let submit_text = match (is_logged_in, self.submitting) {
+            (false, false) => "Login & Create Poll",
+            (false, true) => "Logging in...",
+            (true, false) => "Create Poll",
+            (true, true) => "Creating...",
         };
         html! {
             <div class="submit_area", >

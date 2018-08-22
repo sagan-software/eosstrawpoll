@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::time::Duration;
+use stdweb::web::Date;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GlobalConfig {
@@ -59,10 +61,44 @@ pub struct Poll {
     pub votes: Vec<Vote>,
     pub whitelist: Vec<String>,
     pub blacklist: Vec<String>,
+    pub create_time: u32,
     pub open_time: u32,
     pub close_time: u32,
     pub metadata: String,
     pub popularity: String,
+}
+
+impl Poll {
+    pub fn results(&self) -> HashMap<usize, Vec<(String, usize)>> {
+        let mut results: HashMap<usize, Vec<(String, usize)>> = HashMap::new();
+
+        for vote in &self.votes {
+            for (rank, choice) in vote.choices.iter().enumerate() {
+                let vote = (vote.voter.clone(), rank);
+                if let Some(votes) = results.get_mut(choice) {
+                    votes.push(vote);
+                    continue;
+                }
+
+                results.insert(*choice, vec![vote]);
+            }
+        }
+
+        results
+    }
+
+    pub fn num_votes(&self) -> usize {
+        let mut total: usize = 0;
+        for vote in &self.votes {
+            total += vote.choices.len();
+        }
+        total
+    }
+
+    pub fn is_open(&self) -> bool {
+        let now = (Date::now() / 1000.) as u32;
+        self.open_time < now
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

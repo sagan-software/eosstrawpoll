@@ -35,13 +35,15 @@ impl Component for ProfilePage {
 impl Renderable<ProfilePage> for ProfilePage {
     fn view(&self) -> Html<Self> {
         html! {
-            <div>
-                <h1>{ &self.account }</h1>
-                <PollList:
-                    context=&self.context,
-                    scope=self.account.clone(),
-                    limit=Some(50),
-                />
+            <div class="page", >
+                <h1 class="page_title", >{ &self.account }</h1>
+                <div class="page_main box", >
+                    <PollList:
+                        context=&self.context,
+                        scope=self.account.clone(),
+                        limit=Some(50),
+                    />
+                </div>
             </div>
         }
     }

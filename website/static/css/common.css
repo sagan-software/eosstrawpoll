@@ -1,0 +1,51 @@
+.page {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 25rem 1fr 1fr 1fr 25rem;
+}
+
+.page_title {
+    grid-column: 1 / span 5;
+    grid-row: 1;
+}
+
+.page_aside {
+
+}
+
+.page_main {
+    grid-column: 2 / span 3;
+    grid-row: 2;
+}
+
+.button {
+
+
+    &.-large {
+
+    }
+
+    &.-small {
+
+    }
+
+    &.-primary {
+
+    }
+
+    &.-secondary {
+
+    }
+
+    &.-danger {
+
+    }
+
+}
+
+.box {
+    background-color: #f4f5f7;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}

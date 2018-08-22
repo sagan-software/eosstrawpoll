@@ -5,12 +5,16 @@ use failure::Error;
 use route::Route;
 use serde_json;
 use services::eos::{self, EosService};
+use std::collections::HashMap;
+use std::time::Duration;
 use stdweb::traits::IEvent;
-use types::{CreateVoteAction, Poll};
+use types::{CreateVoteAction, Poll, Vote};
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
+use yew::services::{IntervalService, Task};
 
 pub struct PollPage {
+    eos: EosService,
     router: Box<Bridge<RouterAgent<()>>>,
     context: Context,
     task: Option<FetchTask>,
@@ -23,6 +27,10 @@ pub struct PollPage {
     pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
     choices: Vec<usize>,
     show_results: bool,
+    submitting: bool,
+    link: ComponentLink<PollPage>,
+    interval_service: IntervalService,
+    interval_task: Option<Box<Task>>,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -40,6 +48,7 @@ pub enum Msg {
     Scatter(ScatterOutput),
     ToggleChoice(usize),
     Vote,
+    FetchPolls,
 }
 
 impl Component for PollPage {
@@ -51,31 +60,16 @@ impl Component for PollPage {
         let router = RouterAgent::bridge(callback);
         let creator = props.creator;
 
-        let mut eos = EosService::new();
-        let params = eos::TableRowsParams {
-            scope: creator.clone(),
-            code: "eosstrawpoll".to_string(),
-            table: "polls".to_string(),
-            json: true,
-            lower_bound: Some(props.slug.clone()),
-            upper_bound: None,
-            limit: Some(1),
-            key_type: None,
-            index_position: None,
-        };
-
         let callback = link.send_back(Msg::Scatter);
         let mut scatter_agent = ScatterAgent::bridge(callback);
         scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
 
         let context = props.context;
-        let callback = link.send_back(Msg::Polls);
-        let task = eos.get_table_rows(context.endpoint.as_str(), params.clone(), callback);
-
-        PollPage {
+        let mut poll_page = PollPage {
+            eos: EosService::new(),
             router,
             context,
-            task: Some(task),
+            task: None,
             poll: None,
             slug: props.slug.clone(),
             creator: creator.clone(),
@@ -85,7 +79,14 @@ impl Component for PollPage {
             pushed: None,
             choices: vec![],
             show_results: props.show_results,
-        }
+            submitting: false,
+            link,
+            interval_service: IntervalService::new(),
+            interval_task: None,
+        };
+
+        poll_page.fetch_poll();
+        poll_page
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -100,6 +101,10 @@ impl Component for PollPage {
                                 self.router
                                     .send(RouterInput::ChangeRouteNoBroadcast(url, ()));
                                 self.show_results = false;
+                                if let Some(mut task) = self.interval_task.take() {
+                                    task.cancel();
+                                    self.interval_task = None;
+                                }
                                 true
                             } else {
                                 false
@@ -114,6 +119,7 @@ impl Component for PollPage {
                             if self.show_results {
                                 false
                             } else {
+                                self.fetch_poll();
                                 self.router
                                     .send(RouterInput::ChangeRouteNoBroadcast(url, ()));
                                 self.show_results = true;
@@ -139,13 +145,32 @@ impl Component for PollPage {
                     Err(error) => Some(Err(error)),
                 };
                 self.task = None;
+                self.load_choices();
+
+                if self.show_results && self.interval_task.is_none() {
+                    let cb = self.link.send_back(|_| Msg::FetchPolls);
+                    let task = self.interval_service.spawn(Duration::from_secs(1), cb);
+                    self.interval_task = Some(Box::new(task));
+                }
+
                 true
             }
             Msg::Scatter(output) => match output {
                 ScatterOutput::GotIdentity(result) => {
-                    info!("got identity {:#?}", result);
+                    let is_ok = result.is_ok();
                     self.scatter_identity = Some(result);
-                    true
+                    match (is_ok, self.submitting) {
+                        (false, true) => {
+                            self.submitting = false;
+                            true
+                        }
+                        (true, true) => self.update(Msg::Vote),
+                        (true, false) => {
+                            self.load_choices();
+                            true
+                        }
+                        (false, false) => true,
+                    }
                 }
                 ScatterOutput::ForgotIdentity(_result) => {
                     self.scatter_identity = None;
@@ -159,12 +184,17 @@ impl Component for PollPage {
                     true
                 }
                 ScatterOutput::PushedActions(result) => {
-                    self.pushed = Some(result.clone());
-                    if result.is_ok() {
-                        let route = Route::PollResults(self.creator.clone(), self.slug.clone());
-                        self.update(Msg::NavigateTo(route))
+                    if self.submitting {
+                        self.pushed = Some(result.clone());
+                        self.submitting = false;
+                        if result.is_ok() {
+                            let route = Route::PollResults(self.creator.clone(), self.slug.clone());
+                            self.update(Msg::NavigateTo(route))
+                        } else {
+                            true
+                        }
                     } else {
-                        true
+                        false
                     }
                 }
             },
@@ -175,14 +205,25 @@ impl Component for PollPage {
                 } else {
                     self.choices.push(choice);
                 }
+                if let Some(Ok(poll)) = &self.poll {
+                    if self.choices.len() > poll.max_num_choices {
+                        self.choices.remove(0);
+                    }
+                }
                 true
             }
             Msg::Vote => {
                 info!("submitting form");
+                self.submitting = true;
 
                 let voter = match self.voter() {
                     Some(voter) => voter,
-                    None => return false,
+                    None => {
+                        let required_fields = self.context.required_fields();
+                        let scatter_input = ScatterInput::GetIdentity(required_fields);
+                        self.scatter_agent.send(scatter_input);
+                        return true;
+                    }
                 };
 
                 let network = self.context.network();
@@ -214,6 +255,10 @@ impl Component for PollPage {
                     .send(ScatterInput::PushActions(network, config, actions));
                 true
             }
+            Msg::FetchPolls => {
+                self.fetch_poll();
+                true
+            }
         }
     }
 
@@ -235,6 +280,26 @@ impl Renderable<PollPage> for PollPage {
 }
 
 impl PollPage {
+    fn fetch_poll(&mut self) {
+        let params = eos::TableRowsParams {
+            scope: self.creator.clone(),
+            code: "eosstrawpoll".to_string(),
+            table: "polls".to_string(),
+            json: true,
+            lower_bound: Some(self.slug.clone()),
+            upper_bound: None,
+            limit: Some(1),
+            key_type: None,
+            index_position: None,
+        };
+
+        let callback = self.link.send_back(Msg::Polls);
+        let task = self
+            .eos
+            .get_table_rows(self.context.endpoint.as_str(), params, callback);
+        self.task = Some(task);
+    }
+
     fn voter(&self) -> Option<String> {
         let result = match &self.scatter_identity {
             Some(result) => result,
@@ -249,6 +314,42 @@ impl PollPage {
         match identity.accounts.first() {
             Some(ref account) => Some(account.name.clone()),
             None => None,
+        }
+    }
+
+    fn has_voted(&self) -> bool {
+        let voter = match self.voter() {
+            Some(voter) => voter,
+            None => return false,
+        };
+
+        let votes = match &self.poll {
+            Some(Ok(poll)) => &poll.votes,
+            _ => return false,
+        };
+
+        votes.into_iter().any(|vote| vote.voter == voter)
+    }
+
+    fn load_choices(&mut self) {
+        let voter = match self.voter() {
+            Some(voter) => voter,
+            None => return,
+        };
+
+        let votes = match &self.poll {
+            Some(Ok(poll)) => &poll.votes,
+            _ => return,
+        };
+
+        let filtered_votes = votes
+            .iter()
+            .filter(|vote| vote.voter == voter)
+            .cloned()
+            .collect::<Vec<Vote>>();
+
+        if let Some(vote) = filtered_votes.first() {
+            self.choices = vote.choices.to_owned();
         }
     }
 
@@ -276,30 +377,68 @@ impl PollPage {
         }
     }
 
-    fn view_ok_vote(&self, poll: &Poll) -> Html<Self> {
+    fn vote_text(&self) -> &str {
         let is_logged_in = self.voter().is_some();
-        let vote_text = if is_logged_in { "Vote" } else { "Login & Vote" };
+        match (is_logged_in, self.submitting, self.has_voted()) {
+            (false, false, _) => "Login & Vote",
+            (false, true, _) => "Logging in...",
+            (true, false, false) => "Vote",
+            (true, true, false) => "Voting...",
+            (true, false, true) => "Change Vote",
+            (true, true, true) => "Changing Vote...",
+        }
+    }
+
+    fn view_ok_vote(&self, poll: &Poll) -> Html<Self> {
         let results = Route::PollResults(poll.creator.clone(), poll.slug.clone());
+        let num_options = poll.options.len();
+        let num_choices_text = match (
+            poll.min_num_choices,
+            poll.max_num_choices,
+            poll.min_num_choices == poll.max_num_choices,
+            poll.max_num_choices == num_options,
+        ) {
+            (1, 1, _, _) => "choose one option".to_string(),
+            (_, _, true, true) => "rank all options".to_string(),
+            (_, _, true, false) => format!("choose and rank {} options", poll.min_num_choices),
+            (_, _, false, _) => format!(
+                "choose and rank {} to {} options",
+                poll.min_num_choices, poll.max_num_choices
+            ),
+        };
+        let choose_one = poll.min_num_choices == 1 && poll.max_num_choices == 1;
+        let select_text = if self.choices.len() < poll.min_num_choices && !self.choices.is_empty() {
+            let diff = poll.min_num_choices - self.choices.len();
+            if diff == 1 {
+                "Select one more option".to_string()
+            } else {
+                format!("Select {} more options", diff)
+            }
+        } else {
+            "".to_string()
+        };
         html! {
-            <form class="poll_page poll_page--vote app_container", >
+            <div class="poll_page poll_page--vote app_container", >
                 <h1>{ &poll.title }</h1>
-                <div class="poll_contents", >
+                <form class="poll_contents", >
                     <p class="poll_num_choices", >
-                        { "Please choose 1-5 options:" }
+                        { format!("Please {}:", num_choices_text) }
                     </p>
                     <div class="poll_options", >
-                        { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i, option)) }
+                        { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i, option, choose_one)) }
                     </div>
                     <div class="poll_actions", >
                         <button
+                            disabled=self.choices.len() < poll.min_num_choices,
                             type="submit",
                             onclick=|e| {
                                 e.prevent_default();
                                 Msg::Vote
                             },
                         >
-                            { vote_text }
+                            { self.vote_text() }
                         </button>
+                        <p>{ select_text }</p>
                         <a
                             href=results.to_string(),
                             onclick=|e| {
@@ -310,20 +449,34 @@ impl PollPage {
                             { "View results" }
                         </a>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         }
     }
 
-    fn view_option(&self, index: usize, option: &str) -> Html<Self> {
+    fn view_option(&self, index: usize, option: &str, choose_one: bool) -> Html<Self> {
         let is_selected = self.choices.contains(&index);
-        html! {
-            <label class="poll_option", >
+        let input = if choose_one {
+            html! {
+                <input class="poll_option_checkbox",
+                    type="radio",
+                    name="choices",
+                    onchange=|_| Msg::ToggleChoice(index),
+                    checked=is_selected,
+                />
+            }
+        } else {
+            html! {
                 <input class="poll_option_checkbox",
                     type="checkbox",
                     onchange=|_| Msg::ToggleChoice(index),
                     checked=is_selected,
                 />
+            }
+        };
+        html! {
+            <label class="poll_option", >
+                { input }
                 <span class="poll_option_text", >
                     { option }
                 </span>
@@ -333,33 +486,63 @@ impl PollPage {
 
     fn view_ok_results(&self, poll: &Poll) -> Html<Self> {
         let vote = Route::Poll(poll.creator.clone(), poll.slug.clone());
+        let results_text = if poll.votes.len() == 1 {
+            "Results from one voter:".to_string()
+        } else {
+            format!("Results from {} voters:", poll.votes.len())
+        };
+        let results = poll.results();
+        let total_num_votes = poll.num_votes();
+        info!("RESULTS! {:#?}", results);
         html! {
-            <form>
+            <div class="poll_page poll_page--results app_container", >
                 <h1>{ &poll.title }</h1>
-                <ul>
-                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option_result(i, option)) }
-                </ul>
-                <p>
-                    <a
-                        href=vote.to_string(),
-                        onclick=|e| {
-                            e.prevent_default();
-                            Msg::NavigateTo(vote.clone())
-                        },
-                    >
-                        { "Vote" }
-                    </a>
-                </p>
-            </form>
+                <div class="poll_contents", >
+                    <p class="poll_num_choices", >
+                        { results_text }
+                    </p>
+                    <div class="poll_options", >
+                        { for poll.options.iter().enumerate().map(|(i, option)| self.view_option_result(i, option, &results, total_num_votes)) }
+                    </div>
+                    <div class="poll_actions", >
+                        <a
+                            href=vote.to_string(),
+                            onclick=|e| {
+                                e.prevent_default();
+                                Msg::NavigateTo(vote.clone())
+                            },
+                        >
+                            { self.vote_text() }
+                        </a>
+                    </div>
+                </div>
+            </div>
         }
     }
 
-    fn view_option_result(&self, index: usize, option: &str) -> Html<Self> {
+    fn view_option_result(
+        &self,
+        index: usize,
+        option: &str,
+        results: &HashMap<usize, Vec<(String, usize)>>,
+        total_num_votes: usize,
+    ) -> Html<Self> {
         let is_selected = self.choices.contains(&index);
+        let empty_votes = Vec::new();
+        let votes = match results.get(&index) {
+            Some(votes) => votes,
+            None => &empty_votes,
+        };
+        let percent = (votes.len() as f32) / (total_num_votes as f32);
+
         html! {
-            <li>
-                { option }
-            </li>
+            <div class="poll_option", >
+                <span class="poll_option_text", >{ option }</span>
+                <span class="poll_option_percent", >
+                    { (percent * 100.) as u32 }{ "%" }
+                </span>
+                <span class="poll_option_bar", style=format!("transform:scaleX({})", percent), ></span>
+            </div>
         }
     }
 }

@@ -17,7 +17,7 @@
     & .field {
         display: grid;
         grid-template-columns: 1fr 2fr;
-        padding: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
+        padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
 
         &:first-of-type {
             padding-top: calc(var(--spacing) * 3);

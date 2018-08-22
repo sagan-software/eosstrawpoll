@@ -1,3 +1,4 @@
+use agents::tables::TablesConfig;
 use services::scatter::{EosConfig, Network, RequiredFields};
 use std::str::FromStr;
 use stdweb::unstable::TryInto;
@@ -89,6 +90,14 @@ impl Context {
     pub fn required_fields(&self) -> RequiredFields {
         RequiredFields {
             accounts: Some(vec![self.network()]),
+        }
+    }
+
+    pub fn tables_config(&self) -> TablesConfig {
+        TablesConfig {
+            endpoint: self.endpoint.clone(),
+            code: "eosstrawpoll".to_string(),
+            cache_timeout: 5,
         }
     }
 }

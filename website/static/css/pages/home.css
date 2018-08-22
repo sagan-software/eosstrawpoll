@@ -40,6 +40,15 @@
         grid-row: 2;
     }
 
+    & .poll_list_item {
+        font-size: 1.2rem;
+        display: grid;
+        margin-bottom: var(--spacing);
+
+        & .poll_title {
+            font-weight: 700;
+        }
+    }
 
     & .poll_list_empty,
     & .poll_list_loading,
@@ -100,14 +109,19 @@
         order: 2;
     }
 
-    & .poll_list_item {
-        font-size: 1.2rem;
-        display: grid;
-        margin-bottom: var(--spacing);
+    & .donation_list_item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        & .poll_title {
-            font-weight: 700;
-        }
+    & .donation_creator {
+        font-size: 1.4rem;
+    }
+
+    & .donation_donated {
+        font-size: 1.4rem;
+        font-family: monospace;
     }
 
 }

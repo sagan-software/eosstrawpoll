@@ -1,4 +1,5 @@
 use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
+use agents::tables::*;
 use context::Context;
 use serde_json;
 use stdweb::traits::IEvent;
@@ -13,6 +14,7 @@ pub struct DonationForm {
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
     pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
+    tables: Box<Bridge<TablesAgent>>,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -24,6 +26,7 @@ pub enum Msg {
     Submit,
     Scatter(ScatterOutput),
     SetAmount(String),
+    Tables(TablesOutput),
 }
 
 impl Component for DonationForm {
@@ -31,6 +34,8 @@ impl Component for DonationForm {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let tables_config = props.context.tables_config();
+        let mut tables = TablesAgent::new(tables_config, link.send_back(Msg::Tables));
         let callback = link.send_back(Msg::Scatter);
         let mut scatter_agent = ScatterAgent::bridge(callback);
         scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
@@ -42,11 +47,13 @@ impl Component for DonationForm {
             scatter_connected: None,
             scatter_identity: None,
             pushed: None,
+            tables,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::Tables(_output) => false,
             Msg::SetAmount(amount) => {
                 let amount = amount.parse::<f32>();
                 match amount {
@@ -55,14 +62,13 @@ impl Component for DonationForm {
                             self.amount = amount;
                             true
                         } else {
-                            false
+                            true
                         }
                     }
-                    Err(_) => false,
+                    Err(_) => true,
                 }
             }
             Msg::Submit => {
-                info!("submitting form");
                 self.submitting = true;
 
                 let donor = match self.donor() {
@@ -78,10 +84,12 @@ impl Component for DonationForm {
                 let network = self.context.network();
                 let config = self.context.eos_config();
 
+                let asset = format!("{:.4} SYS", self.amount);
+
                 let action_data = TransferAction {
                     from: donor.to_string(),
                     to: "eosstrawpoll".to_string(),
-                    quantity: "1.0000 SYS".to_string(),
+                    quantity: asset,
                     memo: "Funded EOS Straw Poll".to_string(),
                 };
 
@@ -132,6 +140,8 @@ impl Component for DonationForm {
                     if self.submitting {
                         self.pushed = Some(result);
                         self.submitting = false;
+                        self.tables.send(TablesInput::GetDonors);
+                        self.tables.send(TablesInput::GetNewDonations);
                         true
                     } else {
                         false
@@ -152,12 +162,13 @@ impl Renderable<DonationForm> for DonationForm {
             <form class="donation_form", >
                 <h2>{ "Support Development" }</h2>
                 <p>
-                    { "Please consider donating EOS to help cover development costs. Thank you!" }
+                    { "Donations help cover development costs and fund new features. Thank you for your support!" }
                 </p>
                 <div class="donation_input", >
                     <input
-                        placeholder="1.0000 EOS",
+                        placeholder="1.0000",
                         oninput=|e| Msg::SetAmount(e.value),
+                        value=self.amount,
                     />
                     <button type="submit",
                         disabled=self.submitting,
