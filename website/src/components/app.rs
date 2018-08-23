@@ -1,7 +1,7 @@
 use agents::router::{RouterAgent, RouterInput, RouterOutput};
 use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
+use components::*;
 use context::Context;
-use pages::*;
 use route::{Route, RouteError};
 use stdweb::traits::IEvent;
 use yew::prelude::*;
@@ -11,7 +11,6 @@ pub struct App {
     router: Box<Bridge<RouterAgent<()>>>,
     scatter: Box<Bridge<ScatterAgent>>,
     context: Context,
-    link: ComponentLink<App>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
 }
@@ -19,12 +18,9 @@ pub struct App {
 pub enum Msg {
     Router(RouterOutput<()>),
     Scatter(ScatterOutput),
-    Ignore,
     NavigateTo(Route),
     Login,
     Logout,
-    // GotInfo(Result<eos::Info, String>),
-    // GotContract(Result<Contract, String>),
 }
 
 impl Component for App {
@@ -35,17 +31,13 @@ impl Component for App {
         let callback = link.send_back(Msg::Router);
         let mut router = RouterAgent::bridge(callback);
         router.send(RouterInput::GetCurrentRoute);
-
-        let callback = link.send_back(Msg::Scatter);
-        let mut scatter = ScatterAgent::bridge(callback);
-        scatter.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
+        let scatter = ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
 
         App {
             route: None,
             router,
             scatter,
             context: Context::default(),
-            link,
             scatter_connected: None,
             scatter_identity: None,
         }
@@ -53,7 +45,6 @@ impl Component for App {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Ignore => false,
             Msg::NavigateTo(route) => {
                 let url = route.to_string();
                 self.router.send(RouterInput::ChangeRoute(url, ()));
@@ -65,7 +56,6 @@ impl Component for App {
             }
             Msg::Scatter(output) => match output {
                 ScatterOutput::GotIdentity(result) => {
-                    info!("got identity {:#?}", result);
                     self.scatter_identity = Some(result);
                     true
                 }
@@ -118,6 +108,9 @@ impl App {
                         },
                     >
                         { "EOS Straw Poll" }
+                        <span class="app_version", >
+                            { "PRE-ALPHA" }
+                        </span>
                     </a>
                     { self.view_nav() }
                     { self.view_user() }
@@ -128,43 +121,31 @@ impl App {
 
     fn view_nav(&self) -> Html<Self> {
         html! {
-            <>
-                <nav class="app_nav -primary", >
-                    { self.view_nav_link(Route::PopularPolls, "Polls") }
-                    { self.view_nav_link(Route::Donors, "Donations") }
-                    <a class="app_link",
-                        href="https://github.com/sagan-software/eosstrawpoll/projects/1",
-                        target="_blank",
-                    >
-                        { "Roadmap" }
-                    </a>
-                    <a
-                        class="app_link",
-                        href="https://eos-forum.org/#/e/eosstrawpoll",
-                        target="_blank",
-                    >
-                        { "Feedback" }
-                    </a>
-                </nav>
-                <nav class="app_nav -secondary", >
-                    { self.view_nav_link(Route::Home, "EOS MainNet") }
-                </nav>
-            </>
+            <nav class="app_nav", >
+                { self.view_nav_link(Route::Polls, "Polls", "polls") }
+                { self.view_nav_link(Route::Donations, "Donations", "donations") }
+                <a class="app_link app_link_roadmap",
+                    href="https://github.com/sagan-software/eosstrawpoll/projects/1",
+                    target="_blank",
+                >
+                    { "Roadmap" }
+                </a>
+                <a class="app_link app_link_feedback",
+                    href="https://eos-forum.org/#/e/eosstrawpoll",
+                    target="_blank",
+                >
+                    { "Feedback" }
+                </a>
+            </nav>
         }
     }
 
-    fn view_nav_link(&self, route: Route, text: &str) -> Html<Self> {
+    fn view_nav_link(&self, route: Route, text: &str, class: &str) -> Html<Self> {
         html! {
-            <a
-                class="app_link",
-                href=route.to_string(),
-                onclick=|e| {
-                    e.prevent_default();
-                    Msg::NavigateTo(route.clone())
-                },
-            >
-                { text }
-            </a>
+            <Link: class=format!("app_link app_link_{}", class),
+                route=route,
+                text=text.to_string(),
+            />
         }
     }
 
@@ -200,15 +181,10 @@ impl App {
         html! {
             <p>
                 { "Logged in as" }
-                <a
-                    href=profile_route.to_string(),
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::NavigateTo(profile_route.clone())
-                    },
-                >
-                    { account_name }
-                </a>
+                <Link:
+                    route=profile_route,
+                    text=account_name.clone(),
+                />
             </p>
             <button
                 class="app_logout",
@@ -231,9 +207,9 @@ impl App {
     }
 
     fn view_content(&self) -> Html<Self> {
-        html! {
+        html!{
             <div class="app_content", >
-                {self.view_page()}
+                { self.view_page() }
             </div>
         }
     }
@@ -266,16 +242,11 @@ impl App {
                     Route::Home => html! {
                         <HomePage: context=&self.context, />
                     },
-                    Route::PopularPolls => html! {
-                        <PopularPollsPage: context=&self.context, />
+                    Route::Polls => html! {
+                        <PollsPage: context=&self.context, />
                     },
-                    Route::NewPolls => html! {
-                        <NewPollsPage: context=&self.context, />
-                    },
-                    Route::Donors => html! {
-                        <>
-                            { "Donors"}
-                        </>
+                    Route::Donations => html! {
+                        <DonationsPage: context=&self.context, />
                     },
                     Route::Profile(ref account) => html! {
                         <ProfilePage: context=&self.context, account=account, />

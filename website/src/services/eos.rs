@@ -4,7 +4,7 @@ use http::Response;
 use serde;
 use serde_json;
 use yew::callback::Callback;
-use yew::format::{Json, Nothing};
+use yew::format::Json;
 use yew::services::fetch::{FetchService, FetchTask, Request};
 
 pub struct EosService {

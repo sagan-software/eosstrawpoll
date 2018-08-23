@@ -1,5 +1,6 @@
 use serde_json;
 use stdweb::Value;
+use traits::Action;
 use yew::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -139,19 +140,19 @@ js_serializable!(Authorization);
 js_deserializable!(Authorization);
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Action {
+pub struct ScatterAction {
     pub account: String,
     pub name: String,
     pub authorization: Vec<Authorization>,
     pub data: serde_json::Value,
 }
 
-js_serializable!(Action);
-js_deserializable!(Action);
+js_serializable!(ScatterAction);
+js_deserializable!(ScatterAction);
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Transaction {
-    pub actions: Vec<Action>,
+    pub actions: Vec<ScatterAction>,
 }
 
 js_serializable!(Transaction);
@@ -333,9 +334,10 @@ impl ScatterService {
         &self,
         network: Network,
         config: EosConfig,
-        actions: Vec<Action>,
+        actions: Vec<ScatterAction>,
         callback: Callback<Result<PushedTransaction, ScatterError>>,
     ) {
+        debug!("Pushing actions: {:#?}", actions);
         let scatter = self.0.as_ref();
         let callback = move |data: Option<String>, error: String| {
             let result = match (data, error.as_str()) {

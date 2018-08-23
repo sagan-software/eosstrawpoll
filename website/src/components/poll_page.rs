@@ -1,5 +1,7 @@
 use agents::router::{RouterAgent, RouterInput};
-use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
+use agents::scatter::{
+    self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
+};
 use context::Context;
 use failure::Error;
 use route::Route;
@@ -8,6 +10,7 @@ use services::eos::{self, EosService};
 use std::collections::HashMap;
 use std::time::Duration;
 use stdweb::traits::IEvent;
+use traits::Page;
 use types::{CreateVoteAction, Poll, Vote};
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
@@ -229,26 +232,13 @@ impl Component for PollPage {
                 let network = self.context.network();
                 let config = self.context.eos_config();
 
-                let action_data = CreateVoteAction {
+                let action: ScatterAction = CreateVoteAction {
                     creator: self.creator.to_string(),
                     slug: self.slug.clone(),
                     voter: voter.clone(),
                     choices: self.choices.clone(),
                     metadata: "".to_string(),
-                };
-
-                let data = serde_json::to_value(action_data).unwrap();
-
-                let action = scatter::Action {
-                    account: "eosstrawpoll".into(),
-                    name: "createvote".into(),
-                    authorization: vec![scatter::Authorization {
-                        actor: voter.to_string(),
-                        permission: "active".into(),
-                    }],
-                    data,
-                };
-
+                }.into();
                 let actions = vec![action];
 
                 self.scatter_agent
@@ -267,8 +257,33 @@ impl Component for PollPage {
     }
 }
 
-impl Renderable<PollPage> for PollPage {
-    fn view(&self) -> Html<Self> {
+impl Page for PollPage {
+    fn title(&self) -> String {
+        match &self.poll {
+            Some(result) => match result {
+                Ok(poll) => poll.title.clone(),
+                Err(_error) => "Error".to_string(),
+            },
+            None => "Loading...".to_string(),
+        }
+    }
+    fn class(&self) -> String {
+        let state_modifier = match &self.poll {
+            Some(result) => match result {
+                Ok(_) => "loaded",
+                Err(_) => "error",
+            },
+            None => "loading",
+        };
+
+        let results_modifier = if self.show_results { "results" } else { "vote" };
+
+        format!(
+            "poll_page poll_page_{} poll_page_{}",
+            state_modifier, results_modifier
+        )
+    }
+    fn content(&self) -> Html<Self> {
         match &self.poll {
             Some(result) => match result {
                 Ok(poll) => self.view_ok(poll),
@@ -278,6 +293,8 @@ impl Renderable<PollPage> for PollPage {
         }
     }
 }
+
+page_view! { PollPage }
 
 impl PollPage {
     fn fetch_poll(&mut self) {
@@ -418,39 +435,36 @@ impl PollPage {
             "".to_string()
         };
         html! {
-            <div class="poll_page poll_page--vote app_container", >
-                <h1>{ &poll.title }</h1>
-                <form class="poll_contents", >
-                    <p class="poll_num_choices", >
-                        { format!("Please {}:", num_choices_text) }
-                    </p>
-                    <div class="poll_options", >
-                        { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i, option, choose_one)) }
-                    </div>
-                    <div class="poll_actions", >
-                        <button
-                            disabled=self.choices.len() < poll.min_num_choices,
-                            type="submit",
-                            onclick=|e| {
-                                e.prevent_default();
-                                Msg::Vote
-                            },
-                        >
-                            { self.vote_text() }
-                        </button>
-                        <p>{ select_text }</p>
-                        <a
-                            href=results.to_string(),
-                            onclick=|e| {
-                                e.prevent_default();
-                                Msg::NavigateTo(results.clone())
-                            },
-                        >
-                            { "View results" }
-                        </a>
-                    </div>
-                </form>
-            </div>
+            <>
+                <p class="poll_num_choices", >
+                    { format!("Please {}:", num_choices_text) }
+                </p>
+                <div class="poll_options", >
+                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i, option, choose_one)) }
+                </div>
+                <div class="poll_actions", >
+                    <button
+                        disabled=self.choices.len() < poll.min_num_choices,
+                        type="submit",
+                        onclick=|e| {
+                            e.prevent_default();
+                            Msg::Vote
+                        },
+                    >
+                        { self.vote_text() }
+                    </button>
+                    <p>{ select_text }</p>
+                    <a
+                        href=results.to_string(),
+                        onclick=|e| {
+                            e.prevent_default();
+                            Msg::NavigateTo(results.clone())
+                        },
+                    >
+                        { "View results" }
+                    </a>
+                </div>
+            </>
         }
     }
 
@@ -495,28 +509,25 @@ impl PollPage {
         let total_num_votes = poll.num_votes();
         info!("RESULTS! {:#?}", results);
         html! {
-            <div class="poll_page poll_page--results app_container", >
-                <h1>{ &poll.title }</h1>
-                <div class="poll_contents", >
-                    <p class="poll_num_choices", >
-                        { results_text }
-                    </p>
-                    <div class="poll_options", >
-                        { for poll.options.iter().enumerate().map(|(i, option)| self.view_option_result(i, option, &results, total_num_votes)) }
-                    </div>
-                    <div class="poll_actions", >
-                        <a
-                            href=vote.to_string(),
-                            onclick=|e| {
-                                e.prevent_default();
-                                Msg::NavigateTo(vote.clone())
-                            },
-                        >
-                            { self.vote_text() }
-                        </a>
-                    </div>
+            <>
+                <p class="poll_num_choices", >
+                    { results_text }
+                </p>
+                <div class="poll_options", >
+                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option_result(i, option, &results, total_num_votes)) }
                 </div>
-            </div>
+                <div class="poll_actions", >
+                    <a
+                        href=vote.to_string(),
+                        onclick=|e| {
+                            e.prevent_default();
+                            Msg::NavigateTo(vote.clone())
+                        },
+                    >
+                        { self.vote_text() }
+                    </a>
+                </div>
+            </>
         }
     }
 

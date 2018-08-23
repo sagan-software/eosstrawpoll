@@ -52,6 +52,21 @@ chain-accounts:
 	$(CLEOS) system newaccount eosio --transfer saganonroids $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 	$(CLEOS) system newaccount eosio --transfer g4ydegenesis $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 	$(CLEOS) push action eosio.token transfer '[ "eosio", "alice", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "bob", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "carol", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "williamcurry", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "saganonroids", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "g4ydegenesis", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "haley", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "clara", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "christine", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "eunice", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "larry", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "janie", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "rod", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "becky", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "helen", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "chuck", "2500.0000 SYS", "memo" ]' -p eosio
 .PHONY: chain-accounts
 
 init-chain: build chain-bios chain-accounts deploy

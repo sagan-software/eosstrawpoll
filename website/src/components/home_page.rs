@@ -1,12 +1,11 @@
 use components::*;
 use context::Context;
+use traits::Page;
 use yew::prelude::*;
 
 pub struct HomePage {
     context: Context,
 }
-
-pub enum Msg {}
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
@@ -14,7 +13,7 @@ pub struct Props {
 }
 
 impl Component for HomePage {
-    type Message = Msg;
+    type Message = ();
     type Properties = Props;
 
     fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
@@ -33,17 +32,20 @@ impl Component for HomePage {
     }
 }
 
-impl Renderable<HomePage> for HomePage {
-    fn view(&self) -> Html<Self> {
+impl Page for HomePage {
+    fn title(&self) -> String {
+        "Real-time polls on EOS blockchains".to_string()
+    }
+    fn class(&self) -> String {
+        "home_page".to_string()
+    }
+    fn content(&self) -> Html<Self> {
         html! {
-            <div class="home_page app_container", >
-                <h1>
-                    { "Create real-time polls on EOS blockchains" }
-                </h1>
+            <>
                 <div class="poll_form_wrapper", >
                     <PollForm: context=&self.context, />
                 </div>
-                <aside class="poll_lists", >
+                <aside class="polls", >
                     <div class="popular_polls", >
                         <h2> { "Popular Polls" } </h2>
                         <PollList:
@@ -57,7 +59,7 @@ impl Renderable<HomePage> for HomePage {
                         <h2> { "New Polls" } </h2>
                         <PollList:
                             context=&self.context,
-                            limit=Some(10),
+                            limit=Some(5),
                             table=Some(PollsTable::NewPolls),
                             order=Some(PollsOrder::Created),
                         />
@@ -74,7 +76,9 @@ impl Renderable<HomePage> for HomePage {
                     </div>
                     <DonationForm: context=&self.context, />
                 </aside>
-            </div>
+            </>
         }
     }
 }
+
+page_view! { HomePage }

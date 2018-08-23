@@ -5,9 +5,8 @@ use stdweb::web::Location;
 #[derive(Clone, PartialEq)]
 pub enum Route {
     Home,
-    PopularPolls,
-    NewPolls,
-    Donors,
+    Polls,
+    Donations,
     Profile(String),
     Poll(String, String),
     PollResults(String, String),
@@ -28,9 +27,8 @@ impl Route {
     pub fn to_string(&self) -> String {
         match self {
             Route::Home => "/".into(),
-            Route::PopularPolls => "/-/popular".into(),
-            Route::NewPolls => "/-/new".into(),
-            Route::Donors => "/-/donors".into(),
+            Route::Polls => "/-/polls".into(),
+            Route::Donations => "/-/donations".into(),
             Route::Profile(account) => format!("/{}", account),
             Route::Poll(creator, slug) => format!("/{}/{}", creator, slug),
             Route::PollResults(creator, slug) => format!("/{}/{}/results", creator, slug),
@@ -49,9 +47,8 @@ impl Route {
         match &strs[..] {
             [""] => Ok(Route::Home),
             ["-", path] => match *path {
-                "popular" => Ok(Route::PopularPolls),
-                "new" => Ok(Route::NewPolls),
-                "donors" => Ok(Route::Donors),
+                "polls" => Ok(Route::Polls),
+                "donations" => Ok(Route::Donations),
                 _ => Err(RouteError::NotFound(format!("/{}", pathnames.join("/")))),
             },
             [account] => Ok(Route::Profile(account.to_string())),

@@ -1,7 +1,8 @@
-use agents::tables::*;
+use agents::api::*;
 use components::{Link, RelativeTime};
 use context::Context;
 use route::Route;
+use std::cmp::min;
 use types::Poll;
 use yew::prelude::*;
 
@@ -9,7 +10,7 @@ pub struct PollList {
     props: Props,
     polls: Option<Result<Vec<Poll>, String>>,
     table: PollsTable,
-    tables: Box<Bridge<TablesAgent>>,
+    _api: Box<Bridge<ApiAgent>>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -39,7 +40,7 @@ impl Default for PollsOrder {
 }
 
 pub enum Msg {
-    Tables(TablesOutput),
+    Api(ApiOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -49,7 +50,7 @@ pub struct Props {
     pub table: Option<PollsTable>,
     pub lower_bound: Option<String>,
     pub upper_bound: Option<String>,
-    pub limit: Option<u32>,
+    pub limit: Option<usize>,
     pub order: Option<PollsOrder>,
 }
 
@@ -58,36 +59,38 @@ impl Component for PollList {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let tables_config = props.context.tables_config();
-        let mut tables = TablesAgent::new(tables_config, link.send_back(Msg::Tables));
+        let api_config = props.context.api_config();
+        let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
 
         let table = props.clone().table.unwrap_or_else(|| PollsTable::Polls);
 
         if table == PollsTable::NewPolls {
-            tables.send(TablesInput::GetNewPolls);
+            api.send(ApiInput::GetNewPolls);
         } else if table == PollsTable::PopularPolls {
-            tables.send(TablesInput::GetPopularPolls);
+            api.send(ApiInput::GetPopularPolls);
+        } else {
+            api.send(ApiInput::GetPolls(props.scope.clone()));
         }
 
         PollList {
             props,
             polls: None,
-            tables,
             table,
+            _api: api,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Tables(output) => match (&self.table, output) {
-                (PollsTable::NewPolls, TablesOutput::NewPolls(polls)) => {
+            Msg::Api(output) => match (&self.table, output) {
+                (PollsTable::NewPolls, ApiOutput::NewPolls(polls)) => {
                     self.polls = Some(polls);
                     if let Some(Ok(ref mut polls)) = self.polls {
                         polls.sort_by(|a, b| b.create_time.cmp(&a.create_time));
                     }
                     true
                 }
-                (PollsTable::PopularPolls, TablesOutput::PopularPolls(polls)) => {
+                (PollsTable::PopularPolls, ApiOutput::PopularPolls(polls)) => {
                     self.polls = Some(polls);
                     if let Some(Ok(ref mut polls)) = self.polls {
                         polls.sort_by(|a, b| {
@@ -97,6 +100,14 @@ impl Component for PollList {
                         });
                     }
                     true
+                }
+                (PollsTable::Polls, ApiOutput::Polls(scope, polls)) => {
+                    if scope == self.props.scope {
+                        self.polls = Some(polls);
+                        true
+                    } else {
+                        false
+                    }
                 }
                 _ => false,
             },
@@ -153,9 +164,10 @@ impl PollList {
     }
 
     fn view_items(&self, polls: &[Poll]) -> Html<Self> {
+        let limit = min(polls.len(), self.props.limit.unwrap_or_else(|| 20));
         html! {
             <ul class="poll_list -loaded", >
-                { for polls.iter().map(|poll| self.view_item(poll)) }
+                { for polls[0..limit].iter().map(|poll| self.view_item(poll)) }
             </ul>
         }
     }
@@ -174,12 +186,11 @@ impl PollList {
                         route=creator_route,
                         text=poll.creator.clone(),
                     />
-                    <div class="poll_open_time", >
-                        { if poll.is_open() { "Opened " } else { "Opens " } }
-                        <RelativeTime: timestamp=poll.open_time, />
+                    <div class="poll_create_time", >
+                        <RelativeTime: timestamp=poll.create_time, />
                     </div>
                     <div class="poll_votes", >
-                        { &poll.votes.len() } { " votes" }
+                        { &poll.votes.len() } { " vote" }{ if &poll.votes.len() == &1 { "" } else { "s" } }
                     </div>
                 </div>
             </li>

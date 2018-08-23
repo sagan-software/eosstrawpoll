@@ -1,7 +1,8 @@
-use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
-use agents::tables::*;
+use agents::api::*;
+use agents::scatter::{
+    self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
+};
 use context::Context;
-use serde_json;
 use stdweb::traits::IEvent;
 use types::TransferAction;
 use yew::prelude::*;
@@ -14,7 +15,7 @@ pub struct DonationForm {
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
     pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
-    tables: Box<Bridge<TablesAgent>>,
+    api: Box<Bridge<ApiAgent>>,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -26,7 +27,7 @@ pub enum Msg {
     Submit,
     Scatter(ScatterOutput),
     SetAmount(String),
-    Tables(TablesOutput),
+    Api(ApiOutput),
 }
 
 impl Component for DonationForm {
@@ -34,26 +35,25 @@ impl Component for DonationForm {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let tables_config = props.context.tables_config();
-        let mut tables = TablesAgent::new(tables_config, link.send_back(Msg::Tables));
-        let callback = link.send_back(Msg::Scatter);
-        let mut scatter_agent = ScatterAgent::bridge(callback);
-        scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
+        let api_config = props.context.api_config();
+        let api = ApiAgent::new(api_config, link.send_back(Msg::Api));
+        let scatter_agent =
+            ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
         DonationForm {
-            amount: 0.0,
+            amount: 0.,
             submitting: false,
             context: props.context,
             scatter_agent,
             scatter_connected: None,
             scatter_identity: None,
             pushed: None,
-            tables,
+            api,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Tables(_output) => false,
+            Msg::Api(_output) => false,
             Msg::SetAmount(amount) => {
                 let amount = amount.parse::<f32>();
                 match amount {
@@ -83,30 +83,14 @@ impl Component for DonationForm {
 
                 let network = self.context.network();
                 let config = self.context.eos_config();
-
-                let asset = format!("{:.4} SYS", self.amount);
-
-                let action_data = TransferAction {
+                let action: ScatterAction = TransferAction {
                     from: donor.to_string(),
                     to: "eosstrawpoll".to_string(),
-                    quantity: asset,
+                    quantity: format!("{:.4} SYS", self.amount),
                     memo: "Funded EOS Straw Poll".to_string(),
-                };
-
-                let data = serde_json::to_value(action_data).unwrap();
-
-                let action = scatter::Action {
-                    account: "eosio.token".into(),
-                    name: "transfer".into(),
-                    authorization: vec![scatter::Authorization {
-                        actor: donor.to_string(),
-                        permission: "active".into(),
-                    }],
-                    data,
-                };
+                }.into();
 
                 let actions = vec![action];
-
                 self.scatter_agent
                     .send(ScatterInput::PushActions(network, config, actions));
 
@@ -140,8 +124,9 @@ impl Component for DonationForm {
                     if self.submitting {
                         self.pushed = Some(result);
                         self.submitting = false;
-                        self.tables.send(TablesInput::GetDonors);
-                        self.tables.send(TablesInput::GetNewDonations);
+                        self.amount = 0.;
+                        self.api.send(ApiInput::GetDonors);
+                        self.api.send(ApiInput::GetNewDonations);
                         true
                     } else {
                         false
@@ -168,7 +153,8 @@ impl Renderable<DonationForm> for DonationForm {
                     <input
                         placeholder="1.0000",
                         oninput=|e| Msg::SetAmount(e.value),
-                        value=self.amount,
+                        disabled=self.submitting,
+                        value=(if self.amount == 0. { "".to_string() } else { format!("{}", self.amount) }),
                     />
                     <button type="submit",
                         disabled=self.submitting,

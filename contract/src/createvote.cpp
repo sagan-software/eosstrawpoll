@@ -68,6 +68,8 @@ void contract::createvote(
             const vote current_vote = p.votes[i];
             if (current_vote.voter == voter)
             {
+                // TODO: check if choices are different
+
                 p.votes[i] = v;
                 votes = p.votes;
                 return;

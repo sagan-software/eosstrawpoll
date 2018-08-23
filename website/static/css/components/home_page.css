@@ -1,12 +1,7 @@
 .home_page {
 
-    & h1 {
-        grid-column: 1 / span 5;
-        grid-row: 1;
-    }
-
     & aside {
-        padding: calc(var(--spacing) * 3) calc(var(--spacing) * 3) 0;
+        padding: 0 calc(var(--spacing) * 3);
 
         & ol,
         & ul {
@@ -15,22 +10,12 @@
             list-style: none;
         }
 
-        & h2 {
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            margin: 0;
-            margin-bottom: var(--spacing);
-            border-bottom: 1px solid #ebebeb;
-            padding-bottom: var(--spacing);
-            color: #696969;
-        }
-
         & > * {
-            margin-bottom: calc(var(--spacing) * 3);
+            margin-bottom: calc(var(--spacing) * 6);
         }
     }
 
-    & .poll_lists {
+    & .polls {
         grid-column: 1;
         grid-row: 2;
     }
@@ -38,6 +23,7 @@
     & .poll_form_wrapper {
         grid-column: 2 / span 3;
         grid-row: 2;
+        padding: 0 calc(var(--spacing) * 3);
     }
 
     & .poll_list_item {
@@ -75,10 +61,10 @@
     }
 
     & .donation_form {
-        order: 3;
+        order: 2;
 
         & p {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
         }
 
         & .donation_input {
@@ -106,22 +92,8 @@
     }
 
     & .new_donations {
-        order: 2;
-    }
-
-    & .donation_list_item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    & .donation_creator {
-        font-size: 1.4rem;
-    }
-
-    & .donation_donated {
-        font-size: 1.4rem;
-        font-family: monospace;
+        order: 3;
+        margin-bottom: 0;
     }
 
 }

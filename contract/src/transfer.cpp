@@ -12,6 +12,12 @@ void contract::transfer(
         return;
     }
 
+    // only track CORE_SYMBOL transfers
+    if (t.quantity.symbol != CORE_SYMBOL)
+    {
+        return;
+    }
+
     // don't show donations from accounts on the graylist
     const vector<account_name> gl = _config.graylist;
     if (std::find(gl.begin(), gl.end(), t.from) != gl.end())

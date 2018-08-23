@@ -1,18 +1,19 @@
-use agents::tables::*;
-use components::{Link, RelativeTime};
+use agents::api::*;
+use components::Link;
 use context::Context;
 use route::Route;
+use std::cmp::min;
 use types::Donation;
 use yew::prelude::*;
 
 pub struct DonationList {
     props: Props,
     donations: Option<Result<Vec<Donation>, String>>,
-    tables: Box<Bridge<TablesAgent>>,
+    _api: Box<Bridge<ApiAgent>>,
 }
 
 pub enum Msg {
-    Tables(TablesOutput),
+    Api(ApiOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -20,7 +21,7 @@ pub struct Props {
     pub context: Context,
     pub lower_bound: Option<String>,
     pub upper_bound: Option<String>,
-    pub limit: Option<u32>,
+    pub limit: Option<usize>,
 }
 
 impl Component for DonationList {
@@ -28,20 +29,20 @@ impl Component for DonationList {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let tables_config = props.context.tables_config();
-        let mut tables = TablesAgent::new(tables_config, link.send_back(Msg::Tables));
-        tables.send(TablesInput::GetNewDonations);
+        let api_config = props.context.api_config();
+        let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
+        api.send(ApiInput::GetNewDonations);
         DonationList {
             props,
             donations: None,
-            tables,
+            _api: api,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Tables(output) => match output {
-                TablesOutput::NewDonations(donations) => {
+            Msg::Api(output) => match output {
+                ApiOutput::NewDonations(donations) => {
                     self.donations = Some(donations);
                     if let Some(Ok(ref mut donations)) = self.donations {
                         donations.sort_by(|a, b| b.created.cmp(&a.created));
@@ -95,9 +96,10 @@ impl DonationList {
     }
 
     fn view_items(&self, donations: &[Donation]) -> Html<Self> {
+        let limit = min(donations.len(), self.props.limit.unwrap_or_else(|| 10));
         html! {
             <ul class="donation_list_items", >
-                { for donations.iter().map(|donation| self.view_item(donation)) }
+                { for donations[0..limit].iter().map(|donation| self.view_item(donation)) }
             </ul>
         }
     }
@@ -107,14 +109,13 @@ impl DonationList {
         let donated = donation.donated as f64;
         html! {
             <li class="donation_list_item", >
-                <Link: class="donation_creator",
+                <Link: class="donation_account",
                     route=donor_route,
                     text=donation.account.clone(),
                 />
                 <div class="donation_donated", >
                     { format!("{:.*}", 4, donated / 10000.) } { " EOS" }
                 </div>
-                <RelativeTime: timestamp=donation.created, />
             </li>
         }
     }

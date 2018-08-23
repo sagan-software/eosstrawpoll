@@ -1,5 +1,6 @@
 use components::PollList;
 use context::Context;
+use traits::Page;
 use yew::prelude::*;
 
 pub struct ProfilePage {
@@ -32,19 +33,24 @@ impl Component for ProfilePage {
     }
 }
 
-impl Renderable<ProfilePage> for ProfilePage {
-    fn view(&self) -> Html<Self> {
+impl Page for ProfilePage {
+    fn title(&self) -> String {
+        self.account.clone()
+    }
+    fn class(&self) -> String {
+        "profile_page".to_string()
+    }
+    fn content(&self) -> Html<Self> {
         html! {
-            <div class="page", >
-                <h1 class="page_title", >{ &self.account }</h1>
-                <div class="page_main box", >
-                    <PollList:
-                        context=&self.context,
-                        scope=self.account.clone(),
-                        limit=Some(50),
-                    />
-                </div>
-            </div>
+            <>
+                <PollList:
+                    context=&self.context,
+                    scope=self.account.clone(),
+                    limit=Some(50),
+                />
+            </>
         }
     }
 }
+
+page_view! { ProfilePage }

@@ -1,4 +1,4 @@
-use agents::tables::TablesConfig;
+use agents::api::ApiConfig;
 use services::scatter::{EosConfig, Network, RequiredFields};
 use std::str::FromStr;
 use stdweb::unstable::TryInto;
@@ -93,8 +93,8 @@ impl Context {
         }
     }
 
-    pub fn tables_config(&self) -> TablesConfig {
-        TablesConfig {
+    pub fn api_config(&self) -> ApiConfig {
+        ApiConfig {
             endpoint: self.endpoint.clone(),
             code: "eosstrawpoll".to_string(),
             cache_timeout: 5,

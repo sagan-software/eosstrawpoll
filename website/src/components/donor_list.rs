@@ -1,18 +1,19 @@
-use agents::tables::*;
+use agents::api::*;
 use components::Link;
 use context::Context;
 use route::Route;
+use std::cmp::min;
 use types::Donor;
 use yew::prelude::*;
 
 pub struct DonorList {
     props: Props,
     donors: Option<Result<Vec<Donor>, String>>,
-    tables: Box<Bridge<TablesAgent>>,
+    _api: Box<Bridge<ApiAgent>>,
 }
 
 pub enum Msg {
-    Tables(TablesOutput),
+    Api(ApiOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -20,7 +21,7 @@ pub struct Props {
     pub context: Context,
     pub lower_bound: Option<String>,
     pub upper_bound: Option<String>,
-    pub limit: Option<u32>,
+    pub limit: Option<usize>,
 }
 
 impl Component for DonorList {
@@ -28,21 +29,24 @@ impl Component for DonorList {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let tables_config = props.context.tables_config();
-        let mut tables = TablesAgent::new(tables_config, link.send_back(Msg::Tables));
-        tables.send(TablesInput::GetDonors);
+        let api_config = props.context.api_config();
+        let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
+        api.send(ApiInput::GetDonors);
         DonorList {
             props,
             donors: None,
-            tables,
+            _api: api,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Tables(output) => match output {
-                TablesOutput::Donors(donors) => {
+            Msg::Api(output) => match output {
+                ApiOutput::Donors(donors) => {
                     self.donors = Some(donors);
+                    if let Some(Ok(ref mut donors)) = self.donors {
+                        donors.sort_by(|a, b| b.donated.cmp(&a.donated));
+                    }
                     true
                 }
                 _ => false,
@@ -92,9 +96,10 @@ impl DonorList {
     }
 
     fn view_loaded(&self, donors: &[Donor]) -> Html<Self> {
+        let limit = min(donors.len(), self.props.limit.unwrap_or_else(|| 20));
         html! {
             <ul class="donor_list -loaded", >
-                { for donors.iter().map(|donor| self.view_item(donor)) }
+                { for donors[0..limit].iter().enumerate().map(|(i, donor)| self.view_item(i + 1, donor)) }
             </ul>
         }
     }
@@ -107,12 +112,15 @@ impl DonorList {
         }
     }
 
-    fn view_item(&self, donor: &Donor) -> Html<Self> {
+    fn view_item(&self, rank: usize, donor: &Donor) -> Html<Self> {
         let donor_route = Route::Profile(donor.account.clone());
         let donated = donor.donated as f64;
         html! {
             <li class="donor_list_item", >
-                <Link: class="donor_creator",
+                <div class="donor_rank", >
+                    { rank }
+                </div>
+                <Link: class="donor_account",
                     route=donor_route,
                     text=donor.account.clone(),
                 />

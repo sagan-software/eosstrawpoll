@@ -4,5 +4,8 @@
 @import './common';
 @import './components/app';
 @import './components/poll_form';
-@import './pages/home';
-@import './pages/poll';
+@import './components/poll_list';
+@import './components/poll_page';
+@import './components/home_page';
+@import './components/new_donations';
+@import './components/top_donors';

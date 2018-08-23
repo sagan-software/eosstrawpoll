@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::time::Duration;
+use stdweb::unstable::TryInto;
 use stdweb::web::Date;
+use traits::Action;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GlobalConfig {
@@ -110,30 +112,6 @@ pub struct Vote {
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct CreatePollAction {
-    pub creator: String,
-    pub slug: String,
-    pub title: String,
-    pub options: Vec<String>,
-    pub min_num_choices: usize,
-    pub max_num_choices: usize,
-    pub whitelist: Vec<String>,
-    pub blacklist: Vec<String>,
-    pub open_time: u32,
-    pub close_time: u32,
-    pub metadata: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct CreateVoteAction {
-    pub creator: String,
-    pub slug: String,
-    pub voter: String,
-    pub choices: Vec<usize>,
-    pub metadata: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Donation {
     pub id: u64,
     pub account: String,
@@ -148,10 +126,151 @@ pub struct Donor {
     pub donated: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CreatePollAction {
+    pub creator: String,
+    pub slug: String,
+    pub title: String,
+    pub options: Vec<String>,
+    pub min_num_choices: usize,
+    pub max_num_choices: usize,
+    pub whitelist: Vec<String>,
+    pub blacklist: Vec<String>,
+    pub open_time: u32,
+    pub close_time: u32,
+    pub metadata: String,
+}
+
+impl Default for CreatePollAction {
+    fn default() -> CreatePollAction {
+        CreatePollAction {
+            creator: "".to_string(),
+            slug: "".to_string(),
+            title: "".to_string(),
+            options: vec!["".to_string(), "".to_string()],
+            whitelist: vec![],
+            blacklist: vec![],
+            min_num_choices: 1,
+            max_num_choices: 1,
+            open_time: 0,
+            close_time: 0,
+            metadata: "eosstrawpoll.io".to_string(),
+        }
+    }
+}
+
+impl Action for CreatePollAction {
+    fn code(&self) -> String {
+        "eosstrawpoll".to_string()
+    }
+
+    fn name(&self) -> String {
+        "createpoll".to_string()
+    }
+
+    fn actor(&self) -> String {
+        self.creator.clone()
+    }
+}
+
+impl CreatePollAction {
+    pub fn random_slug(&mut self) {
+        self.slug = js! {
+            var text = "";
+            var possible = "abcdefghijklmnopqrstuvwxyz12345";
+            for (var i = 0; i < 12; i++) {
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
+            }
+            return text;
+        }.try_into()
+        .unwrap();
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct DestroyPollAction {
+    pub creator: String,
+    pub slug: String,
+    pub metadata: String,
+}
+
+impl Action for DestroyPollAction {
+    fn code(&self) -> String {
+        "eosstrawpoll".to_string()
+    }
+
+    fn name(&self) -> String {
+        "destroypoll".to_string()
+    }
+
+    fn actor(&self) -> String {
+        self.creator.clone()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct CreateVoteAction {
+    pub creator: String,
+    pub slug: String,
+    pub voter: String,
+    pub choices: Vec<usize>,
+    pub metadata: String,
+}
+
+impl Action for CreateVoteAction {
+    fn code(&self) -> String {
+        "eosstrawpoll".to_string()
+    }
+
+    fn name(&self) -> String {
+        "createvote".to_string()
+    }
+
+    fn actor(&self) -> String {
+        self.voter.clone()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct TransferAction {
     pub from: String,
     pub to: String,
     pub quantity: String,
     pub memo: String,
+}
+
+impl Action for TransferAction {
+    fn code(&self) -> String {
+        "eosio.token".to_string()
+    }
+
+    fn name(&self) -> String {
+        "transfer".to_string()
+    }
+
+    fn actor(&self) -> String {
+        self.from.clone()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct DestroyVoteAction {
+    pub creator: String,
+    pub slug: String,
+    pub voter: String,
+    pub metadata: String,
+}
+
+impl Action for DestroyVoteAction {
+    fn code(&self) -> String {
+        "eosstrawpoll".to_string()
+    }
+
+    fn name(&self) -> String {
+        "destroyvote".to_string()
+    }
+
+    fn actor(&self) -> String {
+        self.voter.clone()
+    }
 }

@@ -14,13 +14,16 @@ extern crate stdweb;
 #[macro_use]
 extern crate failure;
 
+#[macro_use]
+mod macros;
+
 mod agents;
 mod components;
 mod context;
 mod eos;
-mod pages;
 mod route;
 mod services;
+mod traits;
 mod types;
 
 pub use components::App as Model;

@@ -1,6 +1,7 @@
 pub use services::scatter::*;
 use std::collections::HashSet;
 use yew::prelude::worker::*;
+use yew::prelude::Callback;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ScatterInput {
@@ -8,7 +9,7 @@ pub enum ScatterInput {
     GetIdentity(RequiredFields),
     CurrentIdentity,
     ForgetIdentity,
-    PushActions(Network, EosConfig, Vec<Action>),
+    PushActions(Network, EosConfig, Vec<ScatterAction>),
 }
 
 impl Transferable for ScatterInput {}
@@ -133,5 +134,17 @@ impl Agent for ScatterAgent {
     }
     fn disconnected(&mut self, id: HandlerId) {
         self.subscribers.remove(&id);
+    }
+}
+
+impl ScatterAgent {
+    pub fn new(
+        appname: String,
+        timeout: u32,
+        callback: Callback<ScatterOutput>,
+    ) -> Box<Bridge<ScatterAgent>> {
+        let mut scatter = ScatterAgent::bridge(callback);
+        scatter.send(ScatterInput::Connect(appname, timeout));
+        scatter
     }
 }
