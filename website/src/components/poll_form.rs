@@ -498,7 +498,7 @@ impl PollForm {
             )
         };
         let help = html! { <p>{ text }</p> };
-        self.view_field("Number of choices", "num_choices", input, help)
+        self.view_field("Number of allowed choices", "num_choices", input, help)
     }
 
     fn view_open_time(&self) -> Html<PollForm> {

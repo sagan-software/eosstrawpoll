@@ -122,30 +122,38 @@ impl App {
     fn view_nav(&self) -> Html<Self> {
         html! {
             <nav class="app_nav", >
-                { self.view_nav_link(Route::Polls, "Polls", "polls") }
-                { self.view_nav_link(Route::Donations, "Donations", "donations") }
+                { self.view_nav_link(Route::Polls, "Polls", "polls", Symbol::Checklist) }
+                { self.view_nav_link(Route::Donations, "Donations", "donations", Symbol::PiggyBank) }
                 <a class="app_link app_link_roadmap",
                     href="https://github.com/sagan-software/eosstrawpoll/projects/1",
                     target="_blank",
                 >
+                    <Svg: symbol=Symbol::Map, />
                     { "Roadmap" }
                 </a>
                 <a class="app_link app_link_feedback",
                     href="https://eos-forum.org/#/e/eosstrawpoll",
                     target="_blank",
                 >
+                    <Svg: symbol=Symbol::Megaphone, />
                     { "Feedback" }
                 </a>
             </nav>
         }
     }
 
-    fn view_nav_link(&self, route: Route, text: &str, class: &str) -> Html<Self> {
+    fn view_nav_link(&self, route: Route, text: &str, class: &str, symbol: Symbol) -> Html<Self> {
         html! {
-            <Link: class=format!("app_link app_link_{}", class),
-                route=route,
-                text=text.to_string(),
-            />
+            <a class=format!("app_link app_link_{}", class),
+                href=route.to_string(),
+                onclick=|e| {
+                    e.prevent_default();
+                    Msg::NavigateTo(route.clone())
+                },
+            >
+                <Svg: symbol=symbol, />
+                { text }
+            </a>
         }
     }
 
@@ -168,7 +176,8 @@ impl App {
                 class="app_login",
                 onclick=|_| Msg::Login,
             >
-                { "Login with Scatter" }
+                { "Login with " }
+                <Svg: symbol=Symbol::ScatterFull, />
             </button>
         }
     }
@@ -179,19 +188,32 @@ impl App {
             .unwrap_or_else(|| "Anon".to_string());
         let profile_route = Route::Profile(account_name.clone());
         html! {
-            <p>
-                { "Logged in as" }
-                <Link:
-                    route=profile_route,
-                    text=account_name.clone(),
-                />
-            </p>
-            <button
-                class="app_logout",
-                onclick=|_| Msg::Logout,
-            >
-                { "Logout" }
-            </button>
+            <div class="app_user_actions", >
+                <a
+                    class="app_user_account",
+                    href=profile_route.to_string(),
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::NavigateTo(profile_route.clone())
+                    },
+                >
+                    <Svg: symbol=Symbol::Head, />
+                    { account_name }
+                </a>
+                <a class="app_user_settings", href="/settings",
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::NavigateTo(Route::Home)
+                    },
+                >
+                    <Svg: symbol=Symbol::Gear, />
+                </a>
+                <button class="app_user_logout",
+                    onclick=|_| Msg::Logout,
+                >
+                    <Svg: symbol=Symbol::Exit, />
+                </button>
+            </div>
         }
     }
 

@@ -1,11 +1,13 @@
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Mono|IBM+Plex+Sans+Condensed:700|IBM+Plex+Sans:400,700');
+
 * {
     box-sizing: border-box;
-    font-family: system-ui;
     line-height: 2rem;
 }
 
 body {
     color: var(--text-color);
+    font-family: var(--font-body);
 }
 
 a:any-link {
@@ -59,18 +61,21 @@ textarea {
     }
 }
 
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-head);
+}
+
 h1 {
     text-align: center;
     margin: 0;
-    padding: calc(var(--spacing) * 7) 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3.5rem;
+    font-size: 4rem;
 }
 
 h2 {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     text-transform: uppercase;
     margin: 0;
     margin-bottom: calc(var(--spacing) * 2);

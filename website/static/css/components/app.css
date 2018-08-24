@@ -12,62 +12,70 @@
     max-width: var(--container-width);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 30rem 1fr 1fr 1fr 30rem;
+    grid-template-columns: 29rem 1fr 1fr 1fr 29rem;
 }
 
 .app_header {
-    padding: calc(var(--spacing) * 1) 0;
     border-bottom: 1px solid #ebebeb;
-
 
     & .app_container {
 
         & > * {
             display: flex;
             align-items: center;
-            height: 6rem;
+            height: 7rem;
+        }
+    }
+
+    & .app_logo {
+        grid-column: 1;
+        font-size: 2.5rem;
+        font-weight: 700;
+        justify-content: flex-start;
+        font-family: var(--font-head);
+        padding: calc(var(--spacing) * 1) 0;
+        margin: 0 calc(var(--spacing) * 3);
+
+        &:hover {
+            text-decoration: none;
         }
     }
 
 }
 
-.app_logo {
-    grid-column: 1;
-    font-size: 2rem;
-    font-weight: 700;
-    justify-content: center;
-
-    &:hover {
-        text-decoration: none;
-    }
-}
-
 .app_version {
-    color: #666;
+    border: 0.1rem solid currentColor;
     font-size: 0.9rem;
     text-transform: uppercase;
     border-radius: var(--border-radius);
     padding: 0 calc(var(--spacing) / 1.5);
-    background: #eaeaea;
     margin-left: var(--spacing);
     font-weight: normal;
     letter-spacing: 0.05rem;
 }
 
 .app_nav {
-    font-size: 2rem;
     grid-column: 2 / span 3;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 0 calc(var(--spacing) * 6);
 }
 
 .app_link {
-    margin: 0 calc(var(--spacing) * 3);
+    font-size: 1.75rem;
     height: 100%;
     display: flex;
+    flex-direction: row-reverse;
     align-items: center;
     font-weight: normal;
+
+    & svg {
+        margin-right: var(--spacing);
+        fill: currentColor;
+        height: 2.4rem;
+        width: 2.4rem;
+    }
 }
 
 .app_link_polls {
@@ -89,13 +97,90 @@
 .app_user {
     grid-column: 5;
     font-size: 1.4rem;
-    padding: var(--spacing) calc(var(--spacing) * 2);
+    align-items: center;
+    display: flex;
 
     & > * {
         width: 100%;
         height: 100%;
         display: block;
     }
+}
+
+.app_login {
+    font-size: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: normal;
+    height: 4rem;
+    margin: 0 calc(var(--spacing) * 2);
+
+    & svg {
+        fill: currentColor;
+        height: 1.9rem;
+    }
+
+}
+
+.app_user_actions {
+    display: flex;
+    height: 4rem;
+    margin: 0 calc(var(--spacing) * 2);
+    border-radius: var(--border-radius);
+    font-size: 1.5rem;
+    overflow: hidden;
+
+    & > * {
+        padding: 0 calc(var(--spacing) * 2);
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    & a {
+        background-color: var(--brand-color);
+        color: #fff;
+        transition: 300ms background-color;
+
+        &:hover {
+            background-color: #003296;
+        }
+    }
+
+    & svg {
+        fill: currentColor;
+        transition: 300ms fill;
+        height: 2.4rem;
+    }
+
+    & button {
+        border-radius: 0;
+    }
+
+    & .app_user_account {
+        order: 1;
+        flex: 1;
+        display: flex;
+        flex-direction: row-reverse;
+        align-items: center;
+        justify-content: flex-end;
+
+        & svg {
+            transform: translateX(-4px);
+        }
+    }
+
+    & .app_user_settings {
+        order: 2;
+        border-left: 1px solid #003296;
+    }
+
+    & .app_user_logout {
+        order: 3;
+        border-left: 1px solid #003296;
+    }
+
 }
 
 .app_content {

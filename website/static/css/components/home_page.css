@@ -23,7 +23,7 @@
     & .poll_form_wrapper {
         grid-column: 2 / span 3;
         grid-row: 2;
-        padding: 0 calc(var(--spacing) * 3);
+        padding: 0 calc(var(--spacing) * 4);
     }
 
     & .poll_list_item {
@@ -76,6 +76,7 @@
                 grid-column: 1 / span 2;
                 border-top-right-radius: 0;
                 border-bottom-right-radius: 0;
+                font-family: var(--font-mono);
             }
 
             & button {

@@ -5,7 +5,10 @@
     --border-color: #d4d4d4;
     --spacing: 0.8rem;
     --border-radius: 0.3rem;
-    --container-width: 120rem;
+    --container-width: 130rem;
     --box-shadow: 0px 1px 1px;
+    --font-body: 'IBM Plex Sans', system-ui;
+    --font-head: 'IBM Plex Sans Condensed', system-ui;
+    --font-mono: 'IBM Plex Mono', monospace;
     font-size: 62.5%;
 }

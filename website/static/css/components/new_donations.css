@@ -29,7 +29,7 @@
         order: 2;
         float: right;
         font-size: 1.4rem;
-        font-family: monospace;
+        font-family: var(--font-mono);
         background: #fff;
         padding-left: 0.3rem;
         color: #666;

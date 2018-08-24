@@ -91,7 +91,7 @@
         color: #666;
         font-size: 1.2rem;
         justify-content: flex-end;
-        font-family: 'Roboto Mono';
+        font-family: var(--font-mono);
         background: #fff;
         float: right;
         z-index: 3;

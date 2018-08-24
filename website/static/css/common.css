@@ -1,5 +1,13 @@
+.page_header {
+    height: 17rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .page_title {
     grid-column: 1 / span 5;
+    line-height: 4rem;
 }
 
 .button {

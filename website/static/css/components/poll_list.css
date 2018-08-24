@@ -3,8 +3,6 @@
     & .poll {
         display: flex;
         flex-direction: column;
-        border-left: 0.5rem solid #ebebeb;
-        padding-left: var(--spacing);
 
         &:not(:last-of-type) {
             margin-bottom: var(--spacing);
@@ -21,12 +19,14 @@
         order: 2;
         display: flex;
         font-size: 1.2rem;
+        transition: 300ms;
         color: #999;
     }
 
     & .poll_creator {
         order: 1;
         margin-right: var(--spacing);
+        color: #999;
     }
 
     & .poll_votes {
@@ -56,7 +56,7 @@
 
     & .poll_details {
         display: none;
-        font-size: 1.3rem;
+        font-size: 1.2rem;
     }
 
     & .poll_title {
