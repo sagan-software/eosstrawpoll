@@ -7,11 +7,15 @@ void contract::createvote(
     const account_name creator,
     const poll_name slug,
     const account_name voter,
-    const vector<uint16_t> &choices,
+    const vector<choice> &choices,
     const string &metadata)
 {
     require_auth(voter);
-    eosio_assert(metadata.size() <= _config.max_metadata_size, "metadata is too long");
+
+    // banned users cannot vote
+    assert_not_banned(voter);
+
+    assert_metadata_len(metadata);
 
     // check if poll exists
     polls_table _creator_polls(_self, creator);
@@ -26,39 +30,76 @@ void contract::createvote(
 
     // check number choices can be selected
     const auto num_choices = choices.size();
-    eosio_assert(num_choices >= p->min_num_choices, "too few choices");
-    eosio_assert(num_choices <= p->max_num_choices, "too many choices");
+    eosio_assert(num_choices >= p->min_choices, "too few choices");
+    eosio_assert(num_choices <= p->max_choices, "too many choices");
 
     // check if choices are valid
-    const auto max_choice = p->options.size() - 1;
-    std::map<uint8_t, bool> seen_choices;
-    for (auto &choice : choices)
+    const auto max_option_index = p->options.size() - 1;
+    std::map<uint8_t, bool> seen_option_indexes;
+    std::map<string, bool> seen_writeins;
+    for (auto &c : choices)
     {
-        eosio_assert(choice >= 0 && choice <= max_choice, "received invalid choice");
-        eosio_assert(seen_choices.count(choice) == 0, "duplicate choices are not allowed");
-        seen_choices[choice] = true;
+        const auto option_index = c.option_index;
+        const auto writein = c.writein;
+        const bool has_option_index = option_index >= 0;
+        const bool has_writein = !writein.empty();
+        eosio_assert(
+            (has_option_index && !has_written) || (!has_option_index && has_written),
+            "invalid choice: must have either an option index OR a writein answer, not neither or both. set option index to -1 or writein to an empty string");
+        eosio_assert(option_index >= -1, "invalid choice: option index cannot be less than -1");
+
+        if (has_option_index)
+        {
+            eosio_assert(option_index <= max_option_index, "invalid choice: option index cannot be greater than the total number of options");
+            eosio_assert(seen_option_indexes.count(option_index) == 0, "invalid choices: duplicate option indexes are not allowed");
+            seen_option_indexes[option_index] = true;
+        }
+
+        if (has_writein)
+        {
+            eosio_assert(writein.size() <= _config.max_writein_len, "invalid choice: writein length is too long");
+            eosio_assert(seen_writeins.count(writein) == 0, "invalid choices: duplicate writeins are not allowed");
+            // TODO: check that writein is not all whitespace characters
+            seen_writeins[writein] = true;
+            eosio_assert(seen_writeins.size() <= max_writeins, "invalid choices: too many writeins");
+        }
     }
 
-    // check if poll has whitelist, and if voter is on whitelist
-    const auto wl = p->whitelist;
-    eosio_assert(
-        wl.empty() || std::find(wl.begin(), wl.end(), voter) != wl.end(),
-        "voter is not on whitelist");
+    // check account list
+    const auto al = p->account_list;
+    if (!al.empty())
+    {
+        const bool voter_is_on_list = std::find(al.begin(), al.end(), voter) != al.end();
+        if (p->use_allow_list)
+        {
+            eosio_assert(voter_is_on_list, "voter is not on the allow list");
+        }
+        else
+        {
+            eosio_assert(!voter_is_on_list, "voter is on the deny list");
+        }
+    }
 
-    // check if voter is on blacklist
-    const auto bl = p->blacklist;
-    eosio_assert(
-        bl.empty() || std::find(bl.begin(), bl.end(), voter) == bl.end(),
-        "voter is blacklisted");
+    if (p->min_staked > 0)
+    {
+        // TODO check staked amount
+    }
+
+    if (p->min_value > 0)
+    {
+        // TODO check account value
+    }
 
     // create vote
     vote v;
     v.voter = voter;
     v.choices = choices;
     v.created = now();
-    v.staked = 0;
 
     vector<vote> votes = p->votes;
+
+    // TODO make sure votes have changed
+    // eosio_assert(current_vote.choices != choices, "choices have not changed");
 
     // cast vote
     _creator_polls.modify(p, voter, [&](auto &p) {
@@ -68,9 +109,8 @@ void contract::createvote(
             const vote current_vote = p.votes[i];
             if (current_vote.voter == voter)
             {
-                // TODO: check if choices are different
-
                 p.votes[i] = v;
+                p.popularity = p.calculate_popularity(_config.popularity_gravity);
                 votes = p.votes;
                 return;
             }
@@ -78,8 +118,11 @@ void contract::createvote(
 
         // new voter, add to end of vector
         p.votes.push_back(v);
+        p.popularity = p.calculate_popularity(_config.popularity_gravity);
         votes = p.votes;
     });
+
+    ensure_user(creator);
 
     // check popular poll's table
     double lowest_popularity = 999999999;
@@ -102,7 +145,12 @@ void contract::createvote(
             // update the poll reference
             _popular_polls.modify(poll_ref, voter, [&](auto &p) {
                 p.popularity = creator_poll->calculate_popularity(_config.popularity_gravity);
-                p.votes = votes;
+
+                // if this is the poll being voted on then update the votes
+                if (p.creator == poll_ref->creator && p.slug == poll_ref->slug)
+                {
+                    p.votes = votes;
+                }
             });
 
             // save the lowest popularity for later
@@ -133,37 +181,25 @@ void contract::createvote(
             pp.slug = slug;
             pp.title = p->title;
             pp.options = p->options;
-            pp.min_num_choices = p->min_num_choices;
-            pp.max_num_choices = p->max_num_choices;
-            pp.whitelist = p->whitelist;
-            pp.blacklist = p->blacklist;
-            pp.create_time = p->create_time;
+            pp.min_choices = p->min_choices;
+            pp.max_choices = p->max_choices;
+            pp.max_writeins = p->max_writeins;
+            pp.use_allow_list = p->use_allow_list;
+            pp.account_list = p->account_list;
+            pp.min_staked = p->min_staked;
+            pp.min_value = p->min_value;
             pp.open_time = p->open_time;
             pp.close_time = p->close_time;
-            pp.metadata = p->metadata;
+            pp.create_time = p->create_time;
             pp.votes = votes;
+            pp.popularity = poll_popularity;
+            pp.metadata = p->metadata;
         });
     }
 
     prune_popular_polls();
-}
 
-void contract::prune_popular_polls()
-{
-    auto popularity_index = _popular_polls.get_index<N(popularity)>();
-    auto num_left = _config.max_popular_polls;
-    for (auto it = popularity_index.rbegin(); it != popularity_index.rend();)
-    {
-        if (num_left <= 0)
-        {
-            it = decltype(it){popularity_index.erase(std::next(it).base())};
-        }
-        else
-        {
-            num_left -= 1;
-            ++it;
-        }
-    }
+    // TODO: update new polls table
 }
 
 } // namespace eosstrawpoll

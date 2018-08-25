@@ -18,13 +18,6 @@ void contract::transfer(
         return;
     }
 
-    // don't show donations from accounts on the graylist
-    const vector<account_name> gl = _config.graylist;
-    if (std::find(gl.begin(), gl.end(), t.from) != gl.end())
-    {
-        return;
-    }
-
     const account_name account = t.from;
     const uint64_t donated = t.quantity.amount;
 
@@ -46,6 +39,12 @@ void contract::transfer(
         _donors.emplace(_self, [&](auto &d) {
             d.account = account;
             d.donated = donated;
+            d.last_donation = donation{
+                .id = 0,
+                .account = account,
+                .donated = donated,
+                .memo = t.memo,
+                .created = now()};
         });
     }
     else

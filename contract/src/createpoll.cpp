@@ -10,47 +10,59 @@ void contract::createpoll(
     const poll_name slug,
     const string &title,
     const vector<string> &options,
-    const uint16_t min_num_choices,
-    const uint16_t max_num_choices,
-    const vector<account_name> &whitelist,
-    const vector<account_name> &blacklist,
+    const uint16_t min_choices,
+    const uint16_t max_choices,
+    const uint16_t max_writeins,
+    const bool use_allow_list,
+    const vector<account_name> &account_list,
+    const uint64_t min_staked,
+    const uint64_t min_value,
     const time open_time,
     const time close_time,
     const string &metadata)
 {
     require_auth(creator);
-    eosio_assert(metadata.size() <= _config.max_metadata_size, "metadata is too long");
+
+    // banned users cannot create polls
+    assert_not_banned(creator);
+
+    assert_metadata_len(metadata);
 
     // check title
     eosio_assert(!title.empty(), "title must not be empty");
-    eosio_assert(title.size() <= _config.max_title_size, "title is too long");
+    eosio_assert(title.size() <= _config.max_title_len, "title is too long");
 
     // check options
     const uint16_t num_options = options.size();
-    eosio_assert(num_options >= 2, "must have at least 2 options");
-    eosio_assert(num_options <= _config.max_options_size, "too many options");
+    eosio_assert(num_options <= _config.max_options_len, "too many options");
+    eosio_assert(num_options + max_writeins >= 2, "must have at least 2 options or allow writeins");
+
     std::map<string, bool> seen_options;
     for (auto &option : options)
     {
+        // TODO: check that options are not just empty whitespace
         eosio_assert(!option.empty(), "empty options are not allowed");
-        eosio_assert(option.size() <= _config.max_option_size, "an option is too long");
+        eosio_assert(option.size() <= _config.max_option_len, "an option is too long");
         eosio_assert(seen_options.count(option) == 0, "duplicate options are not allowed");
         seen_options[option] = true;
     }
 
     // check num choices
     eosio_assert(
-        min_num_choices > 0,
-        "min_num_choices must be greater than 0");
+        min_choices > 0,
+        "min_choices must be greater than 0");
     eosio_assert(
-        min_num_choices <= num_options,
-        "min_num_choices cannot be greater than the total number of options");
+        min_choices <= max_choices,
+        "max_choices cannot be less than min_choices");
     eosio_assert(
-        max_num_choices >= min_num_choices,
-        "max_num_choices cannot be less than min_num_choices");
+        max_writeins <= max_choices,
+        "max_writeins cannot be greater than max_choices");
     eosio_assert(
-        max_num_choices <= num_options,
-        "max_num_choices cannot be greater than the total number of options");
+        min_choices <= num_options + max_writeins,
+        "min_choices cannot be greater than the total number of options and max writeins");
+    eosio_assert(
+        max_choices <= num_options + max_writeins,
+        "max_choices cannot be greater than the total number of options and max writeins");
 
     // check times
     eosio_assert(
@@ -62,35 +74,14 @@ void contract::createpoll(
         close_time == 0 || close_time > current_time,
         "close_time must be 0 or in the future");
 
-    const time start_time = std::max(current_time, open_time);
+    // check account_list
+    auto account_list_len = account_list.size();
     eosio_assert(
-        close_time == 0 || close_time > start_time + _config.min_duration,
-        "poll is not open long enough");
-
-    // doesn't make sense to have a whitelist and blacklist
-    auto whitelist_size = whitelist.size();
-    auto blacklist_size = blacklist.size();
-    if (whitelist_size > 0)
+        account_list_len <= _config.max_account_list_len,
+        "account_list is too long");
+    for (auto &account : account_list)
     {
-        eosio_assert(blacklist_size == 0, "whitelist and blacklist cannot both be populated -- pick one or the other");
-    }
-
-    // check whitelist
-    eosio_assert(
-        whitelist_size <= _config.max_whitelist_size,
-        "whitelist is too long");
-    for (auto &account : whitelist)
-    {
-        eosio_assert(is_account(account), "whitelist contains an account that doesn't exist");
-    }
-
-    // check blacklist
-    eosio_assert(
-        blacklist_size <= _config.max_blacklist_size,
-        "blacklist is too long");
-    for (auto &account : blacklist)
-    {
-        eosio_assert(is_account(account), "blacklist contains an account that doesn't exist");
+        eosio_assert(is_account(account), "account_list contains an account that doesn't exist");
     }
 
     // check if poll already exists
@@ -100,6 +91,11 @@ void contract::createpoll(
         eosio_assert(p == _creator_polls.end(), "poll already exists with this slug");
     }
 
+    // Poll is valid!
+
+    // add user
+    ensure_user(creator);
+
     // create the poll
     _creator_polls.emplace(creator, [&](auto &p) {
         p.id = slug;
@@ -107,13 +103,16 @@ void contract::createpoll(
         p.slug = slug;
         p.title = title;
         p.options = options;
-        p.min_num_choices = min_num_choices;
-        p.max_num_choices = max_num_choices;
-        p.whitelist = whitelist;
-        p.blacklist = blacklist;
-        p.create_time = current_time;
-        p.open_time = start_time;
+        p.min_choices = min_choices;
+        p.max_choices = max_choices;
+        p.max_writeins = max_writeins;
+        p.use_allow_list = use_allow_list;
+        p.account_list = account_list;
+        p.min_staked = min_staked;
+        p.min_value = min_value;
+        p.open_time = open_time;
         p.close_time = close_time;
+        p.create_time = current_time;
         p.metadata = metadata;
     });
 
@@ -124,13 +123,16 @@ void contract::createpoll(
         p.slug = slug;
         p.title = title;
         p.options = options;
-        p.min_num_choices = min_num_choices;
-        p.max_num_choices = max_num_choices;
-        p.whitelist = whitelist;
-        p.blacklist = blacklist;
-        p.create_time = current_time;
-        p.open_time = start_time;
+        p.min_choices = min_choices;
+        p.max_choices = max_choices;
+        p.max_writeins = max_writeins;
+        p.use_allow_list = use_allow_list;
+        p.account_list = account_list;
+        p.min_staked = min_staked;
+        p.min_value = min_value;
+        p.open_time = open_time;
         p.close_time = close_time;
+        p.create_time = current_time;
         p.metadata = metadata;
     });
 
@@ -144,50 +146,19 @@ void contract::createpoll(
             p.slug = slug;
             p.title = title;
             p.options = options;
-            p.min_num_choices = min_num_choices;
-            p.max_num_choices = max_num_choices;
-            p.whitelist = whitelist;
-            p.blacklist = blacklist;
-            p.create_time = current_time;
-            p.open_time = start_time;
+            p.min_choices = min_choices;
+            p.max_choices = max_choices;
+            p.max_writeins = max_writeins;
+            p.use_allow_list = use_allow_list;
+            p.account_list = account_list;
+            p.min_staked = min_staked;
+            p.min_value = min_value;
+            p.open_time = open_time;
             p.close_time = close_time;
+            p.create_time = current_time;
             p.metadata = metadata;
         });
     }
-}
-
-void contract::prune_new_polls()
-{
-    auto created_index = _new_polls.get_index<N(created)>();
-    auto num_left = _config.max_new_polls;
-    for (auto it = created_index.rbegin(); it != created_index.rend();)
-    {
-        if (num_left <= 0)
-        {
-            it = decltype(it){created_index.erase(std::next(it).base())};
-        }
-        else
-        {
-            num_left -= 1;
-            ++it;
-        }
-    }
-}
-
-bool contract::is_popular_polls_full()
-{
-    auto num_left = _config.max_popular_polls;
-    for (auto it = _popular_polls.begin(); it != _popular_polls.end();)
-    {
-        num_left -= 1;
-        if (num_left <= 0)
-        {
-            return true;
-        }
-        ++it;
-    }
-
-    return false;
 }
 
 } // namespace eosstrawpoll

@@ -81,8 +81,8 @@ try
         const vector<string> options{"Option A", "Option B", "Option C"};
         const vector<account_name> blacklist{};
         const vector<account_name> whitelist{N(carol1111111)};
-        const uint8_t min_num_choices = 1;
-        const uint8_t max_num_choices = 3;
+        const uint8_t min_choices = 1;
+        const uint8_t max_choices = 3;
         const timestamp open_time = now();
         const timestamp close_time = now() + 700;
         const string metadata = "test";
@@ -91,8 +91,8 @@ try
             slug,
             title,
             options,
-            min_num_choices,
-            max_num_choices,
+            min_choices,
+            max_choices,
             whitelist,
             blacklist,
             open_time,
@@ -105,8 +105,8 @@ try
         // BOOST_REQUIRE_EQUAL(p.slug, slug);
         BOOST_REQUIRE_EQUAL(p.title, title);
         BOOST_REQUIRE_MESSAGE(p.options == options, "options are different");
-        BOOST_REQUIRE_EQUAL(p.min_num_choices, min_num_choices);
-        BOOST_REQUIRE_EQUAL(p.max_num_choices, max_num_choices);
+        BOOST_REQUIRE_EQUAL(p.min_choices, min_choices);
+        BOOST_REQUIRE_EQUAL(p.max_choices, max_choices);
         BOOST_REQUIRE_MESSAGE(p.whitelist == whitelist, "whitelist is different");
         BOOST_REQUIRE_MESSAGE(p.blacklist == blacklist, "blacklist is different");
         BOOST_REQUIRE_EQUAL(p.open_time, open_time);
@@ -142,8 +142,8 @@ BOOST_AUTO_TEST_SUITE_END()
 //     const vector<string> options{"Option A", "Option B", "Option C"};
 //     const vector<account_name> blacklist{N(name1), N(name2)};
 //     const vector<account_name> whitelist{N(name3), N(name4)};
-//     const uint8_t min_num_choices = 1;
-//     const uint8_t max_num_choices = 3;
+//     const uint8_t min_choices = 1;
+//     const uint8_t max_choices = 3;
 //     const timestamp open_time = 0;
 //     const timestamp close_time = 0;
 
@@ -153,8 +153,8 @@ BOOST_AUTO_TEST_SUITE_END()
 //         options,
 //         whitelist,
 //         blacklist,
-//         min_num_choices,
-//         max_num_choices,
+//         min_choices,
+//         max_choices,
 //         open_time,
 //         close_time);
 
@@ -164,8 +164,8 @@ BOOST_AUTO_TEST_SUITE_END()
 //     BOOST_REQUIRE_MESSAGE(p.options == options, "options are different");
 //     BOOST_REQUIRE_MESSAGE(p.blacklist == blacklist, "blacklist is different");
 //     BOOST_REQUIRE_MESSAGE(p.whitelist == whitelist, "whitelist is different");
-//     BOOST_REQUIRE_EQUAL(p.min_num_choices, min_num_choices);
-//     BOOST_REQUIRE_EQUAL(p.max_num_choices, max_num_choices);
+//     BOOST_REQUIRE_EQUAL(p.min_choices, min_choices);
+//     BOOST_REQUIRE_EQUAL(p.max_choices, max_choices);
 //     BOOST_REQUIRE_EQUAL(p.open_time, now());
 //     BOOST_REQUIRE_EQUAL(p.close_time, close_time);
 // }
@@ -268,12 +268,12 @@ BOOST_AUTO_TEST_SUITE_END()
 //             0,
 //             0);
 //         const poll_t p = get_poll(N(alice), id);
-//         BOOST_REQUIRE_EQUAL(p.min_num_choices, 1);
-//         BOOST_REQUIRE_EQUAL(p.max_num_choices, 1);
+//         BOOST_REQUIRE_EQUAL(p.min_choices, 1);
+//         BOOST_REQUIRE_EQUAL(p.max_choices, 1);
 //     };
 //     {
 //         BOOST_REQUIRE_EQUAL(
-//             wasm_assert_msg("min_num_choices cannot be greater than the total number of options"),
+//             wasm_assert_msg("min_choices cannot be greater than the total number of options"),
 //             create_poll(
 //                 N(alice),
 //                 "Test poll",
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_SUITE_END()
 //                 0,
 //                 0));
 //         BOOST_REQUIRE_EQUAL(
-//             wasm_assert_msg("max_num_choices cannot be less than min_num_choices"),
+//             wasm_assert_msg("max_choices cannot be less than min_choices"),
 //             create_poll(
 //                 N(alice),
 //                 "Test poll",
@@ -297,7 +297,7 @@ BOOST_AUTO_TEST_SUITE_END()
 //                 0,
 //                 0));
 //         BOOST_REQUIRE_EQUAL(
-//             wasm_assert_msg("max_num_choices cannot be greater than the total number of options"),
+//             wasm_assert_msg("max_choices cannot be greater than the total number of options"),
 //             create_poll(
 //                 N(alice),
 //                 "Test poll",
@@ -321,8 +321,8 @@ BOOST_AUTO_TEST_SUITE_END()
 //             0,
 //             0);
 //         const poll_t p = get_poll(N(alice), id);
-//         BOOST_REQUIRE_EQUAL(p.min_num_choices, 2);
-//         BOOST_REQUIRE_EQUAL(p.max_num_choices, 2);
+//         BOOST_REQUIRE_EQUAL(p.min_choices, 2);
+//         BOOST_REQUIRE_EQUAL(p.max_choices, 2);
 //     };
 // }
 // FC_LOG_AND_RETHROW()

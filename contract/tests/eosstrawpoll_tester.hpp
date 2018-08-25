@@ -82,8 +82,8 @@ struct poll
     poll_name slug;
     string title;
     vector<string> options;
-    uint16_t min_num_choices;
-    uint16_t max_num_choices;
+    uint16_t min_choices;
+    uint16_t max_choices;
     vector<vote> votes;
     vector<account_name> whitelist;
     vector<account_name> blacklist;
@@ -110,7 +110,7 @@ FC_REFLECT(
     // basics
     (id)(creator)(slug)(title)
     // voting
-    (options)(min_num_choices)(max_num_choices)(votes)
+    (options)(min_choices)(max_choices)(votes)
     // account lists
     (whitelist)(blacklist)
     // times
@@ -595,8 +595,8 @@ class eosstrawpoll_tester : public TESTER
         const poll_name slug,
         const string &title,
         const vector<string> &options,
-        const uint16_t min_num_choices,
-        const uint16_t max_num_choices,
+        const uint16_t min_choices,
+        const uint16_t max_choices,
         const vector<account_name> &whitelist,
         const vector<account_name> &blacklist,
         const timestamp open_time,
@@ -607,7 +607,7 @@ class eosstrawpoll_tester : public TESTER
             N(eosstrawpoll),
             creator,
             N(createpoll),
-            mvo()("creator", creator)("slug", slug)("title", title)("options", options)("min_num_choices", min_num_choices)("max_num_choices", max_num_choices)("whitelist", whitelist)("blacklist", blacklist)("open_time", open_time)("close_time", close_time)("metadata", metadata));
+            mvo()("creator", creator)("slug", slug)("title", title)("options", options)("min_choices", min_choices)("max_choices", max_choices)("whitelist", whitelist)("blacklist", blacklist)("open_time", open_time)("close_time", close_time)("metadata", metadata));
     }
 
     action_result closepoll(

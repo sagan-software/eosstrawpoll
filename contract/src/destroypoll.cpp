@@ -11,7 +11,7 @@ void contract::destroypoll(
     const string &metadata)
 {
     require_auth(creator);
-    eosio_assert(metadata.size() <= _config.max_metadata_size, "metadata is too long");
+    eosio_assert(metadata.size() <= _config.max_metadata_len, "metadata is too long");
 
     // check if poll exists
     polls_table polls(_self, creator);
