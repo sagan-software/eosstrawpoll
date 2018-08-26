@@ -14,8 +14,7 @@ use types::*;
 use yew::prelude::*;
 
 pub struct PollForm {
-    action: CreatePollAction,
-    use_whitelist: bool,
+    action: CreatePoll,
     submitting: bool,
     context: Context,
     scatter_agent: Box<Bridge<ScatterAgent>>,
@@ -25,24 +24,38 @@ pub struct PollForm {
     router: Box<Bridge<RouterAgent<()>>>,
     global_config: GlobalConfig,
     _api: Box<Bridge<ApiAgent>>,
+    use_advanced: bool,
+
+    // basic options
+    allow_multiple_choices: bool,
+    allow_writeins: bool,
+    close_in_an_hour: bool,
 }
 
 pub enum Msg {
     NoOp,
+    Scatter(ScatterOutput),
+    Router(RouterOutput<()>),
+    Api(ApiOutput),
     Submit,
     SetTitle(String),
     AddOption,
     SetOption(usize, String),
     DelOption(usize),
+
+    // Basic options
+    ToggleAllowMultipleChoices,
+    ToggleAllowWriteins,
+    ToggleCloseAfterAnHour,
+
+    // Advanced options
+    ToggleAdvanced,
     AddListAccount(String),
     DelListAccount(usize),
     SetMinChoices(String),
     SetMaxChoices(String),
     SetOpenTime(String),
     SetCloseTime(String),
-    Scatter(ScatterOutput),
-    Router(RouterOutput<()>),
-    Api(ApiOutput),
 }
 
 #[derive(PartialEq, Clone, Default, Debug)]
@@ -65,8 +78,7 @@ impl Component for PollForm {
         let router = RouterAgent::bridge(callback);
 
         PollForm {
-            action: CreatePollAction::default(),
-            use_whitelist: true,
+            action: CreatePoll::default(),
             submitting: false,
             context: props.context,
             scatter_agent,
@@ -76,6 +88,10 @@ impl Component for PollForm {
             router,
             global_config: GlobalConfig::default(),
             _api: api,
+            use_advanced: false,
+            allow_multiple_choices: false,
+            allow_writeins: false,
+            close_in_an_hour: false,
         }
     }
 
@@ -176,8 +192,39 @@ impl Component for PollForm {
 
                 let network = self.context.network();
                 let config = self.context.eos_config();
-                let action: ScatterAction = self.action.clone().into();
-                let actions = vec![action];
+                let mut action = self.action.clone();
+
+                if !self.use_advanced {
+                    // Set basic options below
+
+                    action.min_choices = 1;
+                    let options_len = action.options.len();
+                    match (self.allow_multiple_choices, self.allow_writeins) {
+                        (true, true) => {
+                            action.max_writeins = max(options_len, 2);
+                            action.max_choices = action.max_writeins;
+                        }
+                        (true, false) => {
+                            action.max_writeins = 0;
+                            action.max_choices = options_len;
+                        }
+                        (false, true) => {
+                            action.max_writeins = 1;
+                            action.max_choices = 1;
+                        }
+                        (false, false) => {
+                            action.max_writeins = 0;
+                            action.max_choices = 1;
+                        }
+                    }
+
+                    if self.close_in_an_hour {
+                        let now = (Date::now() / 1000.) as u32;
+                        action.close_time = now + 60 * 60;
+                    }
+                }
+
+                let actions: Vec<ScatterAction> = vec![action.into()];
 
                 self.scatter_agent
                     .send(ScatterInput::PushActions(network, config, actions));
@@ -239,6 +286,22 @@ impl Component for PollForm {
                 }
                 _ => false,
             },
+            Msg::ToggleAdvanced => {
+                self.use_advanced = !self.use_advanced;
+                true
+            }
+            Msg::ToggleAllowMultipleChoices => {
+                self.allow_multiple_choices = !self.allow_multiple_choices;
+                true
+            }
+            Msg::ToggleAllowWriteins => {
+                self.allow_writeins = !self.allow_writeins;
+                true
+            }
+            Msg::ToggleCloseAfterAnHour => {
+                self.close_in_an_hour = !self.close_in_an_hour;
+                true
+            }
         }
     }
 
@@ -252,19 +315,9 @@ impl Renderable<PollForm> for PollForm {
     fn view(&self) -> Html<Self> {
         html! {
             <form class="poll_form", >
-                <h2>{ "Create a new poll" }</h2>
                 { self.view_title() }
                 { self.view_options() }
-                { self.view_num_choices() }
-                { self.view_open_time() }
-                { self.view_close_time() }
-                {
-                    if self.use_whitelist {
-                        self.view_whitelist()
-                    } else {
-                        self.view_blacklist()
-                    }
-                }
+                { self.view_tabs() }
                 { self.view_submit_area() }
             </form>
         }
@@ -411,6 +464,105 @@ impl PollForm {
         }
     }
 
+    fn view_tabs(&self) -> Html<PollForm> {
+        let basic_tab = if self.use_advanced {
+            html! {
+                <button
+                    class="poll_tab",
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::ToggleAdvanced
+                    },
+                >
+                    { "Basic" }
+                </button>
+            }
+        } else {
+            html! {
+                <span class="poll_tab poll_tab_active", >
+                    { "Basic" }
+                </span>
+            }
+        };
+        let advanced_tab = if !self.use_advanced {
+            html! {
+                <button
+                    class="poll_tab",
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::ToggleAdvanced
+                    },
+                >
+                    { "Advanced" }
+                </button>
+            }
+        } else {
+            html! {
+                <span class="poll_tab poll_tab_active", >
+                    { "Advanced" }
+                </span>
+            }
+        };
+        html! {
+            <div class="poll_form_tabs", >
+                <nav class="poll_form_tabs_nav", >
+                    { basic_tab }
+                    { advanced_tab }
+                </nav>
+                    {
+                        if self.use_advanced {
+                            self.view_advanced_tab()
+                        } else {
+                            self.view_basic_tab()
+                        }
+                    }
+            </div>
+        }
+    }
+
+    fn view_advanced_tab(&self) -> Html<PollForm> {
+        html! {
+            <div class="poll_form_tabs_content poll_form_advanced_tab", >
+                { self.view_num_choices() }
+                { self.view_open_time() }
+                { self.view_close_time() }
+                { self.view_whitelist() }
+            </div>
+        }
+    }
+
+    fn view_basic_tab(&self) -> Html<PollForm> {
+        // Allow multiple choices
+        // Allow writeins
+        // Close after N hours
+        //
+        html! {
+            <div class="poll_form_tabs_content poll_form_basic_tab", >
+                <label>
+                    <input type="checkbox",
+                        onchange=|_| Msg::ToggleAllowMultipleChoices,
+                        checked=self.allow_multiple_choices,
+                    />
+                    { "Allow multiple choices" }
+                </label>
+                <label>
+                    <input type="checkbox",
+                        onchange=|_| Msg::ToggleAllowWriteins,
+                        checked=self.allow_writeins,
+                    />
+                    { "Allow write-in choices" }
+                </label>
+                <label>
+                    <input type="checkbox",
+                        onchange=|_| Msg::ToggleCloseAfterAnHour,
+                        checked=self.close_in_an_hour,
+                    />
+                    { "Close in an hour" }
+                </label>
+            </div>
+        }
+    }
+
     fn view_whitelist(&self) -> Html<PollForm> {
         let input = html! {
             <input
@@ -423,20 +575,6 @@ impl PollForm {
             <p>{ format!("Up to {} accounts. Accounts must exist.", self.global_config.max_account_list_len) }</p>
         };
         self.view_field("Whitelist", "whitelist", input, help)
-    }
-
-    fn view_blacklist(&self) -> Html<PollForm> {
-        html! {
-            <section class="poll_form_blacklist", >
-                <strong class="poll_form_label", >
-                    { "Blacklist" }
-                </strong>
-                <input
-                    disabled=self.submitting,
-                    class="poll_form_input",
-                />
-            </section>
-        }
     }
 
     fn view_num_choices(&self) -> Html<PollForm> {

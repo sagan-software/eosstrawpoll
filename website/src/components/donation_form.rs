@@ -4,7 +4,7 @@ use agents::scatter::{
 };
 use context::Context;
 use stdweb::traits::IEvent;
-use types::TransferAction;
+use types::Transfer;
 use yew::prelude::*;
 
 pub struct DonationForm {
@@ -84,7 +84,7 @@ impl Component for DonationForm {
                 let amount = if self.amount == 0. { 1. } else { self.amount };
                 let network = self.context.network();
                 let config = self.context.eos_config();
-                let action: ScatterAction = TransferAction {
+                let action: ScatterAction = Transfer {
                     from: donor.to_string(),
                     to: "eosstrawpoll".to_string(),
                     quantity: format!("{:.4} SYS", amount),

@@ -9,3 +9,4 @@
 @import './components/home_page';
 @import './components/new_donations';
 @import './components/top_donors';
+@import './components/spinner';

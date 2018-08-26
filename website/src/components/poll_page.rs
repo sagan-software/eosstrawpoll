@@ -28,6 +28,7 @@ pub struct PollPage {
     scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
     pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
     choices: Vec<Choice>,
+    writein_input: String,
     show_results: bool,
     submitting: bool,
     link: ComponentLink<PollPage>,
@@ -49,6 +50,8 @@ pub enum Msg {
     Polls(Result<eos::TableRows<Poll>, Error>),
     Scatter(ScatterOutput),
     ToggleChoice(Choice),
+    SetWriteinInput(String),
+    AddWritein,
     Vote,
     FetchPolls,
 }
@@ -79,7 +82,8 @@ impl Component for PollPage {
             scatter_connected: None,
             scatter_identity: None,
             pushed: None,
-            choices: vec![],
+            choices: Vec::new(),
+            writein_input: "".to_string(),
             show_results: props.show_results,
             submitting: false,
             link,
@@ -231,7 +235,7 @@ impl Component for PollPage {
                 let network = self.context.network();
                 let config = self.context.eos_config();
 
-                let action: ScatterAction = CreateVoteAction {
+                let action: ScatterAction = CreateVote {
                     creator: self.creator.to_string(),
                     slug: self.slug.clone(),
                     voter: voter.clone(),
@@ -245,6 +249,16 @@ impl Component for PollPage {
             }
             Msg::FetchPolls => {
                 self.fetch_poll();
+                true
+            }
+            Msg::SetWriteinInput(input) => {
+                self.writein_input = input;
+                true
+            }
+            Msg::AddWritein => {
+                self.choices
+                    .push(Choice::from_writein(self.writein_input.clone()));
+                self.writein_input = "".to_string();
                 true
             }
         }
@@ -440,6 +454,7 @@ impl PollPage {
                 <div class="poll_options", >
                     { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i, option, choose_one)) }
                 </div>
+                { if poll.max_writeins > 0 { self.view_writein_input() } else { html! {} } }
                 <div class="poll_actions", >
                     <button
                         disabled=self.choices.len() < poll.min_choices,
@@ -462,6 +477,26 @@ impl PollPage {
                         { "View results" }
                     </a>
                 </div>
+            </>
+        }
+    }
+
+    fn view_writein_input(&self) -> Html<Self> {
+        html! {
+            <>
+                <input class="poll_writein_input",
+                    oninput=|e| Msg::SetWriteinInput(e.value),
+                    value=&self.writein_input,
+                    placeholder="Write in your own answer",
+                />
+                <button class="poll_writein_button",
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::AddWritein
+                    },
+                >
+                    { "Add" }
+                </button>
             </>
         }
     }
@@ -507,8 +542,7 @@ impl PollPage {
         } else {
             format!("Results from {} voters:", poll.votes.len())
         };
-        let results = poll.results();
-        let total_num_votes = poll.num_votes();
+        let results = poll.results_by_percent();
         info!("RESULTS! {:#?}", results);
         html! {
             <>
@@ -516,7 +550,7 @@ impl PollPage {
                     { results_text }
                 </p>
                 <div class="poll_options", >
-                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option_result(i, option, &results, total_num_votes)) }
+                    { for results.iter().map(|(option, percent, votes)| self.view_option_result(option, percent, &votes)) }
                 </div>
                 <div class="poll_actions", >
                     <a
@@ -535,23 +569,10 @@ impl PollPage {
 
     fn view_option_result(
         &self,
-        _index: usize,
         option: &str,
-        results: &HashMap<String, Vec<(String, usize)>>,
-        total_num_votes: usize,
+        percent: &f32,
+        votes: &[(String, usize)],
     ) -> Html<Self> {
-        // let choice = Choice {
-        //     option_index: index as i16,
-        //     writein: "".to_string(),
-        // };
-        // let is_selected = self.choices.contains(&choice);
-        let empty_votes = Vec::new();
-        let votes = match results.get(option.into()) {
-            Some(votes) => votes,
-            None => &empty_votes,
-        };
-        let percent = (votes.len() as f32) / (total_num_votes as f32);
-
         html! {
             <div class="poll_option", >
                 <span class="poll_option_text", >{ option }</span>

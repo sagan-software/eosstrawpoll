@@ -29,8 +29,7 @@ void contract::createpoll(
     // check options
     const uint16_t num_options = options.size();
     eosio_assert(num_options <= _config.max_options_len, "too many options");
-    eosio_assert(num_options + max_writeins >= 2, "must have at least 2 options or allow writeins");
-    eosio_assert(num_options + max_writeins <= _config.max_choices_len, "number of options + writeins would exceed the maximum allowed number of choices");
+    eosio_assert(num_options >= 2 || max_writeins >= 1, "must have at least 2 options or allow writeins");
 
     std::map<string, bool> seen_options;
     for (auto &option : options)
@@ -58,6 +57,10 @@ void contract::createpoll(
     eosio_assert(
         max_choices <= num_options + max_writeins,
         "max_choices cannot be greater than the total number of options and max writeins");
+    eosio_assert(
+        max_choices <= _config.max_choices_len,
+        "max_choices is too large"
+    );
 
     // check times
     eosio_assert(
