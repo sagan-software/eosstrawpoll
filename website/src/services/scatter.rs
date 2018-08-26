@@ -1,6 +1,5 @@
 use serde_json;
 use stdweb::Value;
-use traits::Action;
 use yew::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -127,7 +126,7 @@ pub enum ScatterError {
     NotConnected,
     Locked,
     Rejected,
-    Unknown,
+    Unknown(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -234,10 +233,6 @@ impl ScatterService {
         };
     }
 
-    pub fn to_value(&self) -> &Value {
-        self.0.as_ref()
-    }
-
     pub fn get_identity(
         &self,
         required_fields: RequiredFields,
@@ -256,7 +251,7 @@ impl ScatterService {
                     if error.contains("Connect and Authenticate first") {
                         Err(ScatterError::NotConnected)
                     } else {
-                        Err(ScatterError::Unknown)
+                        Err(ScatterError::Unknown(error))
                     }
                 }
             };
@@ -290,7 +285,7 @@ impl ScatterService {
 
     pub fn forget_identity(&self, callback: Callback<Result<(), ScatterError>>) {
         let lib = self.0.as_ref();
-        let callback = move |logged_out: bool| {
+        let callback = move |_logged_out: bool| {
             callback.emit(Ok(()));
         };
         js! { @(no_return)
@@ -343,13 +338,17 @@ impl ScatterService {
             let result = match (data, error.as_str()) {
                 (_, "locked") => Err(ScatterError::Locked),
                 (_, "identity_rejected") => Err(ScatterError::Rejected),
-                (Some(json), "") => serde_json::from_str::<PushedTransaction>(&json)
-                    .map_err(|_| ScatterError::Unknown),
+                (Some(json), "") => serde_json::from_str::<PushedTransaction>(&json).map_err(|e| {
+                    ScatterError::Unknown(format!(
+                        "Error deserializing json: {:#?}, JSON: {:#?}",
+                        e, json
+                    ))
+                }),
                 _ => {
                     if error.contains("Connect and Authenticate first") {
                         Err(ScatterError::NotConnected)
                     } else {
-                        Err(ScatterError::Unknown)
+                        Err(ScatterError::Unknown(error))
                     }
                 }
             };
@@ -367,14 +366,17 @@ impl ScatterService {
                 var eos = scatter.eos(network, Eos, config);
                 eos.transaction(transaction)
                     .then(function (pushed_transaction) {
+                        console.warn("!!!!!! 0", pushed_transaction);
                         callback(JSON.stringify(pushed_transaction), "");
                         callback.drop();
                     })
                     .catch(function (error) {
+                        console.error("!!!!!! 1", error);
                         callback(null, JSON.stringify(error));
                         callback.drop();
                     });
             } catch (error) {
+                console.error("!!!!!! 2", error);
                 callback(null, JSON.stringify(error));
                 callback.drop();
             }

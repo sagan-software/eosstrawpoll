@@ -5,15 +5,9 @@ namespace eosstrawpoll
 
 void contract::openpoll(
     const account_name creator,
-    const poll_name slug,
-    const string &metadata)
+    const poll_name slug)
 {
-    require_auth(voter);
-
-    // banned users cannot open polls
-    assert_not_banned(voter);
-
-    assert_metadata_len(metadata);
+    require_auth(creator);
 
     // find poll
     polls_table _creator_polls(_self, creator);

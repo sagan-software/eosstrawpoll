@@ -30,16 +30,8 @@ try
             1,
             1,
             1,
-            1,
-            1,
-            1,
-            vector<account_name>{},
-            vector<account_name>{},
-            vector<account_name>{},
-            vector<account_name>{},
             1.1,
-            1,
-            "");
+            1);
         BOOST_REQUIRE_EQUAL(success(), out);
     }
     {
@@ -54,16 +46,8 @@ try
             1,
             1,
             1,
-            1,
-            1,
-            1,
-            vector<account_name>{},
-            vector<account_name>{},
-            vector<account_name>{},
-            vector<account_name>{},
             1.1,
-            1,
-            "");
+            1);
         BOOST_REQUIRE_EQUAL(
             "missing authority of eosstrawpoll",
             out);
@@ -79,25 +63,30 @@ try
         const poll_name slug = N(test);
         const string title = "Test poll";
         const vector<string> options{"Option A", "Option B", "Option C"};
-        const vector<account_name> blacklist{};
-        const vector<account_name> whitelist{N(carol1111111)};
         const uint8_t min_choices = 1;
         const uint8_t max_choices = 3;
-        const timestamp open_time = now();
-        const timestamp close_time = now() + 700;
-        const string metadata = "test";
+        const uint8_t max_writeins = 3;
+        const bool use_allow_list = true;
+        const vector<account_name> account_list{N(carol1111111)};
+        const uint64_t min_staked = 0;
+        const uint64_t min_value = 0;
+        const esptime open_time = now();
+        const esptime close_time = now() + 700;
         auto out = createpoll(
+            creator,
             creator,
             slug,
             title,
             options,
             min_choices,
             max_choices,
-            whitelist,
-            blacklist,
+            max_writeins,
+            use_allow_list,
+            account_list,
+            min_staked,
+            min_value,
             open_time,
-            close_time,
-            metadata);
+            close_time);
         BOOST_REQUIRE_EQUAL(success(), out);
         const poll p = get_poll(creator, N(polls), slug);
         // BOOST_REQUIRE_EQUAL(p.id, slug);
@@ -107,26 +96,137 @@ try
         BOOST_REQUIRE_MESSAGE(p.options == options, "options are different");
         BOOST_REQUIRE_EQUAL(p.min_choices, min_choices);
         BOOST_REQUIRE_EQUAL(p.max_choices, max_choices);
-        BOOST_REQUIRE_MESSAGE(p.whitelist == whitelist, "whitelist is different");
-        BOOST_REQUIRE_MESSAGE(p.blacklist == blacklist, "blacklist is different");
+        BOOST_REQUIRE_EQUAL(p.max_writeins, max_writeins);
+        BOOST_REQUIRE_MESSAGE(p.use_allow_list, use_allow_list);
+        BOOST_REQUIRE_MESSAGE(p.account_list == account_list, "account_list is different");
+        BOOST_REQUIRE_EQUAL(p.min_staked, min_staked);
+        BOOST_REQUIRE_EQUAL(p.min_value, min_value);
         BOOST_REQUIRE_EQUAL(p.open_time, open_time);
         BOOST_REQUIRE_EQUAL(p.close_time, close_time);
-        BOOST_REQUIRE_EQUAL(p.metadata, metadata);
     }
 }
 FC_LOG_AND_RETHROW()
 
-BOOST_FIXTURE_TEST_CASE(tmptest2, eosstrawpoll_tester)
+BOOST_FIXTURE_TEST_CASE(can_create_votes, eosstrawpoll_tester)
 try
 {
-    BOOST_REQUIRE_EQUAL(1, 1);
-}
-FC_LOG_AND_RETHROW()
+    // create poll
+    BOOST_REQUIRE_EQUAL(
+        success(),
+        createpoll(
+            N(alice1111111),
+            N(alice1111111),
+            N(test),
+            "Test poll",
+            {"A", "B", "C"},
+            1,
+            2,
+            2,
+            true,
+            {},
+            0,
+            0,
+            0,
+            0));
 
-BOOST_FIXTURE_TEST_CASE(tmptest3, eosstrawpoll_tester)
-try
-{
-    BOOST_REQUIRE_EQUAL(1, 1);
+    // create basic vote
+    BOOST_REQUIRE_EQUAL(
+        success(),
+        createvote(
+            N(bob111111111),
+            N(alice1111111),
+            N(test),
+            N(bob111111111),
+            {{.option_index = 1, .writein = ""}}));
+    poll p = get_poll(N(alice1111111), N(polls), N(test));
+    BOOST_REQUIRE_EQUAL(p.votes.size(), 1);
+
+    espvote v = p.votes[0];
+    BOOST_REQUIRE_EQUAL(v.choices.size(), 1);
+
+    choice c = v.choices[0];
+    BOOST_REQUIRE_EQUAL(c.option_index, 1);
+    BOOST_REQUIRE_EQUAL(c.writein, "");
+
+    // create vote with writein
+    BOOST_REQUIRE_EQUAL(
+        success(),
+        createvote(
+            N(carol1111111),
+            N(alice1111111),
+            N(test),
+            N(carol1111111),
+            {{.option_index = -1, .writein = "testing"}}));
+    p = get_poll(N(alice1111111), N(polls), N(test));
+    BOOST_REQUIRE_EQUAL(p.votes.size(), 2);
+
+    v = p.votes[1];
+    BOOST_REQUIRE_EQUAL(v.choices.size(), 1);
+
+    c = v.choices[0];
+    BOOST_REQUIRE_EQUAL(c.option_index, -1);
+    BOOST_REQUIRE_EQUAL(c.writein, "testing");
+
+    // change writein vote
+    BOOST_REQUIRE_EQUAL(
+        success(),
+        createvote(
+            N(carol1111111),
+            N(alice1111111),
+            N(test),
+            N(carol1111111),
+            {{.option_index = -1, .writein = "testing changing votes"}}));
+    p = get_poll(N(alice1111111), N(polls), N(test));
+    BOOST_REQUIRE_EQUAL(p.votes.size(), 2);
+
+    v = p.votes[1];
+    BOOST_REQUIRE_EQUAL(v.choices.size(), 1);
+
+    c = v.choices[0];
+    BOOST_REQUIRE_EQUAL(c.option_index, -1);
+    BOOST_REQUIRE_EQUAL(c.writein, "testing changing votes");
+
+    // change writein vote to option_index
+    BOOST_REQUIRE_EQUAL(
+        success(),
+        createvote(
+            N(carol1111111),
+            N(alice1111111),
+            N(test),
+            N(carol1111111),
+            {{.option_index = 2, .writein = ""}}));
+    p = get_poll(N(alice1111111), N(polls), N(test));
+    BOOST_REQUIRE_EQUAL(p.votes.size(), 2);
+
+    v = p.votes[1];
+    BOOST_REQUIRE_EQUAL(v.choices.size(), 1);
+
+    c = v.choices[0];
+    BOOST_REQUIRE_EQUAL(c.option_index, 2);
+    BOOST_REQUIRE_EQUAL(c.writein, "");
+
+    // multiple writeins
+    BOOST_REQUIRE_EQUAL(
+        success(),
+        createvote(
+            N(alice1111111),
+            N(alice1111111),
+            N(test),
+            N(alice1111111),
+            {{.option_index = -1, .writein = "writein 1"}, {.option_index = -1, .writein = "writein 2"}}));
+    p = get_poll(N(alice1111111), N(polls), N(test));
+    BOOST_REQUIRE_EQUAL(p.votes.size(), 3);
+
+    v = p.votes[2];
+    BOOST_REQUIRE_EQUAL(v.choices.size(), 2);
+
+    c = v.choices[0];
+    BOOST_REQUIRE_EQUAL(c.option_index, -1);
+    BOOST_REQUIRE_EQUAL(c.writein, "writein 1");
+
+    c = v.choices[1];
+    BOOST_REQUIRE_EQUAL(c.option_index, -1);
+    BOOST_REQUIRE_EQUAL(c.writein, "writein 2");
 }
 FC_LOG_AND_RETHROW()
 

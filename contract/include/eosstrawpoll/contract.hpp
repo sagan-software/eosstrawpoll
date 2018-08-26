@@ -24,30 +24,17 @@ class contract
     void prune_popular_polls();
     bool is_popular_polls_full();
     void ensure_user(const account_name account);
-    void assert_not_banned(const account_name account);
-    void assert_is_moderator(const account_name account);
-    void assert_metadata_len(const string &metadata);
 
   public:
     contract(account_name self);
 
     inline account_name get_self() const { return _self; }
 
-    void banuser(
-        const account_name moderator,
-        const account_name account,
-        const time expiration,
-        const string &reason,
-        const string &metadata);
-
-    void clearprofile(
-        const account_name account,
-        const string &metadata);
+    void clearprofile(const account_name account);
 
     void closepoll(
         const account_name creator,
-        const poll_name slug,
-        const string &metadata);
+        const poll_name slug);
 
     void createpoll(
         const account_name creator,
@@ -62,41 +49,30 @@ class contract
         const uint64_t min_staked,
         const uint64_t min_value,
         const time open_time,
-        const time close_time,
-        const string &metadata);
+        const time close_time);
 
     void createvote(
         const account_name creator,
         const poll_name slug,
         const account_name voter,
-        const vector<choice> &choices,
-        const string &metadata);
+        const vector<choice> &choices);
 
     void destroypoll(
         const account_name creator,
-        const poll_name slug,
-        const string &metadata);
+        const poll_name slug);
 
     void destroyvote(
         const account_name creator,
         const poll_name slug,
-        const account_name voter,
-        const string &metadata);
+        const account_name voter);
 
     void destroyvotes(
         const account_name creator,
-        const poll_name slug,
-        const string &metadata);
-
-    void moduser(
-        const account_name account,
-        const time expiration,
-        const string &metadata);
+        const poll_name slug);
 
     void openpoll(
         const account_name creator,
-        const poll_name slug,
-        const string &metadata);
+        const poll_name slug);
 
     void setconfig(
         const uint16_t max_new_polls,
@@ -107,10 +83,9 @@ class contract
         const uint16_t max_option_len,
         const uint16_t max_account_list_len,
         const uint16_t max_writein_len,
+        const uint16_t max_choices_len,
         const double popularity_gravity,
-        const uint16_t max_metadata_len,
-        const uint64_t profile_unlock_threshold,
-        const string &metadata);
+        const uint64_t profile_unlock_threshold);
 
     void setprofile(
         const account_name account,
@@ -126,21 +101,11 @@ class contract
         const string &youtube_id,
         const string &facebook_id,
         const string &theme,
-        const vector<preset> &presets,
-        const string &metadata);
+        const vector<preset> &presets);
 
     void transfer(
         const eosio::currency::transfer &t,
         const account_name code);
-
-    void unbanuser(
-        const account_name moderator,
-        const account_name account,
-        const string &metadata);
-
-    void unmoduser(
-        const account_name account,
-        const string &metadata);
 
     void apply(
         const account_name contract,

@@ -7,15 +7,9 @@ void contract::createvote(
     const account_name creator,
     const poll_name slug,
     const account_name voter,
-    const vector<choice> &choices,
-    const string &metadata)
+    const vector<choice> &choices)
 {
     require_auth(voter);
-
-    // banned users cannot vote
-    assert_not_banned(voter);
-
-    assert_metadata_len(metadata);
 
     // check if poll exists
     polls_table _creator_polls(_self, creator);
@@ -44,7 +38,7 @@ void contract::createvote(
         const bool has_option_index = option_index >= 0;
         const bool has_writein = !writein.empty();
         eosio_assert(
-            (has_option_index && !has_written) || (!has_option_index && has_written),
+            (has_option_index && !has_writein) || (!has_option_index && has_writein),
             "invalid choice: must have either an option index OR a writein answer, not neither or both. set option index to -1 or writein to an empty string");
         eosio_assert(option_index >= -1, "invalid choice: option index cannot be less than -1");
 
@@ -61,7 +55,7 @@ void contract::createvote(
             eosio_assert(seen_writeins.count(writein) == 0, "invalid choices: duplicate writeins are not allowed");
             // TODO: check that writein is not all whitespace characters
             seen_writeins[writein] = true;
-            eosio_assert(seen_writeins.size() <= max_writeins, "invalid choices: too many writeins");
+            eosio_assert(seen_writeins.size() <= p->max_writeins, "invalid choices: too many writeins");
         }
     }
 
@@ -145,12 +139,7 @@ void contract::createvote(
             // update the poll reference
             _popular_polls.modify(poll_ref, voter, [&](auto &p) {
                 p.popularity = creator_poll->calculate_popularity(_config.popularity_gravity);
-
-                // if this is the poll being voted on then update the votes
-                if (p.creator == poll_ref->creator && p.slug == poll_ref->slug)
-                {
-                    p.votes = votes;
-                }
+                p.votes = creator_poll->votes;
             });
 
             // save the lowest popularity for later
@@ -193,7 +182,6 @@ void contract::createvote(
             pp.create_time = p->create_time;
             pp.votes = votes;
             pp.popularity = poll_popularity;
-            pp.metadata = p->metadata;
         });
     }
 

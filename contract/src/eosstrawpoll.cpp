@@ -40,27 +40,6 @@ void contract::ensure_user(const account_name account)
     }
 }
 
-void contract::assert_not_banned(const account_name account)
-{
-    auto _user = _users.find(account);
-    if (_user != _users.end())
-    {
-        eosio_assert(!_user->is_banned, "user is banned");
-    }
-}
-
-void contract::assert_is_moderator(const account_name account)
-{
-    auto _user = _users.find(account);
-    eosio_assert(_user != _users.end(), "user does not exist");
-    eosio_assert(_user->is_modded, "user is not a moderator");
-}
-
-bool contract::assert_metadata_len(const string &metadata)
-{
-    eosio_assert(metadata.size() <= _config.max_metadata_len, "metadata is too long");
-}
-
 void contract::prune_new_polls()
 {
     auto created_index = _new_polls.get_index<N(created)>();

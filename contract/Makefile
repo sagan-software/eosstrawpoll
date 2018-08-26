@@ -51,6 +51,17 @@ chain-accounts:
 	$(CLEOS) system newaccount eosio --transfer williamcurry $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 	$(CLEOS) system newaccount eosio --transfer saganonroids $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
 	$(CLEOS) system newaccount eosio --transfer g4ydegenesis $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer haley $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer clara $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer christine $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer eunice $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer larry $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer janie $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer rod $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer becky $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer helen $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) system newaccount eosio --transfer chuck $(PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "eosstrawpoll", "2500.0000 SYS", "memo" ]' -p eosio
 	$(CLEOS) push action eosio.token transfer '[ "eosio", "alice", "2500.0000 SYS", "memo" ]' -p eosio
 	$(CLEOS) push action eosio.token transfer '[ "eosio", "bob", "2500.0000 SYS", "memo" ]' -p eosio
 	$(CLEOS) push action eosio.token transfer '[ "eosio", "carol", "2500.0000 SYS", "memo" ]' -p eosio

@@ -81,12 +81,13 @@ impl Component for DonationForm {
                     }
                 };
 
+                let amount = if self.amount == 0. { 1. } else { self.amount };
                 let network = self.context.network();
                 let config = self.context.eos_config();
                 let action: ScatterAction = TransferAction {
                     from: donor.to_string(),
                     to: "eosstrawpoll".to_string(),
-                    quantity: format!("{:.4} SYS", self.amount),
+                    quantity: format!("{:.4} SYS", amount),
                     memo: "Funded EOS Straw Poll".to_string(),
                 }.into();
 

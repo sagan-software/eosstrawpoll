@@ -12,6 +12,8 @@
 #include <fc/variant_object.hpp>
 #include <fstream>
 
+#include "eosstrawpoll_types.hpp"
+
 using namespace eosio::chain;
 using namespace eosio::testing;
 using namespace fc;
@@ -25,112 +27,6 @@ using mvo = fc::mutable_variant_object;
 #define TESTER validating_tester
 #endif
 #endif
-
-typedef name poll_name;
-typedef uint32_t timestamp;
-
-struct espconfig
-{
-    uint16_t max_new_polls = 50;
-    uint16_t max_popular_polls = 50;
-    uint16_t max_closed_polls = 50;
-    uint16_t max_top_donors = 100;
-    uint16_t max_new_donations = 100;
-    uint16_t max_choices_size = 50;
-    uint16_t max_title_size = 144;
-    uint16_t max_options_size = 50;
-    uint16_t max_option_size = 144;
-    uint16_t max_whitelist_size = 500;
-    uint16_t max_blacklist_size = 500;
-    uint32_t min_duration = 60 * 5;
-    vector<account_name> superusers;
-    vector<account_name> moderators;
-    vector<account_name> blacklist;
-    vector<account_name> graylist;
-    double popularity_gravity = 1.8;
-    uint64_t max_metadata_size = 10000;
-    string metadata = "";
-};
-
-FC_REFLECT(
-    espconfig,
-    // tables
-    (max_new_polls)(max_popular_polls)(max_closed_polls)
-    // donations
-    (max_top_donors)(max_new_donations)
-    // polls
-    (max_choices_size)(max_title_size)(max_options_size)(max_option_size)(max_whitelist_size)(max_blacklist_size)(min_duration)
-    // account lists
-    (superusers)(moderators)(blacklist)(graylist)
-    // misc
-    (popularity_gravity)(max_metadata_size)(metadata));
-
-struct vote
-{
-    account_name voter;
-    timestamp time;
-    uint64_t staked;
-    vector<uint16_t> choices;
-};
-
-FC_REFLECT(vote, (voter)(time)(staked)(choices));
-
-struct poll
-{
-    uint64_t id;
-    account_name creator;
-    poll_name slug;
-    string title;
-    vector<string> options;
-    uint16_t min_choices;
-    uint16_t max_choices;
-    vector<vote> votes;
-    vector<account_name> whitelist;
-    vector<account_name> blacklist;
-    timestamp create_time;
-    timestamp open_time;
-    timestamp close_time;
-    string metadata;
-    double popularity;
-
-    // Indexing functions
-    uint64_t primary_key() const { return id; }
-    uint64_t by_created() const { return create_time; }
-    uint64_t by_closed() const { return close_time; }
-    double by_popularity() const { return popularity; }
-
-    // Helper functions
-    bool has_opened() const;
-    bool is_closed() const;
-    double calculate_popularity(double gravity) const;
-};
-
-FC_REFLECT(
-    poll,
-    // basics
-    (id)(creator)(slug)(title)
-    // voting
-    (options)(min_choices)(max_choices)(votes)
-    // account lists
-    (whitelist)(blacklist)
-    // times
-    (create_time)(open_time)(close_time)
-    // misc
-    (metadata)(popularity));
-
-struct donation
-{
-    uint64_t id;
-    account_name account;
-    uint64_t donated;
-    string memo;
-    uint64_t time;
-
-    uint64_t primary_key() const { return id; }
-    uint64_t by_time() const { return time; }
-};
-
-FC_REFLECT(donation, (id)(account)(donated)(memo)(time));
 
 namespace eosstrawpoll
 {
@@ -565,126 +461,127 @@ class eosstrawpoll_tester : public TESTER
         }
     }
 
-    action_result setconfig(
-        const account_name &signer,
-        const uint16_t max_new_polls,
-        const uint16_t max_popular_polls,
-        const uint16_t max_closed_polls,
-        const uint16_t max_top_donors,
-        const uint16_t max_new_donations,
-        const uint16_t max_choices_size,
-        const uint16_t max_title_size,
-        const uint16_t max_options_size,
-        const uint16_t max_option_size,
-        const uint16_t max_whitelist_size,
-        const uint16_t max_blacklist_size,
-        const uint32_t min_duration,
-        const vector<account_name> &superusers,
-        const vector<account_name> &moderators,
-        const vector<account_name> &blacklist,
-        const vector<account_name> &graylist,
-        const double popularity_gravity,
-        const uint16_t max_metadata_size,
-        const string &metadata)
+    action_result clearprofile(
+        const account_name &signer, const account_name account)
     {
-        return push_action(N(eosstrawpoll), signer, N(setconfig), mvo()("max_new_polls", max_new_polls)("max_popular_polls", max_popular_polls)("max_closed_polls", max_closed_polls)("max_top_donors", max_top_donors)("max_new_donations", max_new_donations)("max_choices_size", max_choices_size)("max_title_size", max_title_size)("max_options_size", max_options_size)("max_option_size", max_option_size)("max_whitelist_size", max_whitelist_size)("max_blacklist_size", max_blacklist_size)("min_duration", min_duration)("superusers", superusers)("moderators", moderators)("blacklist", blacklist)("graylist", graylist)("popularity_gravity", popularity_gravity)("max_metadata_size", max_metadata_size)("metadata", metadata));
+        const auto data = mvo()("account", account);
+        return push_action(N(eosstrawpoll), signer, N(clearprofile), data);
+    }
+
+    action_result closepoll(
+        const account_name &signer,
+        const account_name creator,
+        const poll_name slug)
+    {
+        const auto data = mvo()("creator", creator)("slug", slug);
+        return push_action(N(eosstrawpoll), signer, N(closepoll), data);
     }
 
     action_result createpoll(
+        const account_name &signer,
         const account_name creator,
         const poll_name slug,
         const string &title,
         const vector<string> &options,
         const uint16_t min_choices,
         const uint16_t max_choices,
-        const vector<account_name> &whitelist,
-        const vector<account_name> &blacklist,
-        const timestamp open_time,
-        const timestamp close_time,
-        const string &metadata)
+        const uint16_t max_writeins,
+        const bool use_allow_list,
+        const vector<account_name> &account_list,
+        const uint64_t min_staked,
+        const uint64_t min_value,
+        const esptime open_time,
+        const esptime close_time)
     {
-        return push_action(
-            N(eosstrawpoll),
-            creator,
-            N(createpoll),
-            mvo()("creator", creator)("slug", slug)("title", title)("options", options)("min_choices", min_choices)("max_choices", max_choices)("whitelist", whitelist)("blacklist", blacklist)("open_time", open_time)("close_time", close_time)("metadata", metadata));
-    }
-
-    action_result closepoll(
-        const account_name creator,
-        const poll_name slug,
-        const string &metadata)
-    {
-        return push_action(
-            N(eosstrawpoll),
-            creator,
-            N(closepoll),
-            mvo()("creator", creator)("slug", slug)("metadata", metadata));
-    }
-
-    action_result destroypoll(
-        const account_name creator,
-        const poll_name slug,
-        const string &metadata)
-    {
-        return push_action(
-            N(eosstrawpoll),
-            creator,
-            N(destroypoll),
-            mvo()("creator", creator)("slug", slug)("metadata", metadata));
-    }
-
-    action_result banaccount(
-        const account_name creator,
-        const poll_name slug,
-        const account_name account,
-        const string &metadata)
-    {
-        return push_action(
-            N(eosstrawpoll),
-            creator,
-            N(banaccount),
-            mvo()("creator", creator)("slug", slug)("account", account)("metadata", metadata));
-    }
-
-    action_result unbanaccount(
-        const account_name creator,
-        const poll_name slug,
-        const account_name account,
-        const string &metadata)
-    {
-        return push_action(
-            N(eosstrawpoll),
-            creator,
-            N(unbanaccount),
-            mvo()("creator", creator)("slug", slug)("account", account)("metadata", metadata));
+        const auto data = mvo()("creator", creator)("slug", slug)("title", title)("options", options)("min_choices", min_choices)("max_choices", max_choices)("max_writeins", max_writeins)("use_allow_list", use_allow_list)("account_list", account_list)("min_staked", min_staked)("min_value", min_value)("open_time", open_time)("close_time", close_time);
+        return push_action(N(eosstrawpoll), signer, N(createpoll), data);
     }
 
     action_result createvote(
+        const account_name &signer,
         const account_name creator,
         const poll_name slug,
         const account_name voter,
-        const vector<uint16_t> &choices,
-        const string &metadata)
+        const vector<choice> &choices)
     {
-        return push_action(
-            N(eosstrawpoll),
-            voter,
-            N(createvote),
-            mvo()("creator", creator)("slug", slug)("voter", voter)("choices", choices)("metadata", metadata));
+        const auto data = mvo()("creator", creator)("slug", slug)("voter", voter)("choices", choices);
+        return push_action(N(eosstrawpoll), signer, N(createvote), data);
+    }
+
+    action_result destroypoll(
+        const account_name &signer,
+        const account_name creator,
+        const poll_name slug)
+    {
+        const auto data = mvo()("creator", creator)("slug", slug);
+        return push_action(N(eosstrawpoll), signer, N(destroypoll), data);
     }
 
     action_result destroyvote(
+        const account_name &signer,
         const account_name creator,
         const poll_name slug,
-        const account_name voter,
-        const string &metadata)
+        const account_name voter)
     {
-        return push_action(
-            N(eosstrawpoll),
-            voter,
-            N(destroyvote),
-            mvo()("creator", creator)("slug", slug)("voter", voter)("metadata", metadata));
+        const auto data = mvo()("creator", creator)("slug", slug)("voter", voter);
+        return push_action(N(eosstrawpoll), signer, N(destroyvote), data);
+    }
+
+    action_result destroyvotes(
+        const account_name &signer,
+        const account_name creator,
+        const poll_name slug)
+    {
+        const auto data = mvo()("creator", creator)("slug", slug);
+        return push_action(N(eosstrawpoll), signer, N(destroyvotes), data);
+    }
+
+    action_result openpoll(
+        const account_name &signer,
+        const account_name creator,
+        const poll_name slug)
+    {
+        const auto data = mvo()("creator", creator)("slug", slug);
+        return push_action(N(eosstrawpoll), signer, N(openpoll), data);
+    }
+
+    action_result setconfig(
+        const account_name &signer,
+        const uint16_t max_new_polls,
+        const uint16_t max_popular_polls,
+        const uint16_t max_new_donations,
+        const uint16_t max_title_len,
+        const uint16_t max_options_len,
+        const uint16_t max_option_len,
+        const uint16_t max_account_list_len,
+        const uint16_t max_writein_len,
+        const uint16_t max_choices_len,
+        const double popularity_gravity,
+        const uint64_t profile_unlock_threshold)
+    {
+        const auto data = mvo()("max_new_polls", max_new_polls)("max_popular_polls", max_popular_polls)("max_new_donations", max_new_donations)("max_title_len", max_title_len)("max_options_len", max_options_len)("max_option_len", max_option_len)("max_account_list_len", max_account_list_len)("max_writein_len", max_writein_len)("max_choices_len", max_choices_len)("popularity_gravity", popularity_gravity)("profile_unlock_threshold", profile_unlock_threshold);
+        return push_action(N(eosstrawpoll), signer, N(setconfig), data);
+    }
+
+    action_result setprofile(
+        const account_name &signer,
+        const account_name account,
+        const string &url,
+        const string &bio,
+        const string &avatar_hash,
+        const string &location,
+        const string &github_id,
+        const string &twitter_id,
+        const string &steem_id,
+        const string &medium_id,
+        const string &twitch_id,
+        const string &youtube_id,
+        const string &facebook_id,
+        const string &theme,
+        const vector<preset> &presets)
+    {
+        const auto data = mvo()("account", account)("url", url)("bio", bio)("avatar_hash", avatar_hash)("location", location)("github_id", github_id)("twitter_id", twitter_id)("steem_id", steem_id)("medium_id", medium_id)("twitch_id", twitch_id)("youtube_id", youtube_id)("facebook_id", facebook_id)("theme", theme)("presets", presets);
+        return push_action(N(eosstrawpoll), signer, N(setprofile), data);
     }
 
     poll get_poll(const account_name &account, const account_name &table, const poll_name &name)

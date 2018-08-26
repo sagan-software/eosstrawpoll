@@ -17,15 +17,9 @@ void contract::setprofile(
     const string &youtube_id,
     const string &facebook_id,
     const string &theme,
-    const vector<preset> &presets,
-    const string &metadata)
+    const vector<preset> &presets)
 {
     require_auth(account);
-
-    // banned users cannot set profiles
-    assert_not_banned(voter);
-
-    assert_metadata_len(metadata);
 
     // validate profile
     eosio_assert(url.size() <= 144, "url is too big");
@@ -48,7 +42,8 @@ void contract::setprofile(
     eosio_assert(presets.size() <= 10, "up to 10 presets are allowed");
     for (auto &p : presets)
     {
-        auto account_list_len = p.account_list.size();
+        const auto account_list = p.account_list;
+        const auto account_list_len = account_list.size();
         eosio_assert(
             account_list_len <= _config.max_account_list_len,
             "invalid preset: account_list is too long");
@@ -67,7 +62,7 @@ void contract::setprofile(
         d->donated >= _config.profile_unlock_threshold,
         "user has not donated enough to unlock profiles");
 
-    userprofile p = profile{
+    profile p = profile{
         .account = account,
         .url = url,
         .bio = bio,
@@ -85,15 +80,14 @@ void contract::setprofile(
 
         // settings
         .theme = theme,
-        .presets = presets,
-        .metadata = metadata};
+        .presets = presets};
 
     // set the profile
-    userprofile_table profile(_self, account);
-    profile.set(p, account);
+    profile_table _profile(_self, account);
+    _profile.set(p, account);
 
     // track user
-    ensure_user(creator);
+    ensure_user(account);
 };
 
 } // namespace eosstrawpoll

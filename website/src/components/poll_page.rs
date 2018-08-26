@@ -5,13 +5,12 @@ use agents::scatter::{
 use context::Context;
 use failure::Error;
 use route::Route;
-use serde_json;
 use services::eos::{self, EosService};
 use std::collections::HashMap;
 use std::time::Duration;
 use stdweb::traits::IEvent;
 use traits::Page;
-use types::{CreateVoteAction, Poll, Vote};
+use types::*;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 use yew::services::{IntervalService, Task};
@@ -28,7 +27,7 @@ pub struct PollPage {
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
     pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
-    choices: Vec<usize>,
+    choices: Vec<Choice>,
     show_results: bool,
     submitting: bool,
     link: ComponentLink<PollPage>,
@@ -49,7 +48,7 @@ pub enum Msg {
     NavigateTo(Route),
     Polls(Result<eos::TableRows<Poll>, Error>),
     Scatter(ScatterOutput),
-    ToggleChoice(usize),
+    ToggleChoice(Choice),
     Vote,
     FetchPolls,
 }
@@ -204,12 +203,12 @@ impl Component for PollPage {
             Msg::ToggleChoice(choice) => {
                 info!("CHOICES: {:#?}, CHOICE: {:#?}", self.choices, choice);
                 if self.choices.contains(&choice) {
-                    self.choices.retain(|&c| c != choice);
+                    self.choices.retain(|c| choice != *c);
                 } else {
                     self.choices.push(choice);
                 }
                 if let Some(Ok(poll)) = &self.poll {
-                    if self.choices.len() > poll.max_num_choices {
+                    if self.choices.len() > poll.max_choices {
                         self.choices.remove(0);
                     }
                 }
@@ -237,7 +236,6 @@ impl Component for PollPage {
                     slug: self.slug.clone(),
                     voter: voter.clone(),
                     choices: self.choices.clone(),
-                    metadata: "".to_string(),
                 }.into();
                 let actions = vec![action];
 
@@ -252,7 +250,7 @@ impl Component for PollPage {
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         true
     }
 }
@@ -410,22 +408,22 @@ impl PollPage {
         let results = Route::PollResults(poll.creator.clone(), poll.slug.clone());
         let num_options = poll.options.len();
         let num_choices_text = match (
-            poll.min_num_choices,
-            poll.max_num_choices,
-            poll.min_num_choices == poll.max_num_choices,
-            poll.max_num_choices == num_options,
+            poll.min_choices,
+            poll.max_choices,
+            poll.min_choices == poll.max_choices,
+            poll.max_choices == num_options,
         ) {
             (1, 1, _, _) => "choose one option".to_string(),
             (_, _, true, true) => "rank all options".to_string(),
-            (_, _, true, false) => format!("choose and rank {} options", poll.min_num_choices),
+            (_, _, true, false) => format!("choose and rank {} options", poll.min_choices),
             (_, _, false, _) => format!(
                 "choose and rank {} to {} options",
-                poll.min_num_choices, poll.max_num_choices
+                poll.min_choices, poll.max_choices
             ),
         };
-        let choose_one = poll.min_num_choices == 1 && poll.max_num_choices == 1;
-        let select_text = if self.choices.len() < poll.min_num_choices && !self.choices.is_empty() {
-            let diff = poll.min_num_choices - self.choices.len();
+        let choose_one = poll.min_choices == 1 && poll.max_choices == 1;
+        let select_text = if self.choices.len() < poll.min_choices && !self.choices.is_empty() {
+            let diff = poll.min_choices - self.choices.len();
             if diff == 1 {
                 "Select one more option".to_string()
             } else {
@@ -444,7 +442,7 @@ impl PollPage {
                 </div>
                 <div class="poll_actions", >
                     <button
-                        disabled=self.choices.len() < poll.min_num_choices,
+                        disabled=self.choices.len() < poll.min_choices,
                         type="submit",
                         onclick=|e| {
                             e.prevent_default();
@@ -469,13 +467,17 @@ impl PollPage {
     }
 
     fn view_option(&self, index: usize, option: &str, choose_one: bool) -> Html<Self> {
-        let is_selected = self.choices.contains(&index);
+        let choice = Choice {
+            option_index: index as i16,
+            writein: "".to_string(),
+        };
+        let is_selected = self.choices.contains(&choice);
         let input = if choose_one {
             html! {
                 <input class="poll_option_checkbox",
                     type="radio",
                     name="choices",
-                    onchange=|_| Msg::ToggleChoice(index),
+                    onchange=|_| Msg::ToggleChoice(choice.clone()),
                     checked=is_selected,
                 />
             }
@@ -483,7 +485,7 @@ impl PollPage {
             html! {
                 <input class="poll_option_checkbox",
                     type="checkbox",
-                    onchange=|_| Msg::ToggleChoice(index),
+                    onchange=|_| Msg::ToggleChoice(choice.clone()),
                     checked=is_selected,
                 />
             }
@@ -533,14 +535,18 @@ impl PollPage {
 
     fn view_option_result(
         &self,
-        index: usize,
+        _index: usize,
         option: &str,
-        results: &HashMap<usize, Vec<(String, usize)>>,
+        results: &HashMap<String, Vec<(String, usize)>>,
         total_num_votes: usize,
     ) -> Html<Self> {
-        let is_selected = self.choices.contains(&index);
+        // let choice = Choice {
+        //     option_index: index as i16,
+        //     writein: "".to_string(),
+        // };
+        // let is_selected = self.choices.contains(&choice);
         let empty_votes = Vec::new();
-        let votes = match results.get(&index) {
+        let votes = match results.get(option.into()) {
             Some(votes) => votes,
             None => &empty_votes,
         };

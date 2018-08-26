@@ -7,11 +7,9 @@ namespace eosstrawpoll
 
 void contract::destroypoll(
     const account_name creator,
-    const poll_name slug,
-    const string &metadata)
+    const poll_name slug)
 {
     require_auth(creator);
-    eosio_assert(metadata.size() <= _config.max_metadata_len, "metadata is too long");
 
     // check if poll exists
     polls_table polls(_self, creator);

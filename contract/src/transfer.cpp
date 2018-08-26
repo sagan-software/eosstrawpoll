@@ -32,6 +32,13 @@ void contract::transfer(
 
     prune_new_donations();
 
+    const auto dono = donation{
+        .id = 0,
+        .account = account,
+        .donated = donated,
+        .memo = t.memo,
+        .created = now()};
+
     // update donors table
     auto d = _donors.find(account);
     if (d == _donors.end())
@@ -39,18 +46,15 @@ void contract::transfer(
         _donors.emplace(_self, [&](auto &d) {
             d.account = account;
             d.donated = donated;
-            d.last_donation = donation{
-                .id = 0,
-                .account = account,
-                .donated = donated,
-                .memo = t.memo,
-                .created = now()};
+            d.first_donation = dono;
+            d.last_donation = dono;
         });
     }
     else
     {
         _donors.modify(d, _self, [&](auto &d) {
             d.donated += donated;
+            d.last_donation = dono;
         });
     }
 };

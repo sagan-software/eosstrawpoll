@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use stdweb::web::Node;
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
@@ -68,11 +67,11 @@ impl Component for Svg {
         props
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
         false
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         true
     }
 }

@@ -112,24 +112,23 @@ impl Component for PollForm {
                         i, self.action.options
                     );
                     let options_len = self.action.options.len();
-                    self.action.max_num_choices = min(self.action.max_num_choices, options_len);
-                    self.action.min_num_choices =
-                        min(self.action.max_num_choices, self.action.min_num_choices);
+                    self.action.max_choices = min(self.action.max_choices, options_len);
+                    self.action.min_choices = min(self.action.max_choices, self.action.min_choices);
                     true
                 } else {
                     false
                 }
             }
-            Msg::AddListAccount(value) => true,
-            Msg::DelListAccount(index) => true,
+            Msg::AddListAccount(_value) => true,
+            Msg::DelListAccount(_index) => true,
             Msg::SetMinChoices(value) => {
                 let num = value.parse::<usize>();
                 match num {
                     Ok(num) => {
                         let options_len = self.action.options.len();
-                        self.action.min_num_choices = min(max(1, num), options_len);
-                        self.action.max_num_choices =
-                            max(self.action.min_num_choices, self.action.max_num_choices);
+                        self.action.min_choices = min(max(1, num), options_len);
+                        self.action.max_choices =
+                            max(self.action.min_choices, self.action.max_choices);
                         true
                     }
                     Err(_) => false,
@@ -140,9 +139,9 @@ impl Component for PollForm {
                 match num {
                     Ok(num) => {
                         let options_len = self.action.options.len();
-                        self.action.max_num_choices = min(max(1, num), options_len);
-                        self.action.min_num_choices =
-                            min(self.action.min_num_choices, self.action.max_num_choices);
+                        self.action.max_choices = min(max(1, num), options_len);
+                        self.action.min_choices =
+                            min(self.action.min_choices, self.action.max_choices);
                         true
                     }
                     Err(_) => false,
@@ -212,11 +211,19 @@ impl Component for PollForm {
                     if self.submitting {
                         self.pushed_poll = Some(result.clone());
                         self.submitting = false;
-                        if let (Ok(_), Some(creator)) = (result, self.creator()) {
-                            let route = Route::Poll(creator, self.action.slug.clone());
-                            let url = route.to_string();
-                            self.router.send(RouterInput::ChangeRoute(url, ()));
-                        }
+                        match (result, self.creator()) {
+                            (Ok(_), Some(creator)) => {
+                                let route = Route::Poll(creator, self.action.slug.clone());
+                                let url = route.to_string();
+                                self.router.send(RouterInput::ChangeRoute(url, ()));
+                            }
+                            (Ok(_), None) => {
+                                warn!("Something strange happened: a poll was successfully submitted but no creator was found.");
+                            }
+                            (Err(error), _) => {
+                                error!("Error submitting poll: {:#?}", error);
+                            }
+                        };
                         true
                     } else {
                         false
@@ -347,7 +354,6 @@ impl PollForm {
                 maxlength=self.global_config.max_title_len,
             />
         };
-        let max_title_len = self.global_config.max_title_len;
         let help: Html<Self> = html! {
             <p></p>
         };
@@ -358,7 +364,7 @@ impl PollForm {
         let input: Html<Self> = html! {
             { for self.action.options.iter().enumerate().map(|(i, o)| self.view_option(i, o)) }
         };
-        let max_options_len = self.global_config.max_options_len;
+        // let max_options_len = self.global_config.max_options_len;
         let error = self.validate_options().err();
         let help: Html<Self> = match error {
             Some(error) => html! {
@@ -414,7 +420,7 @@ impl PollForm {
             />
         };
         let help = html! {
-            <p>{ format!("Up to {} accounts. Accounts must exist.", self.global_config.max_whitelist_len) }</p>
+            <p>{ format!("Up to {} accounts. Accounts must exist.", self.global_config.max_account_list_len) }</p>
         };
         self.view_field("Whitelist", "whitelist", input, help)
     }
@@ -435,47 +441,47 @@ impl PollForm {
 
     fn view_num_choices(&self) -> Html<PollForm> {
         let options_len = self.action.options.len();
-        let min_num_choices = self.action.min_num_choices;
-        let max_num_choices = self.action.max_num_choices;
+        let min_choices = self.action.min_choices;
+        let max_choices = self.action.max_choices;
         let indicators: Vec<usize> = (0..options_len).collect();
         let input = html! {
             <>
-                <div class="min_num_choices_input", >
+                <div class="min_choices_input", >
                     <input
                         disabled=self.submitting,
-                        value=min_num_choices,
+                        value=min_choices,
                         oninput=|e| Msg::SetMinChoices(e.value),
                         min=1,
                         max=options_len,
                     />
                 </div>
                 <div class="num_choices_range", >
-                    <input class="min_num_choices_range",
+                    <input class="min_choices_range",
                         disabled=self.submitting,
                         type="range",
                         min=1,
                         max=options_len,
-                        value=min_num_choices,
+                        value=min_choices,
                         oninput=|e| Msg::SetMinChoices(e.value),
                     />
-                    <input class="max_num_choices_range",
+                    <input class="max_choices_range",
                         disabled=self.submitting,
                         type="range",
                         min=1,
                         max=options_len,
-                        value=max_num_choices,
+                        value=max_choices,
                         oninput=|e| Msg::SetMaxChoices(e.value),
                     />
                     <div class="num_choices_range_highlighted", ></div>
                     <div class="num_choices_range_bg", ></div>
-                    { for indicators.iter().map(|i| html!{
+                    { for indicators.iter().map(|_i| html!{
                         <div class="num_choices_indicator", ></div>
                     }) }
                 </div>
-                <div class="max_num_choices_input", >
+                <div class="max_choices_input", >
                     <input
                         disabled=self.submitting,
-                        value=max_num_choices,
+                        value=max_choices,
                         oninput=|e| Msg::SetMaxChoices(e.value),
                         min=1,
                         max=options_len,
@@ -483,18 +489,18 @@ impl PollForm {
                 </div>
             </>
         };
-        let text = if min_num_choices == max_num_choices {
-            if min_num_choices == options_len {
+        let text = if min_choices == max_choices {
+            if min_choices == options_len {
                 "Voters must rank all options".to_string()
-            } else if min_num_choices == 1 {
+            } else if min_choices == 1 {
                 "Voters must select one option".to_string()
             } else {
-                format!("Voters must select {} options", min_num_choices)
+                format!("Voters must select {} options", min_choices)
             }
         } else {
             format!(
                 "Voters can select {} to {} options",
-                min_num_choices, max_num_choices
+                min_choices, max_choices
             )
         };
         let help = html! { <p>{ text }</p> };

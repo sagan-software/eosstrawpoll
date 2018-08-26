@@ -16,42 +16,12 @@
     ],
     "structs": [
         {
-            "name": "banuser",
-            "base": "",
-            "fields": [
-                {
-                    "name": "moderator",
-                    "type": "account_name"
-                },
-                {
-                    "name": "account",
-                    "type": "account_name"
-                },
-                {
-                    "name": "expiration",
-                    "type": "time"
-                },
-                {
-                    "name": "reason",
-                    "type": "string"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
-                }
-            ]
-        },
-        {
             "name": "clearprofile",
             "base": "",
             "fields": [
                 {
                     "name": "account",
                     "type": "account_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -66,10 +36,6 @@
                 {
                     "name": "slug",
                     "type": "poll_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -128,10 +94,6 @@
                 {
                     "name": "close_time",
                     "type": "time"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -154,10 +116,6 @@
                 {
                     "name": "choices",
                     "type": "choice[]"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -172,10 +130,6 @@
                 {
                     "name": "slug",
                     "type": "poll_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -194,10 +148,6 @@
                 {
                     "name": "voter",
                     "type": "account_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -212,28 +162,6 @@
                 {
                     "name": "slug",
                     "type": "poll_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "moduser",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "account_name"
-                },
-                {
-                    "name": "expiration",
-                    "type": "time"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -248,10 +176,6 @@
                 {
                     "name": "slug",
                     "type": "poll_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -292,20 +216,16 @@
                     "type": "uint16"
                 },
                 {
+                    "name": "max_choices_len",
+                    "type": "uint16"
+                },
+                {
                     "name": "popularity_gravity",
                     "type": "float64"
                 },
                 {
-                    "name": "max_metadata_len",
-                    "type": "uint16"
-                },
-                {
                     "name": "profile_unlock_threshold",
                     "type": "uint64"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -368,42 +288,6 @@
                 {
                     "name": "presets",
                     "type": "string"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "unbanuser",
-            "base": "",
-            "fields": [
-                {
-                    "name": "moderator",
-                    "type": "account_name"
-                },
-                {
-                    "name": "account",
-                    "type": "account_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "unmoduser",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "account_name"
-                },
-                {
-                    "name": "metadata",
-                    "type": "string"
                 }
             ]
         },
@@ -444,12 +328,12 @@
                     "type": "uint16"
                 },
                 {
-                    "name": "popularity_gravity",
-                    "type": "float64"
+                    "name": "max_choices_len",
+                    "type": "uint16"
                 },
                 {
-                    "name": "max_metadata_len",
-                    "type": "uint16"
+                    "name": "popularity_gravity",
+                    "type": "float64"
                 },
                 {
                     "name": "profile_unlock_threshold",
@@ -610,6 +494,10 @@
                     "type": "uint64"
                 },
                 {
+                    "name": "first_donation",
+                    "type": "donation"
+                },
+                {
                     "name": "last_donation",
                     "type": "donation"
                 }
@@ -625,26 +513,6 @@
                 },
                 {
                     "name": "first_seen",
-                    "type": "time"
-                },
-                {
-                    "name": "is_banned",
-                    "type": "bool"
-                },
-                {
-                    "name": "ban_expiration",
-                    "type": "time"
-                },
-                {
-                    "name": "ban_reason",
-                    "type": "string"
-                },
-                {
-                    "name": "is_modded",
-                    "type": "bool"
-                },
-                {
-                    "name": "mod_expiration",
                     "type": "time"
                 }
             ]
@@ -740,11 +608,6 @@
     ],
     "actions": [
         {
-            "name": "banuser",
-            "type": "banuser",
-            "ricardian_contract": ""
-        },
-        {
             "name": "clearprofile",
             "type": "clearprofile",
             "ricardian_contract": ""
@@ -780,11 +643,6 @@
             "ricardian_contract": ""
         },
         {
-            "name": "moduser",
-            "type": "moduser",
-            "ricardian_contract": ""
-        },
-        {
             "name": "openpoll",
             "type": "openpoll",
             "ricardian_contract": ""
@@ -797,16 +655,6 @@
         {
             "name": "setprofile",
             "type": "setprofile",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "unbanuser",
-            "type": "unbanuser",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "unmoduser",
-            "type": "unmoduser",
             "ricardian_contract": ""
         }
     ],

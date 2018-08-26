@@ -6,11 +6,9 @@ namespace eosstrawpoll
 void contract::destroyvote(
     const account_name creator,
     const poll_name slug,
-    const account_name voter,
-    const string &metadata)
+    const account_name voter)
 {
     require_auth(voter);
-    assert_metadata_len(metadata);
 
     // check if poll exists
     polls_table polls(_self, creator);

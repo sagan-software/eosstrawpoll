@@ -3,20 +3,16 @@
 namespace eosstrawpoll
 {
 
-void contract::clearprofile(
-    const account_name account,
-    const string &metadata)
+void contract::clearprofile(const account_name account)
 {
     require_auth(account);
 
-    assert_metadata_len(metadata);
-
     // check if profile exists
-    userprofile_table profile(_self, account);
-    eosio_assert(profile.exists(), "no profile to clear");
+    profile_table _profile(_self, account);
+    eosio_assert(_profile.exists(), "no profile to clear");
 
     // destroy profile
-    profile.remove();
+    _profile.remove();
 };
 
 } // namespace eosstrawpoll

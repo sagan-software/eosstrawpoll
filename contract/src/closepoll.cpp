@@ -5,12 +5,9 @@ namespace eosstrawpoll
 
 void contract::closepoll(
     const account_name creator,
-    const poll_name slug,
-    const string &metadata)
+    const poll_name slug)
 {
     require_auth(creator);
-
-    assert_metadata_len(metadata);
 
     // find poll
     polls_table _creator_polls(_self, creator);

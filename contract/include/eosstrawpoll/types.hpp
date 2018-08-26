@@ -28,13 +28,12 @@ struct config
     uint16_t max_options_len = 50;
     uint16_t max_option_len = 80;
     uint16_t max_account_list_len = 300;
-    uint16_t max_writein_len = 20;
+    uint16_t max_writein_len = 80;
     uint16_t max_choices_len = 100;
 
     // misc
     double popularity_gravity = 1.8;
-    uint16_t max_metadata_len = 10000;
-    uint32_t profile_unlock_threshold = 10000; // 1 EOS
+    uint64_t profile_unlock_threshold = 10000; // 1 EOS
 
     EOSLIB_SERIALIZE(
         config,
@@ -43,7 +42,7 @@ struct config
         // polls fields
         (max_title_len)(max_options_len)(max_option_len)(max_account_list_len)(max_writein_len)(max_choices_len)
         // misc
-        (popularity_gravity)(max_metadata_len)(profile_unlock_threshold))
+        (popularity_gravity)(profile_unlock_threshold))
 };
 
 typedef eosio::singleton<N(config), config> config_table;
@@ -54,7 +53,7 @@ struct choice
     string writein;
 
     EOSLIB_SERIALIZE(choice, (option_index)(writein))
-}
+};
 
 struct vote
 {
@@ -108,6 +107,11 @@ struct poll
     bool is_closed() const
     {
         return close_time > 0 && close_time <= now();
+    }
+
+    bool is_open() const
+    {
+        return has_opened() && !is_closed();
     }
 
     double calculate_popularity(double popularity_gravity) const
@@ -174,12 +178,13 @@ struct donor
 {
     account_name account;
     uint64_t donated;
+    donation first_donation;
     donation last_donation;
 
     account_name primary_key() const { return account; }
     uint64_t by_donated() const { return donated; }
 
-    EOSLIB_SERIALIZE(donor, (account)(donated)(last_donation))
+    EOSLIB_SERIALIZE(donor, (account)(donated)(first_donation)(last_donation))
 };
 
 typedef multi_index<
@@ -191,15 +196,10 @@ struct user
 {
     account_name account;
     time first_seen;
-    bool is_banned = false;
-    time ban_expiration = 0;
-    string ban_reason = "";
-    bool is_modded = false;
-    time mod_expiration = 0;
 
     account_name primary_key() const { return account; }
 
-    EOSLIB_SERIALIZE(user, (account)(first_seen)(is_banned)(ban_expiration)(ban_reason)(is_modded)(mod_expiration))
+    EOSLIB_SERIALIZE(user, (account)(first_seen))
 };
 
 typedef multi_index<N(users), user> users_table;
@@ -240,7 +240,7 @@ struct profile
     account_name primary_key() const { return account; }
 
     EOSLIB_SERIALIZE(
-        userprofile,
+        profile,
 
         // basics
         (account)(url)(bio)(avatar_hash)(location)

@@ -18,15 +18,9 @@ void contract::createpoll(
     const uint64_t min_staked,
     const uint64_t min_value,
     const time open_time,
-    const time close_time,
-    const string &metadata)
+    const time close_time)
 {
     require_auth(creator);
-
-    // banned users cannot create polls
-    assert_not_banned(creator);
-
-    assert_metadata_len(metadata);
 
     // check title
     eosio_assert(!title.empty(), "title must not be empty");
@@ -36,6 +30,7 @@ void contract::createpoll(
     const uint16_t num_options = options.size();
     eosio_assert(num_options <= _config.max_options_len, "too many options");
     eosio_assert(num_options + max_writeins >= 2, "must have at least 2 options or allow writeins");
+    eosio_assert(num_options + max_writeins <= _config.max_choices_len, "number of options + writeins would exceed the maximum allowed number of choices");
 
     std::map<string, bool> seen_options;
     for (auto &option : options)
@@ -113,7 +108,6 @@ void contract::createpoll(
         p.open_time = open_time;
         p.close_time = close_time;
         p.create_time = current_time;
-        p.metadata = metadata;
     });
 
     // add to new polls table
@@ -133,7 +127,6 @@ void contract::createpoll(
         p.open_time = open_time;
         p.close_time = close_time;
         p.create_time = current_time;
-        p.metadata = metadata;
     });
 
     prune_new_polls();
@@ -156,7 +149,6 @@ void contract::createpoll(
             p.open_time = open_time;
             p.close_time = close_time;
             p.create_time = current_time;
-            p.metadata = metadata;
         });
     }
 }
