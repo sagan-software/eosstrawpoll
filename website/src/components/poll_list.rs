@@ -173,8 +173,12 @@ impl PollList {
     }
 
     fn view_item(&self, poll: &Poll) -> Html<Self> {
-        let poll_route = Route::Poll(poll.creator.clone(), poll.slug.clone());
-        let creator_route = Route::Profile(poll.creator.clone());
+        let poll_route = Route::Poll(
+            "cf057bbfb726".into(),
+            poll.creator.clone(),
+            poll.slug.clone(),
+        );
+        let creator_route = Route::Profile("cf057bbfb726".into(), poll.creator.clone());
         html! {
             <li class="poll", >
                 <Link: class="poll_title",

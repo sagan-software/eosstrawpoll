@@ -6,16 +6,16 @@ use context::Context;
 use failure::Error;
 use route::Route;
 use services::eos::{self, EosService};
-use std::collections::HashMap;
 use std::time::Duration;
 use stdweb::traits::IEvent;
+use stdweb::web::document;
 use traits::Page;
 use types::*;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 use yew::services::{IntervalService, Task};
 
-pub struct PollPage {
+pub struct PollVotingPage {
     eos: EosService,
     router: Box<Bridge<RouterAgent<()>>>,
     context: Context,
@@ -29,9 +29,8 @@ pub struct PollPage {
     pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
     choices: Vec<Choice>,
     writein_input: String,
-    show_results: bool,
     submitting: bool,
-    link: ComponentLink<PollPage>,
+    link: ComponentLink<PollVotingPage>,
     interval_service: IntervalService,
     interval_task: Option<Box<Task>>,
 }
@@ -41,7 +40,7 @@ pub struct Props {
     pub context: Context,
     pub creator: String,
     pub slug: String,
-    pub show_results: bool,
+    pub chain_id_prefix: String,
 }
 
 pub enum Msg {
@@ -56,7 +55,7 @@ pub enum Msg {
     FetchPolls,
 }
 
-impl Component for PollPage {
+impl Component for PollVotingPage {
     type Message = Msg;
     type Properties = Props;
 
@@ -70,7 +69,7 @@ impl Component for PollPage {
         scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
 
         let context = props.context;
-        let mut poll_page = PollPage {
+        let mut poll_page = PollVotingPage {
             eos: EosService::new(),
             router,
             context,
@@ -84,7 +83,6 @@ impl Component for PollPage {
             pushed: None,
             choices: Vec::new(),
             writein_input: "".to_string(),
-            show_results: props.show_results,
             submitting: false,
             link,
             interval_service: IntervalService::new(),
@@ -100,47 +98,8 @@ impl Component for PollPage {
             Msg::Ignore => false,
             Msg::NavigateTo(route) => {
                 let url = route.to_string();
-                match route {
-                    Route::Poll(creator, slug) => {
-                        if creator == self.creator && slug == self.slug {
-                            if self.show_results {
-                                self.router
-                                    .send(RouterInput::ChangeRouteNoBroadcast(url, ()));
-                                self.show_results = false;
-                                if let Some(mut task) = self.interval_task.take() {
-                                    task.cancel();
-                                    self.interval_task = None;
-                                }
-                                true
-                            } else {
-                                false
-                            }
-                        } else {
-                            self.router.send(RouterInput::ChangeRoute(url, ()));
-                            false
-                        }
-                    }
-                    Route::PollResults(creator, slug) => {
-                        if creator == self.creator && slug == self.slug {
-                            if self.show_results {
-                                false
-                            } else {
-                                self.fetch_poll();
-                                self.router
-                                    .send(RouterInput::ChangeRouteNoBroadcast(url, ()));
-                                self.show_results = true;
-                                true
-                            }
-                        } else {
-                            self.router.send(RouterInput::ChangeRoute(url, ()));
-                            false
-                        }
-                    }
-                    _ => {
-                        self.router.send(RouterInput::ChangeRoute(url, ()));
-                        false
-                    }
-                }
+                self.router.send(RouterInput::ChangeRoute(url, ()));
+                false
             }
             Msg::Polls(result) => {
                 self.poll = match result {
@@ -152,12 +111,6 @@ impl Component for PollPage {
                 };
                 self.task = None;
                 self.load_choices();
-
-                if self.show_results && self.interval_task.is_none() {
-                    let cb = self.link.send_back(|_| Msg::FetchPolls);
-                    let task = self.interval_service.spawn(Duration::from_secs(1), cb);
-                    self.interval_task = Some(Box::new(task));
-                }
 
                 true
             }
@@ -194,7 +147,11 @@ impl Component for PollPage {
                         self.pushed = Some(result.clone());
                         self.submitting = false;
                         if result.is_ok() {
-                            let route = Route::PollResults(self.creator.clone(), self.slug.clone());
+                            let route = Route::PollResults(
+                                "cf057bbfb726".into(),
+                                self.creator.clone(),
+                                self.slug.clone(),
+                            );
                             self.update(Msg::NavigateTo(route))
                         } else {
                             true
@@ -269,7 +226,7 @@ impl Component for PollPage {
     }
 }
 
-impl Page for PollPage {
+impl Page for PollVotingPage {
     fn title(&self) -> String {
         match &self.poll {
             Some(result) => match result {
@@ -288,12 +245,7 @@ impl Page for PollPage {
             None => "loading",
         };
 
-        let results_modifier = if self.show_results { "results" } else { "vote" };
-
-        format!(
-            "poll_page poll_page_{} poll_page_{}",
-            state_modifier, results_modifier
-        )
+        format!("poll_page poll_page_vote poll_page_{}", state_modifier)
     }
     fn content(&self) -> Html<Self> {
         match &self.poll {
@@ -306,9 +258,9 @@ impl Page for PollPage {
     }
 }
 
-page_view! { PollPage }
+page_view! { PollVotingPage }
 
-impl PollPage {
+impl PollVotingPage {
     fn fetch_poll(&mut self) {
         let params = eos::TableRowsParams {
             scope: self.creator.clone(),
@@ -398,28 +350,23 @@ impl PollPage {
         }
     }
 
-    fn view_ok(&self, poll: &Poll) -> Html<Self> {
-        if self.show_results {
-            self.view_ok_results(poll)
-        } else {
-            self.view_ok_vote(poll)
-        }
-    }
-
     fn vote_text(&self) -> &str {
-        let is_logged_in = self.voter().is_some();
-        match (is_logged_in, self.submitting, self.has_voted()) {
-            (false, false, _) => "Login & Vote",
-            (false, true, _) => "Logging in...",
-            (true, false, false) => "Vote",
-            (true, true, false) => "Voting...",
-            (true, false, true) => "Change Vote",
-            (true, true, true) => "Changing Vote...",
+        match (self.submitting, self.has_voted()) {
+            (false, false) => "Vote",
+            (true, false) => "Voting...",
+            (false, true) => "Change Vote",
+            (true, true) => "Changing Vote...",
         }
     }
 
-    fn view_ok_vote(&self, poll: &Poll) -> Html<Self> {
-        let results = Route::PollResults(poll.creator.clone(), poll.slug.clone());
+    fn view_ok(&self, poll: &Poll) -> Html<Self> {
+        //
+
+        let results = Route::PollResults(
+            "cf057bbfb726".into(),
+            poll.creator.clone(),
+            poll.slug.clone(),
+        );
         let num_options = poll.options.len();
         let num_choices_text = match (
             poll.min_choices,
@@ -446,15 +393,18 @@ impl PollPage {
         } else {
             "".to_string()
         };
+        let mut writeins = self.choices.clone();
+        writeins.retain(|c| !c.writein.is_empty());
         html! {
             <>
                 <p class="poll_num_choices", >
                     { format!("Please {}:", num_choices_text) }
                 </p>
                 <div class="poll_options", >
-                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i, option, choose_one)) }
+                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i as i16, option, choose_one)) }
+                    { for writeins.iter().map(|c| self.view_option(-1, &c.writein, choose_one)) }
                 </div>
-                { if poll.max_writeins > 0 { self.view_writein_input() } else { html! {} } }
+                { self.view_writein_input(poll) }
                 <div class="poll_actions", >
                     <button
                         disabled=self.choices.len() < poll.min_choices,
@@ -481,7 +431,10 @@ impl PollPage {
         }
     }
 
-    fn view_writein_input(&self) -> Html<Self> {
+    fn view_writein_input(&self, poll: &Poll) -> Html<Self> {
+        if poll.max_writeins <= 0 {
+            return html! { <></> };
+        }
         html! {
             <>
                 <input class="poll_writein_input",
@@ -501,9 +454,9 @@ impl PollPage {
         }
     }
 
-    fn view_option(&self, index: usize, option: &str, choose_one: bool) -> Html<Self> {
+    fn view_option(&self, index: i16, option: &str, choose_one: bool) -> Html<Self> {
         let choice = Choice {
-            option_index: index as i16,
+            option_index: index,
             writein: "".to_string(),
         };
         let is_selected = self.choices.contains(&choice);
@@ -532,55 +485,6 @@ impl PollPage {
                     { option }
                 </span>
             </label>
-        }
-    }
-
-    fn view_ok_results(&self, poll: &Poll) -> Html<Self> {
-        let vote = Route::Poll(poll.creator.clone(), poll.slug.clone());
-        let results_text = if poll.votes.len() == 1 {
-            "Results from one voter:".to_string()
-        } else {
-            format!("Results from {} voters:", poll.votes.len())
-        };
-        let results = poll.results_by_percent();
-        info!("RESULTS! {:#?}", results);
-        html! {
-            <>
-                <p class="poll_num_choices", >
-                    { results_text }
-                </p>
-                <div class="poll_options", >
-                    { for results.iter().map(|(option, percent, votes)| self.view_option_result(option, percent, &votes)) }
-                </div>
-                <div class="poll_actions", >
-                    <a
-                        href=vote.to_string(),
-                        onclick=|e| {
-                            e.prevent_default();
-                            Msg::NavigateTo(vote.clone())
-                        },
-                    >
-                        { self.vote_text() }
-                    </a>
-                </div>
-            </>
-        }
-    }
-
-    fn view_option_result(
-        &self,
-        option: &str,
-        percent: &f32,
-        votes: &[(String, usize)],
-    ) -> Html<Self> {
-        html! {
-            <div class="poll_option", >
-                <span class="poll_option_text", >{ option }</span>
-                <span class="poll_option_percent", >
-                    { (percent * 100.) as u32 }{ "%" }
-                </span>
-                <span class="poll_option_bar", style=format!("transform:scaleX({})", percent), ></span>
-            </div>
         }
     }
 }

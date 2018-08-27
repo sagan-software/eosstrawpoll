@@ -3,13 +3,12 @@ use agents::router::{RouterAgent, RouterInput, RouterOutput};
 use agents::scatter::{
     self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
 };
-use components::{RelativeTime, Svg, Symbol};
+use components::{Svg, Symbol};
 use context::Context;
 use route::Route;
 use std::cmp::{max, min};
 use std::collections::HashSet;
 use stdweb::traits::IEvent;
-use stdweb::web::Date;
 use types::*;
 use yew::prelude::*;
 
@@ -25,11 +24,11 @@ pub struct PollForm {
     global_config: GlobalConfig,
     _api: Box<Bridge<ApiAgent>>,
     use_advanced: bool,
+    validation_result: Option<Result<(), String>>,
 
     // basic options
     allow_multiple_choices: bool,
     allow_writeins: bool,
-    close_in_an_hour: bool,
 }
 
 pub enum Msg {
@@ -42,20 +41,14 @@ pub enum Msg {
     AddOption,
     SetOption(usize, String),
     DelOption(usize),
+    Validate,
 
     // Basic options
     ToggleAllowMultipleChoices,
     ToggleAllowWriteins,
-    ToggleCloseAfterAnHour,
 
     // Advanced options
     ToggleAdvanced,
-    AddListAccount(String),
-    DelListAccount(usize),
-    SetMinChoices(String),
-    SetMaxChoices(String),
-    SetOpenTime(String),
-    SetCloseTime(String),
 }
 
 #[derive(PartialEq, Clone, Default, Debug)]
@@ -88,10 +81,10 @@ impl Component for PollForm {
             router,
             global_config: GlobalConfig::default(),
             _api: api,
+            validation_result: None,
             use_advanced: false,
             allow_multiple_choices: false,
-            allow_writeins: false,
-            close_in_an_hour: false,
+            allow_writeins: true,
         }
     }
 
@@ -101,6 +94,7 @@ impl Component for PollForm {
             Msg::NoOp => false,
             Msg::SetTitle(value) => {
                 self.action.title = value;
+                self.validation_result = Some(self.validate());
                 true
             }
             Msg::AddOption => {
@@ -116,12 +110,15 @@ impl Component for PollForm {
                 info!("setting option {} to {}", i, value);
                 if i < self.action.options.len() {
                     self.action.options[i] = value;
+                    if self.validation_result.is_some() {
+                        self.validation_result = Some(self.validate());
+                    }
                 }
                 true
             }
             Msg::DelOption(i) => {
                 let options_len = self.action.options.len();
-                if i < options_len && options_len > 2 {
+                if i < options_len && options_len > 1 {
                     self.action.options.remove(i);
                     debug!(
                         "deleted option {}, leaving options {:#?}",
@@ -130,53 +127,23 @@ impl Component for PollForm {
                     let options_len = self.action.options.len();
                     self.action.max_choices = min(self.action.max_choices, options_len);
                     self.action.min_choices = min(self.action.max_choices, self.action.min_choices);
+                    if self.validation_result.is_some() {
+                        self.validation_result = Some(self.validate());
+                    }
                     true
                 } else {
                     false
                 }
             }
-            Msg::AddListAccount(_value) => true,
-            Msg::DelListAccount(_index) => true,
-            Msg::SetMinChoices(value) => {
-                let num = value.parse::<usize>();
-                match num {
-                    Ok(num) => {
-                        let options_len = self.action.options.len();
-                        self.action.min_choices = min(max(1, num), options_len);
-                        self.action.max_choices =
-                            max(self.action.min_choices, self.action.max_choices);
-                        true
-                    }
-                    Err(_) => false,
-                }
-            }
-            Msg::SetMaxChoices(value) => {
-                let num = value.parse::<usize>();
-                match num {
-                    Ok(num) => {
-                        let options_len = self.action.options.len();
-                        self.action.max_choices = min(max(1, num), options_len);
-                        self.action.min_choices =
-                            min(self.action.min_choices, self.action.max_choices);
-                        true
-                    }
-                    Err(_) => false,
-                }
-            }
-            Msg::SetOpenTime(value) => {
-                let date = Date::parse(&value);
-                self.action.open_time = (date / 1000.) as u32;
-                // TODO change close time based on global config
-                true
-            }
-            Msg::SetCloseTime(value) => {
-                let date = Date::parse(&value);
-                self.action.close_time = (date / 1000.) as u32;
-                // TODO change open time based on global config
-                true
-            }
             Msg::Submit => {
                 info!("submitting form");
+
+                let validation_result = self.validate();
+                if validation_result.is_err() {
+                    self.validation_result = Some(validation_result);
+                    return true;
+                }
+
                 self.submitting = true;
 
                 if let Some(creator) = self.creator() {
@@ -194,9 +161,12 @@ impl Component for PollForm {
                 let config = self.context.eos_config();
                 let mut action = self.action.clone();
 
-                if !self.use_advanced {
-                    // Set basic options below
+                // Remove empty options
+                action
+                    .options
+                    .retain(|ref option| !option.trim().is_empty());
 
+                if !self.use_advanced {
                     action.min_choices = 1;
                     let options_len = action.options.len();
                     match (self.allow_multiple_choices, self.allow_writeins) {
@@ -216,11 +186,6 @@ impl Component for PollForm {
                             action.max_writeins = 0;
                             action.max_choices = 1;
                         }
-                    }
-
-                    if self.close_in_an_hour {
-                        let now = (Date::now() / 1000.) as u32;
-                        action.close_time = now + 60 * 60;
                     }
                 }
 
@@ -260,7 +225,11 @@ impl Component for PollForm {
                         self.submitting = false;
                         match (result, self.creator()) {
                             (Ok(_), Some(creator)) => {
-                                let route = Route::Poll(creator, self.action.slug.clone());
+                                let route = Route::Poll(
+                                    "cf057bbfb726".into(),
+                                    creator,
+                                    self.action.slug.clone(),
+                                );
                                 let url = route.to_string();
                                 self.router.send(RouterInput::ChangeRoute(url, ()));
                             }
@@ -292,14 +261,20 @@ impl Component for PollForm {
             }
             Msg::ToggleAllowMultipleChoices => {
                 self.allow_multiple_choices = !self.allow_multiple_choices;
+                if self.validation_result.is_some() {
+                    self.validation_result = Some(self.validate());
+                }
                 true
             }
             Msg::ToggleAllowWriteins => {
                 self.allow_writeins = !self.allow_writeins;
+                if self.validation_result.is_some() {
+                    self.validation_result = Some(self.validate());
+                }
                 true
             }
-            Msg::ToggleCloseAfterAnHour => {
-                self.close_in_an_hour = !self.close_in_an_hour;
+            Msg::Validate => {
+                self.validation_result = Some(self.validate());
                 true
             }
         }
@@ -315,10 +290,10 @@ impl Renderable<PollForm> for PollForm {
     fn view(&self) -> Html<Self> {
         html! {
             <form class="poll_form", >
-                { self.view_title() }
-                { self.view_options() }
-                { self.view_tabs() }
-                { self.view_submit_area() }
+                { self.title_view() }
+                { self.options_view() }
+                { self.basic_view() }
+                { self.submit_view() }
             </form>
         }
     }
@@ -342,7 +317,11 @@ impl PollForm {
         }
     }
 
-    fn validate_options(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), String> {
+        if self.action.title.trim().is_empty() {
+            return Err("Title must not be empty".to_string());
+        }
+
         let mut options = HashSet::new();
         let max_option_len = self.global_config.max_option_len;
 
@@ -368,8 +347,8 @@ impl PollForm {
         }
 
         let num_options = options.len();
-        if num_options < 2 {
-            return Err("Must have at least 2 options".to_string());
+        if num_options < 2 && !self.allow_writeins {
+            return Err("Must have at least 2 options or allow write-in answers".to_string());
         }
 
         let max_options_len = self.global_config.max_options_len;
@@ -380,63 +359,42 @@ impl PollForm {
         Ok(())
     }
 
-    fn view_field(
-        &self,
-        label: &str,
-        class: &str,
-        input: Html<Self>,
-        help: Html<Self>,
-    ) -> Html<Self> {
+    fn title_view(&self) -> Html<Self> {
+        let class_modifier =
+            if self.validation_result.is_some() && self.action.title.trim().is_empty() {
+                "-invalid"
+            } else {
+                ""
+            };
         html! {
-            <div class=format!("field -{}", class), >
-                <label class="label", >{ label }</label>
-                <div class="help", >{ help }</div>
-                <div class="input", >{ input }</div>
-            </div>
-        }
-    }
-
-    fn view_title(&self) -> Html<Self> {
-        let input: Html<Self> = html! {
-            <input
+            <input class=format!("poll_form_title_input {}", class_modifier),
                 disabled=self.submitting,
                 placeholder="What is your question?",
                 value=&self.action.title,
                 oninput=|e| Msg::SetTitle(e.value),
+                onblur=|_| Msg::Validate,
                 required=true,
                 maxlength=self.global_config.max_title_len,
+                autofocus=true,
             />
-        };
-        let help: Html<Self> = html! {
-            <p></p>
-        };
-        self.view_field("Title", "title", input, help)
+        }
     }
 
-    fn view_options(&self) -> Html<PollForm> {
-        let input: Html<Self> = html! {
-            { for self.action.options.iter().enumerate().map(|(i, o)| self.view_option(i, o)) }
-        };
-        // let max_options_len = self.global_config.max_options_len;
-        let error = self.validate_options().err();
-        let help: Html<Self> = match error {
-            Some(error) => html! {
-                <p>{ error }</p>
-            },
-            None => html! {
-                <p></p>
-            },
-        };
-        self.view_field("Options", "options", input, help)
+    fn options_view(&self) -> Html<PollForm> {
+        html! {
+            <div class="poll_form_options", >
+                { for self.action.options.iter().enumerate().map(|(i, o)| self.option_view(i, o)) }
+            </div>
+        }
     }
 
-    fn view_option(&self, index: usize, option: &str) -> Html<PollForm> {
+    fn option_view(&self, index: usize, option: &str) -> Html<PollForm> {
         let options_len = self.action.options.len();
         let is_last = index == options_len - 1;
         let is_not_full = options_len < self.global_config.max_options_len;
         html! {
-            <div class="option", key=format!("{}_{}", index, option), >
-                <input
+            <div class="poll_form_option", key=format!("{}_{}", index, option), >
+                <input class="poll_form_option_input",
                     disabled=self.submitting,
                     placeholder=format!("Option {}", index + 1),
                     value=option,
@@ -450,9 +408,9 @@ impl PollForm {
                     oninput=|e| Msg::SetOption(index, e.value),
                     maxlength=self.global_config.max_option_len,
                 />
-                <button class="button -delete",
+                <button class="poll_form_option_delete",
                     tabindex=-1,
-                    disabled=options_len <= 2 || self.submitting,
+                    disabled=options_len <= 1 || self.submitting,
                     onclick=|e| {
                         e.prevent_default();
                         Msg::DelOption(index)
@@ -464,257 +422,70 @@ impl PollForm {
         }
     }
 
-    fn view_tabs(&self) -> Html<PollForm> {
-        let basic_tab = if self.use_advanced {
-            html! {
-                <button
-                    class="poll_tab",
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::ToggleAdvanced
-                    },
-                >
-                    { "Basic" }
-                </button>
-            }
-        } else {
-            html! {
-                <span class="poll_tab poll_tab_active", >
-                    { "Basic" }
-                </span>
-            }
-        };
-        let advanced_tab = if !self.use_advanced {
-            html! {
-                <button
-                    class="poll_tab",
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::ToggleAdvanced
-                    },
-                >
-                    { "Advanced" }
-                </button>
-            }
-        } else {
-            html! {
-                <span class="poll_tab poll_tab_active", >
-                    { "Advanced" }
-                </span>
-            }
-        };
+    fn basic_view(&self) -> Html<PollForm> {
         html! {
-            <div class="poll_form_tabs", >
-                <nav class="poll_form_tabs_nav", >
-                    { basic_tab }
-                    { advanced_tab }
-                </nav>
-                    {
-                        if self.use_advanced {
-                            self.view_advanced_tab()
-                        } else {
-                            self.view_basic_tab()
-                        }
-                    }
-            </div>
-        }
-    }
-
-    fn view_advanced_tab(&self) -> Html<PollForm> {
-        html! {
-            <div class="poll_form_tabs_content poll_form_advanced_tab", >
-                { self.view_num_choices() }
-                { self.view_open_time() }
-                { self.view_close_time() }
-                { self.view_whitelist() }
-            </div>
-        }
-    }
-
-    fn view_basic_tab(&self) -> Html<PollForm> {
-        // Allow multiple choices
-        // Allow writeins
-        // Close after N hours
-        //
-        html! {
-            <div class="poll_form_tabs_content poll_form_basic_tab", >
-                <label>
-                    <input type="checkbox",
-                        onchange=|_| Msg::ToggleAllowMultipleChoices,
-                        checked=self.allow_multiple_choices,
-                    />
-                    { "Allow multiple choices" }
-                </label>
+            <div class="poll_form_basic", >
                 <label>
                     <input type="checkbox",
                         onchange=|_| Msg::ToggleAllowWriteins,
                         checked=self.allow_writeins,
+                        disabled=self.submitting,
                     />
-                    { "Allow write-in choices" }
+                    <span>{ "Allow write-in answers" }</span>
                 </label>
                 <label>
                     <input type="checkbox",
-                        onchange=|_| Msg::ToggleCloseAfterAnHour,
-                        checked=self.close_in_an_hour,
+                        onchange=|_| Msg::ToggleAllowMultipleChoices,
+                        checked=self.allow_multiple_choices,
+                        disabled=self.submitting,
                     />
-                    { "Close in an hour" }
+                    <span>{ "Allow multiple answers" }</span>
                 </label>
             </div>
         }
     }
 
-    fn view_whitelist(&self) -> Html<PollForm> {
-        let input = html! {
-            <input
-                disabled=self.submitting,
-                class="poll_form_input",
-                oninput=|e| Msg::AddListAccount(e.value),
-            />
-        };
-        let help = html! {
-            <p>{ format!("Up to {} accounts. Accounts must exist.", self.global_config.max_account_list_len) }</p>
-        };
-        self.view_field("Whitelist", "whitelist", input, help)
-    }
-
-    fn view_num_choices(&self) -> Html<PollForm> {
-        let options_len = self.action.options.len();
-        let min_choices = self.action.min_choices;
-        let max_choices = self.action.max_choices;
-        let indicators: Vec<usize> = (0..options_len).collect();
-        let input = html! {
-            <>
-                <div class="min_choices_input", >
-                    <input
-                        disabled=self.submitting,
-                        value=min_choices,
-                        oninput=|e| Msg::SetMinChoices(e.value),
-                        min=1,
-                        max=options_len,
-                    />
+    fn status_view(&self) -> Html<Self> {
+        match &self.validation_result {
+            None => html! { <></> },
+            Some(Ok(_)) => html! {
+                <div class="poll_form_status -valid", >
+                    <Svg: symbol=Symbol::CheckCircle, />
                 </div>
-                <div class="num_choices_range", >
-                    <input class="min_choices_range",
-                        disabled=self.submitting,
-                        type="range",
-                        min=1,
-                        max=options_len,
-                        value=min_choices,
-                        oninput=|e| Msg::SetMinChoices(e.value),
-                    />
-                    <input class="max_choices_range",
-                        disabled=self.submitting,
-                        type="range",
-                        min=1,
-                        max=options_len,
-                        value=max_choices,
-                        oninput=|e| Msg::SetMaxChoices(e.value),
-                    />
-                    <div class="num_choices_range_highlighted", ></div>
-                    <div class="num_choices_range_bg", ></div>
-                    { for indicators.iter().map(|_i| html!{
-                        <div class="num_choices_indicator", ></div>
-                    }) }
+            },
+            Some(Err(error)) => html! {
+                <div class="poll_form_status -invalid", >
+                    <div class="message", >{ error }</div>
+                    <Svg: symbol=Symbol::Warning, />
                 </div>
-                <div class="max_choices_input", >
-                    <input
-                        disabled=self.submitting,
-                        value=max_choices,
-                        oninput=|e| Msg::SetMaxChoices(e.value),
-                        min=1,
-                        max=options_len,
-                    />
-                </div>
-            </>
-        };
-        let text = if min_choices == max_choices {
-            if min_choices == options_len {
-                "Voters must rank all options".to_string()
-            } else if min_choices == 1 {
-                "Voters must select one option".to_string()
-            } else {
-                format!("Voters must select {} options", min_choices)
-            }
-        } else {
-            format!(
-                "Voters can select {} to {} options",
-                min_choices, max_choices
-            )
-        };
-        let help = html! { <p>{ text }</p> };
-        self.view_field("Number of allowed choices", "num_choices", input, help)
+            },
+        }
     }
 
-    fn view_open_time(&self) -> Html<PollForm> {
-        let input = html!{
-            <input
-                disabled=self.submitting,
-                type="datetime-local",
-                oninput=|e| Msg::SetOpenTime(e.value),
-            />
-        };
-        let now = (Date::now() / 1000.) as u32;
-        let help = if self.action.open_time <= now {
-            html! { { "Opens immediately" } }
+    fn submit_view(&self) -> Html<PollForm> {
+        let submit_text = if self.submitting {
+            "Creating Poll..."
         } else {
-            html! {
-                <>
-                    { "Opens in " }
-                    <RelativeTime: timestamp=self.action.open_time, simple=true, />
-                </>
-            }
+            "Create Poll"
         };
-        self.view_field("Open Time", "open_time", input, help)
-    }
-
-    fn view_close_time(&self) -> Html<PollForm> {
-        let input = html!{
-            <input
-                disabled=self.submitting,
-                type="datetime-local",
-                oninput=|e| Msg::SetCloseTime(e.value),
-            />
+        let is_invalid = match &self.validation_result {
+            Some(Err(_)) => true,
+            _ => false,
         };
-        let help = if self.action.close_time == 0 {
-            html! { { "Never closes" } }
-        } else {
-            let now = (Date::now() / 1000.) as u32;
-            let start = max(self.action.open_time, now);
-            html! {
-                <>
-                    { "Closes after " }
-                    <RelativeTime:
-                        base_timestamp=Some(start),
-                        timestamp=self.action.close_time,
-                        simple=true,
-                    />
-                </>
-            }
-        };
-        self.view_field("Close Time", "close_time", input, help)
-    }
-
-    fn view_submit_area(&self) -> Html<PollForm> {
-        let is_logged_in = self.creator().is_some();
-        let submit_text = match (is_logged_in, self.submitting) {
-            (false, false) => "Login & Create Poll",
-            (false, true) => "Logging in...",
-            (true, false) => "Create Poll",
-            (true, true) => "Creating...",
-        };
+        let class_modifier = if is_invalid { "-invalid" } else { "" };
         html! {
-            <div class="submit_area", >
-                <div class="submit_bg", >
-                    <button type="submit",
-                        disabled=self.submitting,
-                        onclick=|e| {
-                            e.prevent_default();
-                            Msg::Submit
-                        },
-                    >
-                        { submit_text }
-                    </button>
-                </div>
+            <div class=format!("poll_form_submit {}", class_modifier), >
+                <button class="poll_form_submit_button",
+                    type="submit",
+                    disabled=self.submitting,
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::Submit
+                    },
+                >
+                    { submit_text }
+                </button>
+                { self.status_view() }
             </div>
         }
     }

@@ -13,6 +13,8 @@ pub enum Symbol {
     Exit,
     Gear,
     Head,
+    CheckCircle,
+    Warning,
 }
 
 impl Default for Symbol {
@@ -31,6 +33,8 @@ const CHECKLIST: &str = include_str!("../../static/svg/checklist.svg");
 const EXIT: &str = include_str!("../../static/svg/exit.svg");
 const GEAR: &str = include_str!("../../static/svg/gear2.svg");
 const HEAD: &str = include_str!("../../static/svg/head.svg");
+const CHECK_CIRCLE: &str = include_str!("../../static/svg/check-circle.svg");
+const WARNING: &str = include_str!("../../static/svg/warning.svg");
 
 impl Symbol {
     fn as_str(&self) -> &str {
@@ -44,6 +48,8 @@ impl Symbol {
             Symbol::Exit => EXIT,
             Symbol::Gear => GEAR,
             Symbol::Head => HEAD,
+            Symbol::CheckCircle => CHECK_CIRCLE,
+            Symbol::Warning => WARNING,
         }
     }
 }

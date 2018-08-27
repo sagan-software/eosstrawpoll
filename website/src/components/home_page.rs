@@ -1,5 +1,6 @@
 use components::*;
 use context::Context;
+use stdweb::web::document;
 use traits::Page;
 use yew::prelude::*;
 

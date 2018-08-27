@@ -48,11 +48,11 @@ textarea {
     display: block;
     font-size: 1.3rem;
     transition: 300ms opacity, 300ms box-shadow;
-    box-shadow: inset 0px 0px 0px 1px #cfd4de;
+    box-shadow: inset 0px 0px 0px 2px #cfd4de;
 
     &:focus {
         outline: 0;
-        box-shadow: inset 0px 0px 0px 1px #58698c;
+        box-shadow: inset 0px 0px 0px 3px var(--brand-color);
     }
 
     &[disabled=true] {

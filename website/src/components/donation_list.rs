@@ -105,7 +105,7 @@ impl DonationList {
     }
 
     fn view_item(&self, donation: &Donation) -> Html<Self> {
-        let donor_route = Route::Profile(donation.account.clone());
+        let donor_route = Route::Profile("cf057bbfb726".into(), donation.account.clone());
         let donated = donation.donated as f64;
         html! {
             <li class="donation_list_item", >

@@ -122,8 +122,6 @@ impl App {
     fn view_nav(&self) -> Html<Self> {
         html! {
             <nav class="app_nav", >
-                { self.view_nav_link(Route::Polls, "Polls", "polls", Symbol::Checklist) }
-                { self.view_nav_link(Route::Donations, "Donations", "donations", Symbol::PiggyBank) }
                 <a class="app_link app_link_roadmap",
                     href="https://github.com/sagan-software/eosstrawpoll/projects/1",
                     target="_blank",
@@ -186,7 +184,7 @@ impl App {
         let account_name = identity
             .account_name()
             .unwrap_or_else(|| "Anon".to_string());
-        let profile_route = Route::Profile(account_name.clone());
+        let profile_route = Route::Profile("cf057bbfb726".into(), account_name.clone());
         html! {
             <div class="app_user_actions", >
                 <a
@@ -199,14 +197,6 @@ impl App {
                 >
                     <Svg: symbol=Symbol::Head, />
                     { account_name }
-                </a>
-                <a class="app_user_settings", href="/settings",
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::NavigateTo(Route::Home)
-                    },
-                >
-                    <Svg: symbol=Symbol::Gear, />
                 </a>
                 <button class="app_user_logout",
                     onclick=|_| Msg::Logout,
@@ -264,20 +254,14 @@ impl App {
                     Route::Home => html! {
                         <HomePage: context=&self.context, />
                     },
-                    Route::Polls => html! {
-                        <PollsPage: context=&self.context, />
-                    },
-                    Route::Donations => html! {
-                        <DonationsPage: context=&self.context, />
-                    },
-                    Route::Profile(ref account) => html! {
+                    Route::Profile(ref chain_id_prefix, ref account) => html! {
                         <ProfilePage: context=&self.context, account=account, />
                     },
-                    Route::Poll(ref creator, ref slug) => html! {
-                        <PollPage: context=&self.context, creator=creator, slug=slug, show_results=false, />
+                    Route::Poll(ref chain_id_prefix, ref creator, ref slug) => html! {
+                        <PollVotingPage: context=&self.context, creator=creator, slug=slug, />
                     },
-                    Route::PollResults(ref creator, ref slug) => html! {
-                        <PollPage: context=&self.context, creator=creator, slug=slug, show_results=true, />
+                    Route::PollResults(ref chain_id_prefix, ref creator, ref slug) => html! {
+                        <PollResultsPage: context=&self.context, creator=creator, slug=slug, />
                     },
                 },
                 Err(error) => match error {

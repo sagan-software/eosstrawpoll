@@ -3,6 +3,7 @@ macro_rules! page_view {
     ($($t:ty)*) => ($(
         impl Renderable<$t> for $t {
             fn view(&self) -> Html<Self> {
+                document().set_title(&self.title());
                 html! {
                     <div class=format!("page {}", self.class()), >
                         <header class="page_header", >

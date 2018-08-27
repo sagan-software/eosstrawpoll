@@ -66,7 +66,7 @@ impl Default for CreatePoll {
             creator: "".to_string(),
             slug: "".to_string(),
             title: "".to_string(),
-            options: Vec::new(),
+            options: vec!["".to_string(), "".to_string(), "".to_string()],
             min_choices: 1,
             max_choices: 1,
             max_writeins: 0,

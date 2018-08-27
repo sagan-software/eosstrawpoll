@@ -1,5 +1,6 @@
 use components::PollList;
 use context::Context;
+use stdweb::web::document;
 use traits::Page;
 use yew::prelude::*;
 
@@ -11,6 +12,7 @@ pub struct ProfilePage {
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
     pub context: Context,
+    pub chain_id_prefix: String,
     pub account: String,
 }
 

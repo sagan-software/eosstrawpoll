@@ -5,11 +5,9 @@ use stdweb::web::Location;
 #[derive(Clone, PartialEq)]
 pub enum Route {
     Home,
-    Polls,
-    Donations,
-    Profile(String),
-    Poll(String, String),
-    PollResults(String, String),
+    Profile(String, String),
+    Poll(String, String, String),
+    PollResults(String, String, String),
 }
 
 impl Default for Route {
@@ -24,17 +22,6 @@ pub enum RouteError {
 }
 
 impl Route {
-    pub fn to_string(&self) -> String {
-        match self {
-            Route::Home => "/".into(),
-            Route::Polls => "/-/polls".into(),
-            Route::Donations => "/-/donations".into(),
-            Route::Profile(account) => format!("/{}", account),
-            Route::Poll(creator, slug) => format!("/{}/{}", creator, slug),
-            Route::PollResults(creator, slug) => format!("/{}/{}/results", creator, slug),
-        }
-    }
-
     pub fn from_location(location: &Location) -> Result<Route, RouteError> {
         match location.pathname() {
             Ok(pathname) => Route::from_str(pathname.as_str()),
@@ -46,17 +33,36 @@ impl Route {
         let strs: Vec<&str> = pathnames.iter().map(|s| s.as_str()).collect();
         match &strs[..] {
             [""] => Ok(Route::Home),
-            ["-", path] => match *path {
-                "polls" => Ok(Route::Polls),
-                "donations" => Ok(Route::Donations),
-                _ => Err(RouteError::NotFound(format!("/{}", pathnames.join("/")))),
-            },
-            [account] => Ok(Route::Profile(account.to_string())),
-            [creator, slug] => Ok(Route::Poll(creator.to_string(), slug.to_string())),
-            [creator, slug, "results"] => {
-                Ok(Route::PollResults(creator.to_string(), slug.to_string()))
-            }
+            [chain_id_prefix, account] => Ok(Route::Profile(
+                chain_id_prefix.to_string(),
+                account.to_string(),
+            )),
+            [chain_id_prefix, creator, slug] => Ok(Route::Poll(
+                chain_id_prefix.to_string(),
+                creator.to_string(),
+                slug.to_string(),
+            )),
+            [chain_id_prefix, creator, slug, "results"] => Ok(Route::PollResults(
+                chain_id_prefix.to_string(),
+                creator.to_string(),
+                slug.to_string(),
+            )),
             _ => Err(RouteError::NotFound(format!("/{}", pathnames.join("/")))),
+        }
+    }
+}
+
+impl ToString for Route {
+    fn to_string(&self) -> String {
+        match self {
+            Route::Home => "/".into(),
+            Route::Profile(chain_id_prefix, account) => format!("/{}/{}", chain_id_prefix, account),
+            Route::Poll(chain_id_prefix, creator, slug) => {
+                format!("/{}/{}/{}", chain_id_prefix, creator, slug)
+            }
+            Route::PollResults(chain_id_prefix, creator, slug) => {
+                format!("/{}/{}/{}/results", chain_id_prefix, creator, slug)
+            }
         }
     }
 }
