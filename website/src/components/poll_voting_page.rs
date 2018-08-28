@@ -1,23 +1,21 @@
-use agents::router::{RouterAgent, RouterInput};
+use agents::router::RouterAgent;
 use agents::scatter::{
     self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
 };
+use components::Link;
 use context::Context;
 use failure::Error;
 use route::Route;
 use services::eos::{self, EosService};
-use std::time::Duration;
 use stdweb::traits::IEvent;
 use stdweb::web::document;
 use traits::Page;
 use types::*;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
-use yew::services::{IntervalService, Task};
 
 pub struct PollVotingPage {
     eos: EosService,
-    router: Box<Bridge<RouterAgent<()>>>,
     context: Context,
     task: Option<FetchTask>,
     poll: Option<Result<Poll, Error>>,
@@ -31,8 +29,6 @@ pub struct PollVotingPage {
     writein_input: String,
     submitting: bool,
     link: ComponentLink<PollVotingPage>,
-    interval_service: IntervalService,
-    interval_task: Option<Box<Task>>,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -44,15 +40,12 @@ pub struct Props {
 }
 
 pub enum Msg {
-    Ignore,
-    NavigateTo(Route),
     Polls(Result<eos::TableRows<Poll>, Error>),
     Scatter(ScatterOutput),
     ToggleChoice(Choice),
     SetWriteinInput(String),
     AddWritein,
     Vote,
-    FetchPolls,
 }
 
 impl Component for PollVotingPage {
@@ -60,18 +53,14 @@ impl Component for PollVotingPage {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(|_| Msg::Ignore);
-        let router = RouterAgent::bridge(callback);
         let creator = props.creator;
 
         let callback = link.send_back(Msg::Scatter);
-        let mut scatter_agent = ScatterAgent::bridge(callback);
-        scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
+        let scatter_agent = ScatterAgent::new("eosstrawpoll", 10000, callback);
 
         let context = props.context;
         let mut poll_page = PollVotingPage {
             eos: EosService::new(),
-            router,
             context,
             task: None,
             poll: None,
@@ -85,8 +74,6 @@ impl Component for PollVotingPage {
             writein_input: "".to_string(),
             submitting: false,
             link,
-            interval_service: IntervalService::new(),
-            interval_task: None,
         };
 
         poll_page.fetch_poll();
@@ -95,12 +82,6 @@ impl Component for PollVotingPage {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Ignore => false,
-            Msg::NavigateTo(route) => {
-                let url = route.to_string();
-                self.router.send(RouterInput::ChangeRoute(url, ()));
-                false
-            }
             Msg::Polls(result) => {
                 self.poll = match result {
                     Ok(table) => match table.rows.first() {
@@ -152,7 +133,9 @@ impl Component for PollVotingPage {
                                 self.creator.clone(),
                                 self.slug.clone(),
                             );
-                            self.update(Msg::NavigateTo(route))
+                            let url = route.to_string();
+                            RouterAgent::redirect(url);
+                            true
                         } else {
                             true
                         }
@@ -202,10 +185,6 @@ impl Component for PollVotingPage {
 
                 self.scatter_agent
                     .send(ScatterInput::PushActions(network, config, actions));
-                true
-            }
-            Msg::FetchPolls => {
-                self.fetch_poll();
                 true
             }
             Msg::SetWriteinInput(input) => {
@@ -417,22 +396,14 @@ impl PollVotingPage {
                         { self.vote_text() }
                     </button>
                     <p>{ select_text }</p>
-                    <a
-                        href=results.to_string(),
-                        onclick=|e| {
-                            e.prevent_default();
-                            Msg::NavigateTo(results.clone())
-                        },
-                    >
-                        { "View results" }
-                    </a>
+                    <Link: route=results, text="View results", />
                 </div>
             </>
         }
     }
 
     fn view_writein_input(&self, poll: &Poll) -> Html<Self> {
-        if poll.max_writeins <= 0 {
+        if poll.max_writeins == 0 {
             return html! { <></> };
         }
         html! {

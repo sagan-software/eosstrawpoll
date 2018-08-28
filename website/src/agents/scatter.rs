@@ -58,6 +58,7 @@ impl Agent for ScatterAgent {
             ScatterInput::Connect(appname, timeout) => {
                 if self.scatter_service.is_some() {
                     self.link.response(who, ScatterOutput::Connected(Ok(())));
+                    self.handle(ScatterInput::CurrentIdentity, who);
                 } else {
                     let callback = self.link.send_back(ScatterMsg::Connected);
                     ScatterService::connect(appname, timeout, callback);
@@ -139,12 +140,12 @@ impl Agent for ScatterAgent {
 
 impl ScatterAgent {
     pub fn new(
-        appname: String,
+        appname: &str,
         timeout: u32,
         callback: Callback<ScatterOutput>,
     ) -> Box<Bridge<ScatterAgent>> {
         let mut scatter = ScatterAgent::bridge(callback);
-        scatter.send(ScatterInput::Connect(appname, timeout));
+        scatter.send(ScatterInput::Connect(appname.to_string(), timeout));
         scatter
     }
 }

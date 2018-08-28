@@ -4,14 +4,14 @@ use stdweb::traits::IEvent;
 use yew::prelude::*;
 
 pub struct Link {
-    router: Box<Bridge<RouterAgent<()>>>,
+    router: Box<Bridge<RouterAgent>>,
     route: Route,
     text: String,
     class: String,
 }
 
 pub enum Msg {
-    Router(RouterOutput<()>),
+    Router(RouterOutput),
     NavigateTo,
 }
 
@@ -41,7 +41,7 @@ impl Component for Link {
             Msg::Router(_output) => true,
             Msg::NavigateTo => {
                 let url = self.route.to_string();
-                self.router.send(RouterInput::ChangeRoute(url, ()));
+                self.router.send(RouterInput::ChangeRoute(url));
                 false
             }
         }

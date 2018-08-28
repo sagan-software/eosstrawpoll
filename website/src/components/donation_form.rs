@@ -37,8 +37,7 @@ impl Component for DonationForm {
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let api_config = props.context.api_config();
         let api = ApiAgent::new(api_config, link.send_back(Msg::Api));
-        let scatter_agent =
-            ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
+        let scatter_agent = ScatterAgent::new("eosstrawpoll", 10000, link.send_back(Msg::Scatter));
         DonationForm {
             amount: 0.,
             submitting: false,
@@ -115,9 +114,6 @@ impl Component for DonationForm {
                     true
                 }
                 ScatterOutput::Connected(result) => {
-                    if result.is_ok() {
-                        self.scatter_agent.send(ScatterInput::CurrentIdentity);
-                    }
                     self.scatter_connected = Some(result);
                     true
                 }
@@ -148,7 +144,7 @@ impl Renderable<DonationForm> for DonationForm {
             <form class="donation_form", >
                 <h2>{ "Support Development" }</h2>
                 <p>
-                    { "Donations help cover development costs and fund new features. Thank you for your support!" }
+                    { "Donations help cover development costs and fund new features. Thank you!" }
                 </p>
                 <div class="donation_input", >
                     <input

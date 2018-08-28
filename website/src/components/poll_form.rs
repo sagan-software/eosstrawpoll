@@ -1,5 +1,5 @@
 use agents::api::*;
-use agents::router::{RouterAgent, RouterInput, RouterOutput};
+use agents::router::RouterAgent;
 use agents::scatter::{
     self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
 };
@@ -19,8 +19,6 @@ pub struct PollForm {
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
-    pushed_poll: Option<Result<scatter::PushedTransaction, ScatterError>>,
-    router: Box<Bridge<RouterAgent<()>>>,
     global_config: GlobalConfig,
     _api: Box<Bridge<ApiAgent>>,
     use_advanced: bool,
@@ -34,7 +32,6 @@ pub struct PollForm {
 pub enum Msg {
     NoOp,
     Scatter(ScatterOutput),
-    Router(RouterOutput<()>),
     Api(ApiOutput),
     Submit,
     SetTitle(String),
@@ -46,9 +43,6 @@ pub enum Msg {
     // Basic options
     ToggleAllowMultipleChoices,
     ToggleAllowWriteins,
-
-    // Advanced options
-    ToggleAdvanced,
 }
 
 #[derive(PartialEq, Clone, Default, Debug)]
@@ -67,9 +61,6 @@ impl Component for PollForm {
         let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
         api.send(ApiInput::GetGlobalConfig);
 
-        let callback = link.send_back(Msg::Router);
-        let router = RouterAgent::bridge(callback);
-
         PollForm {
             action: CreatePoll::default(),
             submitting: false,
@@ -77,8 +68,6 @@ impl Component for PollForm {
             scatter_agent,
             scatter_connected: None,
             scatter_identity: None,
-            pushed_poll: None,
-            router,
             global_config: GlobalConfig::default(),
             _api: api,
             validation_result: None,
@@ -90,7 +79,6 @@ impl Component for PollForm {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Router(_output) => false,
             Msg::NoOp => false,
             Msg::SetTitle(value) => {
                 self.action.title = value;
@@ -221,7 +209,6 @@ impl Component for PollForm {
                 }
                 ScatterOutput::PushedActions(result) => {
                     if self.submitting {
-                        self.pushed_poll = Some(result.clone());
                         self.submitting = false;
                         match (result, self.creator()) {
                             (Ok(_), Some(creator)) => {
@@ -231,7 +218,8 @@ impl Component for PollForm {
                                     self.action.slug.clone(),
                                 );
                                 let url = route.to_string();
-                                self.router.send(RouterInput::ChangeRoute(url, ()));
+                                RouterAgent::redirect(url);
+                                // self.router.send(RouterInput::ChangeRoute(url, ()));
                             }
                             (Ok(_), None) => {
                                 warn!("Something strange happened: a poll was successfully submitted but no creator was found.");
@@ -255,10 +243,6 @@ impl Component for PollForm {
                 }
                 _ => false,
             },
-            Msg::ToggleAdvanced => {
-                self.use_advanced = !self.use_advanced;
-                true
-            }
             Msg::ToggleAllowMultipleChoices => {
                 self.allow_multiple_choices = !self.allow_multiple_choices;
                 if self.validation_result.is_some() {

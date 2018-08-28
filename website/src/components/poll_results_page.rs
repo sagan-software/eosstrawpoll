@@ -5,7 +5,6 @@ use failure::Error;
 use route::Route;
 use services::eos::{self, EosService};
 use std::time::Duration;
-use stdweb::traits::IEvent;
 use stdweb::web::document;
 use traits::Page;
 use types::*;
@@ -90,33 +89,27 @@ impl Component for PollResultsPage {
                     let task = self.interval_service.spawn(Duration::from_secs(1), cb);
                     self.interval_task = Some(Box::new(task));
                 }
-
-                true
             }
             Msg::Scatter(output) => match output {
                 ScatterOutput::GotIdentity(result) => {
-                    let is_ok = result.is_ok();
                     self.scatter_identity = Some(result);
-                    true
                 }
                 ScatterOutput::ForgotIdentity(_result) => {
                     self.scatter_identity = None;
-                    true
                 }
                 ScatterOutput::Connected(result) => {
                     if result.is_ok() {
                         self.scatter_agent.send(ScatterInput::CurrentIdentity);
                     }
                     self.scatter_connected = Some(result);
-                    true
                 }
-                ScatterOutput::PushedActions(_) => true,
+                ScatterOutput::PushedActions(_) => (),
             },
             Msg::FetchPolls => {
                 self.fetch_poll();
-                true
             }
-        }
+        };
+        true
     }
 
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {

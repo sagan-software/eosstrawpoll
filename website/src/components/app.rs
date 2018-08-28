@@ -8,7 +8,7 @@ use yew::prelude::*;
 
 pub struct App {
     route: Option<Result<Route, RouteError>>,
-    router: Box<Bridge<RouterAgent<()>>>,
+    router: Box<Bridge<RouterAgent>>,
     scatter: Box<Bridge<ScatterAgent>>,
     context: Context,
     scatter_connected: Option<Result<(), ScatterError>>,
@@ -16,7 +16,7 @@ pub struct App {
 }
 
 pub enum Msg {
-    Router(RouterOutput<()>),
+    Router(RouterOutput),
     Scatter(ScatterOutput),
     NavigateTo(Route),
     Login,
@@ -47,7 +47,7 @@ impl Component for App {
         match msg {
             Msg::NavigateTo(route) => {
                 let url = route.to_string();
-                self.router.send(RouterInput::ChangeRoute(url, ()));
+                self.router.send(RouterInput::ChangeRoute(url));
                 false
             }
             Msg::Router(output) => {

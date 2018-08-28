@@ -116,7 +116,7 @@ struct poll
 
     double calculate_popularity(double popularity_gravity) const
     {
-        const double elapsed_seconds = now() - open_time;
+        const double elapsed_seconds = now() - std::max(open_time, create_time);
         const double elapsed_hours = elapsed_seconds / 60.0 / 60.0;
         return votes.size() / std::pow(elapsed_hours + 2, popularity_gravity);
     }
