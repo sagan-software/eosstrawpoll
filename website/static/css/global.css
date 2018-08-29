@@ -19,26 +19,6 @@ a:hover {
     color: #0b2c6d;
 }
 
-button {
-    background-color: var(--brand-color);
-    border-width: 0;
-    border-radius: var(--border-radius);
-    color: #fff;
-    cursor: pointer;
-    outline: 0;
-    font-weight: 700;
-    transition: 300ms background-color;
-
-    &:hover {
-        background-color: #003296;
-    }
-
-    &[disabled=true] {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-}
-
 input:not([type=range]),
 textarea {
     border: 0;
@@ -58,6 +38,56 @@ textarea {
     &[disabled=true] {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+}
+
+input[type=checkbox],
+input[type=radio] {
+    display: block;
+    position: relative;
+    height: calc(var(--spacing) * 2);
+    width: calc(var(--spacing) * 2);
+    margin-right: var(--spacing);
+    appearance: none;
+
+    &:after {
+        display: block;
+        content: '';
+        background: #fff;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: var(--border-radius);
+        box-shadow: inset 0px 0px 0px 2px #cfd4de;
+        z-index: 2;
+    }
+
+    &:before {
+        content: '';
+        background: var(--brand-color);
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: calc(var(--spacing) * 2 - 6px);
+        height: calc(var(--spacing) * 2 - 6px);
+        z-index: 3;
+        transform: scale(0);
+        transition: 300ms transform;
+    }
+
+    &:checked {
+        &:after {
+            box-shadow: inset 0px 0px 0px 2px var(--brand-color);
+        }
+        &:before {
+            transform: scale(1);
+        }
+    }
+
+    &[disabled] + * {
+        opacity: 0.5;
     }
 }
 

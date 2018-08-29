@@ -2,7 +2,6 @@
 
     & aside {
         padding: 0 calc(var(--spacing) * 3);
-        transform: translateY(-10rem);
 
         & ol,
         & ul {

@@ -4,8 +4,14 @@ macro_rules! page_view {
         impl Renderable<$t> for $t {
             fn view(&self) -> Html<Self> {
                 document().set_title(&self.title());
+                let state_class = match self.get_state() {
+                    PageState::Loading => "page_loading",
+                    PageState::Loaded => "page_loaded",
+                    PageState::Error => "page_error",
+                };
+                let class = format!("page {} {}", state_class, self.class());
                 html! {
-                    <div class=format!("page {}", self.class()), >
+                    <div class=class, >
                         <header class="page_header", >
                             <div class="app_container", >
                                 <h1 class="page_title", >

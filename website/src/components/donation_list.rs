@@ -28,7 +28,7 @@ impl Component for DonationList {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let api_config = props.context.api_config();
         let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
         api.send(ApiInput::GetNewDonations);

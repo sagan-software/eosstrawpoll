@@ -53,22 +53,19 @@
         grid-column: 2 / span 3;
         display: flex;
         align-items: center;
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         justify-content: space-between;
 
-        & button {
-            display: flex;
-            align-items: center;
-            min-height: 5rem;
-            padding: 0 calc(var(--spacing) * 3);
+        & .btn {
+            order: 1;
+        }
 
-            &[disabled] {
-                background-color: #a1a5ad;
-                cursor: not-allowed;
-            }
+        & p {
+            order: 2;
         }
 
         & a {
+            order: 3;
             border: 1px solid var(--border-color);
             min-height: 5rem;
             padding: 0 calc(var(--spacing) * 3);
@@ -80,19 +77,6 @@
     }
 }
 
-.poll_page_vote {
-
-    & .poll_option {
-        background-color: #eaecf1;
-        cursor: pointer;
-        transition: 300ms background-color;
-
-        &:hover {
-            background-color: #d4d8e2;
-        }
-    }
-
-}
 
 .poll_page_results {
     cursor: pointer;

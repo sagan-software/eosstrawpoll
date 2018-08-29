@@ -2,6 +2,7 @@ use agents::api::*;
 use agents::scatter::{
     self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
 };
+use components::*;
 use context::Context;
 use stdweb::traits::IEvent;
 use types::Transfer;
@@ -34,7 +35,7 @@ impl Component for DonationForm {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let api_config = props.context.api_config();
         let api = ApiAgent::new(api_config, link.send_back(Msg::Api));
         let scatter_agent = ScatterAgent::new("eosstrawpoll", 10000, link.send_back(Msg::Scatter));
@@ -141,7 +142,12 @@ impl Component for DonationForm {
 impl Renderable<DonationForm> for DonationForm {
     fn view(&self) -> Html<Self> {
         html! {
-            <form class="donation_form", >
+            <form class="donation_form",
+                onsubmit=|e| {
+                    e.prevent_default();
+                    Msg::Submit
+                },
+            >
                 <h2>{ "Support Development" }</h2>
                 <p>
                     { "Donations help cover development costs and fund new features. Thank you!" }
@@ -153,15 +159,12 @@ impl Renderable<DonationForm> for DonationForm {
                         disabled=self.submitting,
                         value=(if self.amount == 0. { "".to_string() } else { format!("{}", self.amount) }),
                     />
-                    <button type="submit",
+                    <Button:
+                        size=Size::Small,
+                        type_="submit",
                         disabled=self.submitting,
-                        onclick=|e| {
-                            e.prevent_default();
-                            Msg::Submit
-                        },
-                    >
-                        { "Donate" }
-                    </button>
+                        text="Donate".to_string(),
+                    />
                 </div>
             </form>
         }

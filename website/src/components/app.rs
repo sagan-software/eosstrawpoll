@@ -27,7 +27,7 @@ impl Component for App {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let callback = link.send_back(Msg::Router);
         let mut router = RouterAgent::bridge(callback);
         router.send(RouterInput::GetCurrentRoute);
@@ -171,7 +171,7 @@ impl App {
     fn view_user_none(&self) -> Html<Self> {
         html! {
             <button
-                class="app_login",
+                class="app_login btn btn-primary btn-lg",
                 onclick=|_| Msg::Login,
             >
                 { "Login with " }
@@ -255,13 +255,27 @@ impl App {
                         <HomePage: context=&self.context, />
                     },
                     Route::Profile(ref chain_id_prefix, ref account) => html! {
-                        <ProfilePage: context=&self.context, account=account, />
+                        <ProfilePage:
+                            context=&self.context,
+                            chain_id_prefix=chain_id_prefix,
+                            account=account,
+                        />
                     },
                     Route::Poll(ref chain_id_prefix, ref creator, ref slug) => html! {
-                        <PollVotingPage: context=&self.context, creator=creator, slug=slug, />
+                        <PollVotingPage:
+                            context=&self.context,
+                            chain_id_prefix=chain_id_prefix,
+                            creator=creator,
+                            slug=slug,
+                        />
                     },
                     Route::PollResults(ref chain_id_prefix, ref creator, ref slug) => html! {
-                        <PollResultsPage: context=&self.context, creator=creator, slug=slug, />
+                        <PollResultsPage:
+                            context=&self.context,
+                            chain_id_prefix=chain_id_prefix,
+                            creator=creator,
+                            slug=slug,
+                        />
                     },
                 },
                 Err(error) => match error {

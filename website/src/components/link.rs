@@ -26,7 +26,7 @@ impl Component for Link {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let router = RouterAgent::bridge(link.send_back(Msg::Router));
         Link {
             router,

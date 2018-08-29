@@ -96,9 +96,10 @@
 
 .app_user {
     grid-column: 5;
-    font-size: 1.4rem;
+    font-size: 1.6rem;
     align-items: center;
     display: flex;
+    padding: 0 calc(var(--spacing) * 2);
 
     & > * {
         width: 100%;
@@ -108,44 +109,30 @@
 }
 
 .app_login {
-    font-size: 1.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: normal;
-    height: 4rem;
-    margin: 0 calc(var(--spacing) * 2);
 
     & svg {
         fill: currentColor;
-        height: 1.9rem;
+        height: 2rem;
+        width: 6rem;
     }
-
 }
 
 .app_user_actions {
     display: flex;
-    height: 4rem;
-    margin: 0 calc(var(--spacing) * 2);
+    height: 5rem;
     border-radius: var(--border-radius);
     font-size: 1.5rem;
     overflow: hidden;
+    border: 2px solid #ccc;
 
     & > * {
         padding: 0 calc(var(--spacing) * 2);
         height: 100%;
         display: flex;
         align-items: center;
-    }
-
-    & a {
-        background-color: var(--brand-color);
-        color: #fff;
-        transition: 300ms background-color;
-
-        &:hover {
-            background-color: #003296;
-        }
     }
 
     & svg {
@@ -171,14 +158,12 @@
         }
     }
 
-    & .app_user_settings {
-        order: 2;
-        border-left: 1px solid #003296;
-    }
-
     & .app_user_logout {
         order: 3;
-        border-left: 1px solid #003296;
+        border: 0;
+        border-left: 2px solid #ccc;
+        cursor: pointer;
+        outline: 0;
     }
 
 }

@@ -2,14 +2,14 @@ use agents::router::RouterAgent;
 use agents::scatter::{
     self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
 };
-use components::Link;
+use components::*;
 use context::Context;
 use failure::Error;
 use route::Route;
 use services::eos::{self, EosService};
 use stdweb::traits::IEvent;
 use stdweb::web::document;
-use traits::Page;
+use traits::{Page, PageState};
 use types::*;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
@@ -21,11 +21,13 @@ pub struct PollVotingPage {
     poll: Option<Result<Poll, Error>>,
     creator: String,
     slug: String,
+    chain_id_prefix: String,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
     pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
     choices: Vec<Choice>,
+    available_choices: Vec<(String, Choice)>,
     writein_input: String,
     submitting: bool,
     link: ComponentLink<PollVotingPage>,
@@ -52,28 +54,26 @@ impl Component for PollVotingPage {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let creator = props.creator;
-
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let callback = link.send_back(Msg::Scatter);
         let scatter_agent = ScatterAgent::new("eosstrawpoll", 10000, callback);
-
-        let context = props.context;
         let mut poll_page = PollVotingPage {
             eos: EosService::new(),
-            context,
+            context: props.context,
             task: None,
             poll: None,
-            slug: props.slug.clone(),
-            creator: creator.clone(),
+            slug: props.slug,
+            creator: props.creator,
             scatter_agent,
             scatter_connected: None,
             scatter_identity: None,
             pushed: None,
             choices: Vec::new(),
+            available_choices: Vec::new(),
             writein_input: "".to_string(),
             submitting: false,
             link,
+            chain_id_prefix: props.chain_id_prefix,
         };
 
         poll_page.fetch_poll();
@@ -146,16 +146,7 @@ impl Component for PollVotingPage {
             },
             Msg::ToggleChoice(choice) => {
                 info!("CHOICES: {:#?}, CHOICE: {:#?}", self.choices, choice);
-                if self.choices.contains(&choice) {
-                    self.choices.retain(|c| choice != *c);
-                } else {
-                    self.choices.push(choice);
-                }
-                if let Some(Ok(poll)) = &self.poll {
-                    if self.choices.len() > poll.max_choices {
-                        self.choices.remove(0);
-                    }
-                }
+                self.toggle_choice(choice);
                 true
             }
             Msg::Vote => {
@@ -171,6 +162,18 @@ impl Component for PollVotingPage {
                         return true;
                     }
                 };
+
+                let poll = match &self.poll {
+                    Some(Ok(poll)) => poll,
+                    _ => return true,
+                };
+
+                if is_only_one_writein(poll) {
+                    self.choices = vec![Choice {
+                        option_index: -1,
+                        writein: self.writein_input.clone(),
+                    }];
+                }
 
                 let network = self.context.network();
                 let config = self.context.eos_config();
@@ -192,8 +195,14 @@ impl Component for PollVotingPage {
                 true
             }
             Msg::AddWritein => {
-                self.choices
-                    .push(Choice::from_writein(self.writein_input.clone()));
+                let choice = Choice::from_writein(self.writein_input.clone());
+                self.toggle_choice(choice.clone());
+
+                let available_choice = (self.writein_input.clone(), choice.clone());
+                if !self.available_choices.contains(&available_choice) {
+                    self.available_choices.push(available_choice);
+                }
+
                 self.writein_input = "".to_string();
                 true
             }
@@ -218,14 +227,31 @@ impl Page for PollVotingPage {
     fn class(&self) -> String {
         let state_modifier = match &self.poll {
             Some(result) => match result {
-                Ok(_) => "loaded",
-                Err(_) => "error",
+                Ok(poll) => {
+                    if is_only_one_writein(poll) {
+                        "-loaded -only-one-writein"
+                    } else {
+                        ""
+                    }
+                }
+                Err(_) => "",
             },
-            None => "loading",
+            None => "",
         };
 
-        format!("poll_page poll_page_vote poll_page_{}", state_modifier)
+        format!("poll_page poll_page_vote {}", state_modifier)
     }
+
+    fn get_state(&self) -> PageState {
+        match &self.poll {
+            Some(result) => match result {
+                Ok(_) => PageState::Loaded,
+                Err(_) => PageState::Error,
+            },
+            None => PageState::Loading,
+        }
+    }
+
     fn content(&self) -> Html<Self> {
         match &self.poll {
             Some(result) => match result {
@@ -240,6 +266,20 @@ impl Page for PollVotingPage {
 page_view! { PollVotingPage }
 
 impl PollVotingPage {
+    fn toggle_choice(&mut self, choice: Choice) {
+        if self.choices.contains(&choice) {
+            self.choices.retain(|c| choice != *c);
+        } else {
+            self.choices.push(choice);
+        }
+
+        if let Some(Ok(poll)) = &self.poll {
+            if self.choices.len() > poll.max_choices {
+                self.choices.remove(0);
+            }
+        }
+    }
+
     fn fetch_poll(&mut self) {
         let params = eos::TableRowsParams {
             scope: self.creator.clone(),
@@ -292,17 +332,32 @@ impl PollVotingPage {
     }
 
     fn load_choices(&mut self) {
+        let poll = match &self.poll {
+            Some(Ok(poll)) => poll,
+            _ => return,
+        };
+
+        self.available_choices = poll
+            .options
+            .iter()
+            .enumerate()
+            .map(|(i, label)| {
+                (
+                    label.clone(),
+                    Choice {
+                        option_index: i as i16,
+                        writein: "".into(),
+                    },
+                )
+            }).collect();
+
         let voter = match self.voter() {
             Some(voter) => voter,
             None => return,
         };
 
-        let votes = match &self.poll {
-            Some(Ok(poll)) => &poll.votes,
-            _ => return,
-        };
-
-        let filtered_votes = votes
+        let filtered_votes = poll
+            .votes
             .iter()
             .filter(|vote| vote.voter == voter)
             .cloned()
@@ -310,6 +365,21 @@ impl PollVotingPage {
 
         if let Some(vote) = filtered_votes.first() {
             self.choices = vote.choices.to_owned();
+
+            if is_only_one_writein(poll) {
+                self.writein_input = self
+                    .choices
+                    .first()
+                    .map(|c| c.writein.clone())
+                    .unwrap_or_else(|| "".to_string());
+            } else {
+                for choice in &self.choices {
+                    if !choice.writein.is_empty() {
+                        self.available_choices
+                            .push((choice.writein.clone(), choice.clone()));
+                    }
+                }
+            }
         }
     }
 
@@ -329,39 +399,29 @@ impl PollVotingPage {
         }
     }
 
-    fn vote_text(&self) -> &str {
+    fn submit_text(&self) -> &str {
         match (self.submitting, self.has_voted()) {
-            (false, false) => "Vote",
-            (true, false) => "Voting...",
-            (false, true) => "Change Vote",
-            (true, true) => "Changing Vote...",
+            (false, false) => "Reply",
+            (true, false) => "Replying...",
+            (false, true) => "Change Reply",
+            (true, true) => "Changing Reply...",
         }
     }
 
     fn view_ok(&self, poll: &Poll) -> Html<Self> {
-        //
+        // Possible scenarios:
+        //  - Only 1 pre-filled choice
+        //  - Only 1 writein answer
+        //  - Multiple pre-filled choices and 1 writein option
+        //  - Multiple pre-filled choices and multiple writein options
+        //  - 1 pre-filled choice and 1 writein option
+        //  - 1 pre-filled choice and multiple writein options
 
         let results = Route::PollResults(
-            "cf057bbfb726".into(),
+            self.chain_id_prefix.clone(),
             poll.creator.clone(),
             poll.slug.clone(),
         );
-        let num_options = poll.options.len();
-        let num_choices_text = match (
-            poll.min_choices,
-            poll.max_choices,
-            poll.min_choices == poll.max_choices,
-            poll.max_choices == num_options,
-        ) {
-            (1, 1, _, _) => "choose one option".to_string(),
-            (_, _, true, true) => "rank all options".to_string(),
-            (_, _, true, false) => format!("choose and rank {} options", poll.min_choices),
-            (_, _, false, _) => format!(
-                "choose and rank {} to {} options",
-                poll.min_choices, poll.max_choices
-            ),
-        };
-        let choose_one = poll.min_choices == 1 && poll.max_choices == 1;
         let select_text = if self.choices.len() < poll.min_choices && !self.choices.is_empty() {
             let diff = poll.min_choices - self.choices.len();
             if diff == 1 {
@@ -372,31 +432,58 @@ impl PollVotingPage {
         } else {
             "".to_string()
         };
-        let mut writeins = self.choices.clone();
-        writeins.retain(|c| !c.writein.is_empty());
+        let inner = if is_only_one_writein(poll) {
+            self.view_only_one_writein()
+        } else {
+            self.view_options(poll)
+        };
+        let can_submit = (self.choices.len() >= poll.min_choices)
+            || (is_only_one_writein(poll) && !self.writein_input.trim().is_empty());
+        html! {
+            <form class="poll_voting_form", onsubmit=|e| {
+                e.prevent_default();
+                Msg::Vote
+            }, >
+                // { self.view_options(poll) }
+                // { self.view_writein_input(poll) }
+                { inner }
+                <div class="poll_actions", >
+                    <Button:
+                        size=Size::Large,
+                        disabled=!can_submit || self.submitting,
+                        type_="submit",
+                        text=self.submit_text(),
+                    />
+                    <p>{ select_text }</p>
+                    <Link: route=results, text="View results", />
+                </div>
+            </form>
+        }
+    }
+
+    fn view_only_one_writein(&self) -> Html<Self> {
+        html! {
+            <>
+                <input class="poll_writein_input",
+                    autofocus=true,
+                    oninput=|e| Msg::SetWriteinInput(e.value),
+                    value=&self.writein_input,
+                    placeholder="Write in your answer",
+                />
+            </>
+        }
+    }
+
+    fn view_options(&self, poll: &Poll) -> Html<Self> {
+        let choose_one = poll.min_choices == 1 && poll.max_choices == 1;
+
         html! {
             <>
                 <p class="poll_num_choices", >
-                    { format!("Please {}:", num_choices_text) }
+                    { format!("Please {}:", vote_help_text(poll)) }
                 </p>
                 <div class="poll_options", >
-                    { for poll.options.iter().enumerate().map(|(i, option)| self.view_option(i as i16, option, choose_one)) }
-                    { for writeins.iter().map(|c| self.view_option(-1, &c.writein, choose_one)) }
-                </div>
-                { self.view_writein_input(poll) }
-                <div class="poll_actions", >
-                    <button
-                        disabled=self.choices.len() < poll.min_choices,
-                        type="submit",
-                        onclick=|e| {
-                            e.prevent_default();
-                            Msg::Vote
-                        },
-                    >
-                        { self.vote_text() }
-                    </button>
-                    <p>{ select_text }</p>
-                    <Link: route=results, text="View results", />
+                    { for self.available_choices.iter().map(|(label, choice)| self.view_option(label, (*choice).clone(), choose_one)) }
                 </div>
             </>
         }
@@ -411,7 +498,7 @@ impl PollVotingPage {
                 <input class="poll_writein_input",
                     oninput=|e| Msg::SetWriteinInput(e.value),
                     value=&self.writein_input,
-                    placeholder="Write in your own answer",
+                    placeholder="Write in your answer",
                 />
                 <button class="poll_writein_button",
                     onclick=|e| {
@@ -425,11 +512,7 @@ impl PollVotingPage {
         }
     }
 
-    fn view_option(&self, index: i16, option: &str, choose_one: bool) -> Html<Self> {
-        let choice = Choice {
-            option_index: index,
-            writein: "".to_string(),
-        };
+    fn view_option(&self, label: &str, choice: Choice, choose_one: bool) -> Html<Self> {
         let is_selected = self.choices.contains(&choice);
         let input = if choose_one {
             html! {
@@ -453,9 +536,35 @@ impl PollVotingPage {
             <label class="poll_option", >
                 { input }
                 <span class="poll_option_text", >
-                    { option }
+                    { label }
                 </span>
             </label>
         }
+    }
+}
+
+fn is_only_one_writein(poll: &Poll) -> bool {
+    poll.options.is_empty() && poll.max_writeins == 1
+}
+
+fn vote_help_text(poll: &Poll) -> String {
+    if is_only_one_writein(poll) {
+        return "write in your answer".to_string();
+    }
+
+    let num_options = poll.options.len();
+    match (
+        poll.min_choices,
+        poll.max_choices,
+        poll.min_choices == poll.max_choices,
+        poll.max_choices == num_options,
+    ) {
+        (1, 1, _, _) => "choose one option".to_string(),
+        (_, _, true, true) => "rank all options".to_string(),
+        (_, _, true, false) => format!("choose and rank {} options", poll.min_choices),
+        (_, _, false, _) => format!(
+            "choose and rank {} to {} options",
+            poll.min_choices, poll.max_choices
+        ),
     }
 }

@@ -34,8 +34,15 @@ where
     }
 }
 
+pub enum PageState {
+    Loading,
+    Error,
+    Loaded,
+}
+
 pub trait Page: Component {
     fn title(&self) -> String;
     fn class(&self) -> String;
     fn content(&self) -> Html<Self>;
+    fn get_state(&self) -> PageState;
 }

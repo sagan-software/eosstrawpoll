@@ -154,31 +154,29 @@
         display: flex;
         align-items: center;
 
-        &.-invalid .poll_form_submit_button {
-            background-color: #d23636;
-            pointer-events: none;
+        & .btn {
+            order: 1;
+            opacity: 1;
         }
     }
 
-    & .poll_form_submit_button {
-        height: 5rem;
-        display: block;
-        font-size: 2rem;
-        font-weight: normal;
-        margin: var(--spacing) 0;
-        padding: 0 calc(var(--spacing) * 3);
-    }
-
     & .poll_form_status {
+        order: 2;
+        text-align: left;
+        justify-content: flex-end;
         font-size: 1.6rem;
         margin-left: calc(var(--spacing) * 2);
         display: flex;
         align-items: center;
         flex-direction: row-reverse;
+        transition: 300ms color;
+        will-change: color;
 
         & svg {
             fill: currentColor;
             margin-right: var(--spacing);
+            transition: 300ms fill;
+            will-change: fill;
         }
 
         &.-valid {

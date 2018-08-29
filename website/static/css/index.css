@@ -6,7 +6,9 @@
 @import './components/poll_form';
 @import './components/poll_list';
 @import './components/poll_page';
+@import './components/poll_voting_page';
 @import './components/home_page';
+@import './components/inputs';
 @import './components/new_donations';
 @import './components/top_donors';
 @import './components/spinner';

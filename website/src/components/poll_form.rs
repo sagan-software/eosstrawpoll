@@ -3,7 +3,7 @@ use agents::router::RouterAgent;
 use agents::scatter::{
     self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
 };
-use components::{Svg, Symbol};
+use components::*;
 use context::Context;
 use route::Route;
 use std::cmp::{max, min};
@@ -54,7 +54,7 @@ impl Component for PollForm {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let scatter_agent =
             ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
         let api_config = props.context.api_config();
@@ -273,7 +273,13 @@ impl Component for PollForm {
 impl Renderable<PollForm> for PollForm {
     fn view(&self) -> Html<Self> {
         html! {
-            <form class="poll_form", >
+            <form
+                class="poll_form",
+                onsubmit=|e| {
+                    e.prevent_default();
+                    Msg::Submit
+                },
+            >
                 { self.title_view() }
                 { self.options_view() }
                 { self.basic_view() }
@@ -459,16 +465,14 @@ impl PollForm {
         let class_modifier = if is_invalid { "-invalid" } else { "" };
         html! {
             <div class=format!("poll_form_submit {}", class_modifier), >
-                <button class="poll_form_submit_button",
-                    type="submit",
-                    disabled=self.submitting,
-                    onclick=|e| {
-                        e.prevent_default();
-                        Msg::Submit
-                    },
-                >
-                    { submit_text }
-                </button>
+                <Button:
+                    class="poll_form_submit_button",
+                    size=Size::Large,
+                    style=if is_invalid { ButtonStyle::Danger } else { ButtonStyle::Primary },
+                    type_="submit",
+                    disabled=self.submitting || is_invalid,
+                    text=submit_text.to_string(),
+                />
                 { self.status_view() }
             </div>
         }

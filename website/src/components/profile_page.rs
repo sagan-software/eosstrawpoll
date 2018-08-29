@@ -1,7 +1,7 @@
 use components::PollList;
 use context::Context;
 use stdweb::web::document;
-use traits::Page;
+use traits::{Page, PageState};
 use yew::prelude::*;
 
 pub struct ProfilePage {
@@ -41,6 +41,9 @@ impl Page for ProfilePage {
     }
     fn class(&self) -> String {
         "profile_page".to_string()
+    }
+    fn get_state(&self) -> PageState {
+        PageState::Loaded
     }
     fn content(&self) -> Html<Self> {
         html! {

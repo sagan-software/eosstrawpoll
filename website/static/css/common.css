@@ -10,33 +10,21 @@
     line-height: 4rem;
 }
 
-.button {
-
-
-    &.-large {
-
-    }
-
-    &.-small {
-
-    }
-
-    &.-primary {
-
-    }
-
-    &.-secondary {
-
-    }
-
-    &.-danger {
-
-    }
-
-}
-
 .box {
     background-color: #f4f5f7;
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
+}
+
+.page {
+    will-change: opacity;
+    transition: 750ms opacity;
+}
+
+.page_loading {
+    opacity: 0;
+}
+
+.page_loaded {
+    opacity: 1;
 }

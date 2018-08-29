@@ -1,0 +1,36 @@
+.btn {
+    border-width: 0;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    outline: 0;
+    transition: 300ms background-color, 300ms opacity;
+    font-weight: normal;
+    display: block;
+    will-change: background-color, opacity;
+
+
+    &[disabled=true] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.btn-primary {
+    background-color: var(--brand-color);
+    color: #fff;
+
+    &:hover {
+        background-color: #003296;
+    }
+}
+
+.btn-danger {
+    background-color: #d23636;
+    color: #fff;
+}
+
+.btn-lg {
+    height: 5rem;
+    font-size: 2rem;
+    padding: 0 calc(var(--spacing) * 3);
+}

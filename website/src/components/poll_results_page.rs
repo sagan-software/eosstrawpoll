@@ -6,7 +6,7 @@ use route::Route;
 use services::eos::{self, EosService};
 use std::time::Duration;
 use stdweb::web::document;
-use traits::Page;
+use traits::{Page, PageState};
 use types::*;
 use yew::prelude::*;
 use yew::services::fetch::FetchTask;
@@ -45,7 +45,7 @@ impl Component for PollResultsPage {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let creator = props.creator;
 
         let callback = link.send_back(Msg::Scatter);
@@ -128,14 +128,17 @@ impl Page for PollResultsPage {
         }
     }
     fn class(&self) -> String {
-        let state_modifier = match &self.poll {
+        "poll_page poll_page_results".into()
+    }
+
+    fn get_state(&self) -> PageState {
+        match &self.poll {
             Some(result) => match result {
-                Ok(_) => "loaded",
-                Err(_) => "error",
+                Ok(_) => PageState::Loaded,
+                Err(_) => PageState::Error,
             },
-            None => "loading",
-        };
-        format!("poll_page poll_page_results poll_page_{}", state_modifier)
+            None => PageState::Loading,
+        }
     }
 
     fn content(&self) -> Html<Self> {
@@ -258,7 +261,7 @@ impl PollResultsPage {
                     { results_text }
                 </p>
                 <div class="poll_options", >
-                    { for results.iter().map(|(option, percent, votes)| self.view_option_result(option, percent, &votes)) }
+                    { for results.iter().map(|(option, percent, votes)| self.view_option_result(option, *percent, &votes)) }
                 </div>
                 <div class="poll_actions", >
                     <Link: route=vote, text="Vote", />
@@ -270,8 +273,8 @@ impl PollResultsPage {
     fn view_option_result(
         &self,
         option: &str,
-        percent: &f32,
-        votes: &[(String, usize)],
+        percent: f32,
+        _votes: &[(String, usize)],
     ) -> Html<Self> {
         html! {
             <div class="poll_option", >

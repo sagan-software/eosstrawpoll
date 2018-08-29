@@ -1,7 +1,7 @@
 use components::*;
 use context::Context;
 use stdweb::web::document;
-use traits::Page;
+use traits::{Page, PageState};
 use yew::prelude::*;
 
 pub struct HomePage {
@@ -39,6 +39,9 @@ impl Page for HomePage {
     }
     fn class(&self) -> String {
         "home_page".to_string()
+    }
+    fn get_state(&self) -> PageState {
+        PageState::Loaded
     }
     fn content(&self) -> Html<Self> {
         html! {
