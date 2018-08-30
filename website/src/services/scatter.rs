@@ -1,5 +1,8 @@
+use eos::types::*;
+use serde::Serialize;
 use serde_json;
 use stdweb::Value;
+use traits::ToAction;
 use yew::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -47,14 +50,14 @@ impl PartialEq for Network {
 js_serializable!(Network);
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct Account {
-    pub name: String,
+pub struct ScatterAccount {
+    pub name: AccountName,
     pub authority: String,
     pub blockchain: String,
 }
 
-impl PartialEq for Account {
-    fn eq(&self, other: &Account) -> bool {
+impl PartialEq for ScatterAccount {
+    fn eq(&self, other: &ScatterAccount) -> bool {
         self.name == other.name
             && self.authority == other.authority
             && self.blockchain == other.blockchain
@@ -64,16 +67,16 @@ impl PartialEq for Account {
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
-pub struct Identity {
+pub struct ScatterIdentity {
     pub hash: String,
     pub kyc: bool,
     pub name: String,
-    pub public_key: String,
-    pub accounts: Vec<Account>,
+    pub public_key: PublicKey,
+    pub accounts: Vec<ScatterAccount>,
 }
 
-impl Identity {
-    pub fn account_name(&self) -> Option<String> {
+impl ScatterIdentity {
+    pub fn account_name(&self) -> Option<AccountName> {
         match self.accounts.first() {
             Some(account) => Some(account.name.clone()),
             None => None,
@@ -81,8 +84,8 @@ impl Identity {
     }
 }
 
-impl PartialEq for Identity {
-    fn eq(&self, other: &Identity) -> bool {
+impl PartialEq for ScatterIdentity {
+    fn eq(&self, other: &ScatterIdentity) -> bool {
         self.hash == other.hash
             && self.kyc == other.kyc
             && self.name == other.name
@@ -95,7 +98,7 @@ impl PartialEq for Identity {
 #[serde(rename_all = "camelCase")]
 pub struct EosConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub chain_id: Option<String>,
+    pub chain_id: Option<ChainId>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub key_provider: Option<Vec<String>>,
@@ -129,33 +132,43 @@ pub enum ScatterError {
     Unknown(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Authorization {
-    pub actor: String,
-    pub permission: String,
-}
-
 js_serializable!(Authorization);
 js_deserializable!(Authorization);
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ScatterAction {
-    pub account: String,
-    pub name: String,
-    pub authorization: Vec<Authorization>,
-    pub data: serde_json::Value,
+pub struct ScatterTransaction {
+    pub actions: Vec<serde_json::Value>,
 }
 
-js_serializable!(ScatterAction);
-js_deserializable!(ScatterAction);
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Transaction {
-    pub actions: Vec<ScatterAction>,
+impl<Data> From<Action<Data>> for ScatterTransaction
+where
+    Data: Serialize,
+{
+    fn from(action: Action<Data>) -> ScatterTransaction {
+        let serialized_action = serde_json::to_value(&action).unwrap();
+        ScatterTransaction {
+            actions: vec![serialized_action],
+        }
+    }
 }
 
-js_serializable!(Transaction);
-js_deserializable!(Transaction);
+impl<Data> From<Vec<Action<Data>>> for ScatterTransaction
+where
+    Data: Serialize,
+{
+    fn from(actions: Vec<Action<Data>>) -> ScatterTransaction {
+        let mut serialized_actions = Vec::new();
+        for action in &actions {
+            serialized_actions.push(serde_json::to_value(&action).unwrap());
+        }
+        ScatterTransaction {
+            actions: serialized_actions,
+        }
+    }
+}
+
+js_serializable!(ScatterTransaction);
+js_deserializable!(ScatterTransaction);
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PushedTransaction {
@@ -236,7 +249,7 @@ impl ScatterService {
     pub fn get_identity(
         &self,
         required_fields: RequiredFields,
-        callback: Callback<Result<Identity, ScatterError>>,
+        callback: Callback<Result<ScatterIdentity, ScatterError>>,
     ) {
         let lib = self.0.as_ref();
         let callback = move |data: Option<String>, error: String| {
@@ -244,7 +257,7 @@ impl ScatterService {
                 (_, "locked") => Err(ScatterError::Locked),
                 (_, "identity_rejected") => Err(ScatterError::Rejected),
                 (Some(data), "") => {
-                    let identity = serde_json::from_str::<Identity>(&data).unwrap();
+                    let identity = serde_json::from_str::<ScatterIdentity>(&data).unwrap();
                     Ok(identity)
                 }
                 _ => {
@@ -309,7 +322,7 @@ impl ScatterService {
         };
     }
 
-    pub fn identity(&self) -> Option<Identity> {
+    pub fn identity(&self) -> Option<ScatterIdentity> {
         let lib = self.0.as_ref();
         let value: Value = js!{
             var scatter = @{lib};
@@ -320,19 +333,19 @@ impl ScatterService {
             }
         };
         match value {
-            Value::String(json) => serde_json::from_str::<Identity>(&json).ok(),
+            Value::String(json) => serde_json::from_str::<ScatterIdentity>(&json).ok(),
             _ => None,
         }
     }
 
-    pub fn push_actions(
+    pub fn push_transaction(
         &self,
         network: Network,
         config: EosConfig,
-        actions: Vec<ScatterAction>,
+        transaction: ScatterTransaction,
         callback: Callback<Result<PushedTransaction, ScatterError>>,
     ) {
-        debug!("Pushing actions: {:#?}", actions);
+        debug!("Pushing transaction: {:#?}", transaction);
         let scatter = self.0.as_ref();
         let callback = move |data: Option<String>, error: String| {
             let result = match (data, error.as_str()) {
@@ -354,7 +367,6 @@ impl ScatterService {
             };
             callback.emit(result);
         };
-        let transaction = Transaction { actions };
         js! { @(no_return)
             try {
                 var scatter = @{scatter};

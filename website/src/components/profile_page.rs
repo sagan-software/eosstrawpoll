@@ -1,8 +1,8 @@
 use components::PollList;
 use context::Context;
+use prelude::*;
 use stdweb::web::document;
 use traits::{Page, PageState};
-use yew::prelude::*;
 
 pub struct ProfilePage {
     account: String,
@@ -14,6 +14,7 @@ pub struct Props {
     pub context: Context,
     pub chain_id_prefix: String,
     pub account: String,
+    pub chain: Chain,
 }
 
 impl Component for ProfilePage {

@@ -3,7 +3,7 @@ use yew::prelude::*;
 use yew::virtual_dom::VNode;
 
 #[derive(PartialEq, Clone, Debug)]
-pub enum Symbol {
+pub enum SvgSymbol {
     Trash,
     ScatterFull,
     PiggyBank,
@@ -17,9 +17,9 @@ pub enum Symbol {
     Warning,
 }
 
-impl Default for Symbol {
-    fn default() -> Symbol {
-        Symbol::Trash
+impl Default for SvgSymbol {
+    fn default() -> SvgSymbol {
+        SvgSymbol::Trash
     }
 }
 
@@ -36,25 +36,25 @@ const HEAD: &str = include_str!("../../static/svg/head.svg");
 const CHECK_CIRCLE: &str = include_str!("../../static/svg/check-circle.svg");
 const WARNING: &str = include_str!("../../static/svg/warning.svg");
 
-impl Symbol {
+impl SvgSymbol {
     fn as_str(&self) -> &str {
         match &self {
-            Symbol::Trash => TRASH,
-            Symbol::ScatterFull => SCATTER_FULL,
-            Symbol::PiggyBank => PIGGY_BANK,
-            Symbol::Megaphone => MEGAPHONE,
-            Symbol::Map => MAP,
-            Symbol::Checklist => CHECKLIST,
-            Symbol::Exit => EXIT,
-            Symbol::Gear => GEAR,
-            Symbol::Head => HEAD,
-            Symbol::CheckCircle => CHECK_CIRCLE,
-            Symbol::Warning => WARNING,
+            SvgSymbol::Trash => TRASH,
+            SvgSymbol::ScatterFull => SCATTER_FULL,
+            SvgSymbol::PiggyBank => PIGGY_BANK,
+            SvgSymbol::Megaphone => MEGAPHONE,
+            SvgSymbol::Map => MAP,
+            SvgSymbol::Checklist => CHECKLIST,
+            SvgSymbol::Exit => EXIT,
+            SvgSymbol::Gear => GEAR,
+            SvgSymbol::Head => HEAD,
+            SvgSymbol::CheckCircle => CHECK_CIRCLE,
+            SvgSymbol::Warning => WARNING,
         }
     }
 }
 
-impl ToString for Symbol {
+impl ToString for SvgSymbol {
     fn to_string(&self) -> String {
         self.as_str().to_string()
     }
@@ -62,7 +62,7 @@ impl ToString for Symbol {
 
 #[derive(PartialEq, Clone, Default, Debug)]
 pub struct Svg {
-    pub symbol: Symbol,
+    pub symbol: SvgSymbol,
 }
 
 impl Component for Svg {

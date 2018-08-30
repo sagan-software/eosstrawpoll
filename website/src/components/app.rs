@@ -1,10 +1,10 @@
 use agents::router::{RouterAgent, RouterInput, RouterOutput};
-use agents::scatter::{self, ScatterAgent, ScatterError, ScatterInput, ScatterOutput};
+use agents::scatter::*;
 use components::*;
 use context::Context;
+use prelude::*;
 use route::{Route, RouteError};
 use stdweb::traits::IEvent;
-use yew::prelude::*;
 
 pub struct App {
     route: Option<Result<Route, RouteError>>,
@@ -12,7 +12,7 @@ pub struct App {
     scatter: Box<Bridge<ScatterAgent>>,
     context: Context,
     scatter_connected: Option<Result<(), ScatterError>>,
-    scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
+    scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
 }
 
 pub enum Msg {
@@ -67,7 +67,7 @@ impl Component for App {
                     self.scatter_connected = Some(result);
                     true
                 }
-                ScatterOutput::PushedActions(_result) => false,
+                ScatterOutput::PushedTransaction(_result) => false,
             },
             Msg::Login => {
                 let required_fields = self.context.required_fields();
@@ -126,21 +126,27 @@ impl App {
                     href="https://github.com/sagan-software/eosstrawpoll/projects/1",
                     target="_blank",
                 >
-                    <Svg: symbol=Symbol::Map, />
+                    <Svg: symbol=SvgSymbol::Map, />
                     { "Roadmap" }
                 </a>
                 <a class="app_link app_link_feedback",
                     href="https://eos-forum.org/#/e/eosstrawpoll",
                     target="_blank",
                 >
-                    <Svg: symbol=Symbol::Megaphone, />
+                    <Svg: symbol=SvgSymbol::Megaphone, />
                     { "Feedback" }
                 </a>
             </nav>
         }
     }
 
-    fn view_nav_link(&self, route: Route, text: &str, class: &str, symbol: Symbol) -> Html<Self> {
+    fn view_nav_link(
+        &self,
+        route: Route,
+        text: &str,
+        class: &str,
+        symbol: SvgSymbol,
+    ) -> Html<Self> {
         html! {
             <a class=format!("app_link app_link_{}", class),
                 href=route.to_string(),
@@ -175,12 +181,12 @@ impl App {
                 onclick=|_| Msg::Login,
             >
                 { "Login with " }
-                <Svg: symbol=Symbol::ScatterFull, />
+                <Svg: symbol=SvgSymbol::ScatterFull, />
             </button>
         }
     }
 
-    fn view_user_ok(&self, identity: &scatter::Identity) -> Html<Self> {
+    fn view_user_ok(&self, identity: &ScatterIdentity) -> Html<Self> {
         let account_name = identity
             .account_name()
             .unwrap_or_else(|| "Anon".to_string());
@@ -195,13 +201,13 @@ impl App {
                         Msg::NavigateTo(profile_route.clone())
                     },
                 >
-                    <Svg: symbol=Symbol::Head, />
+                    <Svg: symbol=SvgSymbol::Head, />
                     { account_name }
                 </a>
                 <button class="app_user_logout",
                     onclick=|_| Msg::Logout,
                 >
-                    <Svg: symbol=Symbol::Exit, />
+                    <Svg: symbol=SvgSymbol::Exit, />
                 </button>
             </div>
         }
@@ -259,6 +265,7 @@ impl App {
                             context=&self.context,
                             chain_id_prefix=chain_id_prefix,
                             account=account,
+                            chain=eos_devnet(),
                         />
                     },
                     Route::Poll(ref chain_id_prefix, ref creator, ref slug) => html! {
@@ -267,6 +274,7 @@ impl App {
                             chain_id_prefix=chain_id_prefix,
                             creator=creator,
                             slug=slug,
+                            chain=eos_devnet(),
                         />
                     },
                     Route::PollResults(ref chain_id_prefix, ref creator, ref slug) => html! {
@@ -275,6 +283,7 @@ impl App {
                             chain_id_prefix=chain_id_prefix,
                             creator=creator,
                             slug=slug,
+                            chain=eos_devnet(),
                         />
                     },
                 },

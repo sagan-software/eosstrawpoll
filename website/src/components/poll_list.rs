@@ -1,16 +1,15 @@
-use agents::api::*;
+use agents::chain::*;
 use components::{Link, RelativeTime};
 use context::Context;
+use prelude::*;
 use route::Route;
 use std::cmp::min;
-use types::Poll;
-use yew::prelude::*;
 
 pub struct PollList {
     props: Props,
-    polls: Option<Result<Vec<Poll>, String>>,
+    polls: ChainData<Vec<Poll>>,
     table: PollsTable,
-    _api: Box<Bridge<ApiAgent>>,
+    _chain_agent: Box<Bridge<ChainAgent>>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -40,7 +39,7 @@ impl Default for PollsOrder {
 }
 
 pub enum Msg {
-    Api(ApiOutput),
+    Chain(ChainOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -52,6 +51,7 @@ pub struct Props {
     pub upper_bound: Option<String>,
     pub limit: Option<usize>,
     pub order: Option<PollsOrder>,
+    pub chain: Chain,
 }
 
 impl Component for PollList {
@@ -59,51 +59,40 @@ impl Component for PollList {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let api_config = props.context.api_config();
-        let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
+        let mut chain_agent = ChainAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
 
         let table = props.clone().table.unwrap_or_else(|| PollsTable::Polls);
 
         if table == PollsTable::NewPolls {
-            api.send(ApiInput::GetNewPolls);
+            chain_agent.send(ChainInput::GetNewPolls);
         } else if table == PollsTable::PopularPolls {
-            api.send(ApiInput::GetPopularPolls);
+            chain_agent.send(ChainInput::GetPopularPolls);
         } else {
-            api.send(ApiInput::GetPolls(props.scope.clone()));
+            chain_agent.send(ChainInput::GetPolls(props.scope.clone()));
         }
 
         PollList {
             props,
-            polls: None,
+            polls: ChainData::default(),
             table,
-            _api: api,
+            _chain_agent: chain_agent,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Api(output) => match (&self.table, output) {
-                (PollsTable::NewPolls, ApiOutput::NewPolls(polls)) => {
-                    self.polls = Some(polls);
-                    if let Some(Ok(ref mut polls)) = self.polls {
-                        polls.sort_by(|a, b| b.create_time.cmp(&a.create_time));
-                    }
+            Msg::Chain(output) => match (&self.table, output) {
+                (PollsTable::NewPolls, ChainOutput::NewPolls(polls)) => {
+                    self.polls = polls;
                     true
                 }
-                (PollsTable::PopularPolls, ApiOutput::PopularPolls(polls)) => {
-                    self.polls = Some(polls);
-                    if let Some(Ok(ref mut polls)) = self.polls {
-                        polls.sort_by(|a, b| {
-                            let a_pop: f64 = a.popularity.parse().unwrap();
-                            let b_pop: f64 = b.popularity.parse().unwrap();
-                            b_pop.partial_cmp(&a_pop).unwrap()
-                        });
-                    }
+                (PollsTable::PopularPolls, ChainOutput::PopularPolls(polls)) => {
+                    self.polls = polls;
                     true
                 }
-                (PollsTable::Polls, ApiOutput::Polls(scope, polls)) => {
+                (PollsTable::Polls, ChainOutput::Polls(scope, polls)) => {
                     if scope == self.props.scope {
-                        self.polls = Some(polls);
+                        self.polls = polls;
                         true
                     } else {
                         false
@@ -123,17 +112,16 @@ impl Component for PollList {
 impl Renderable<PollList> for PollList {
     fn view(&self) -> Html<Self> {
         match &self.polls {
-            Some(result) => match result {
-                Ok(table) => {
-                    if table.is_empty() {
-                        self.view_empty()
-                    } else {
-                        self.view_items(&table)
-                    }
+            ChainData::NotAsked => self.view_empty(),
+            ChainData::Loading => self.view_loading(),
+            ChainData::Success(data) => {
+                if data.is_empty() {
+                    self.view_empty()
+                } else {
+                    self.view_items(&data)
                 }
-                Err(error) => self.view_error(error),
-            },
-            None => self.view_loading(),
+            }
+            ChainData::Failure(error) => self.view_error(error),
         }
     }
 }
@@ -147,10 +135,10 @@ impl PollList {
         }
     }
 
-    fn view_error(&self, error: &str) -> Html<Self> {
+    fn view_error(&self, error: &ChainError) -> Html<Self> {
         html! {
             <div class="poll_list -error", >
-                { "Error: " }{ error }
+                { "Error: " }{ format!("{:#?}", error) }
             </div>
         }
     }

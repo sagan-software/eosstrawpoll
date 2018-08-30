@@ -1,19 +1,18 @@
-use agents::api::*;
+use agents::chain::*;
 use components::Link;
 use context::Context;
+use prelude::*;
 use route::Route;
 use std::cmp::min;
-use types::Donor;
-use yew::prelude::*;
 
 pub struct DonorList {
     props: Props,
-    donors: Option<Result<Vec<Donor>, String>>,
-    _api: Box<Bridge<ApiAgent>>,
+    donors: ChainData<Vec<Donor>>,
+    _chain_agent: Box<Bridge<ChainAgent>>,
 }
 
 pub enum Msg {
-    Api(ApiOutput),
+    Chain(ChainOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -22,6 +21,7 @@ pub struct Props {
     pub lower_bound: Option<String>,
     pub upper_bound: Option<String>,
     pub limit: Option<usize>,
+    pub chain: Chain,
 }
 
 impl Component for DonorList {
@@ -29,24 +29,20 @@ impl Component for DonorList {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let api_config = props.context.api_config();
-        let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
-        api.send(ApiInput::GetDonors);
+        let mut chain_agent = ChainAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
+        chain_agent.send(ChainInput::GetDonors);
         DonorList {
             props,
-            donors: None,
-            _api: api,
+            donors: ChainData::default(),
+            _chain_agent: chain_agent,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Api(output) => match output {
-                ApiOutput::Donors(donors) => {
-                    self.donors = Some(donors);
-                    if let Some(Ok(ref mut donors)) = self.donors {
-                        donors.sort_by(|a, b| b.donated.cmp(&a.donated));
-                    }
+            Msg::Chain(output) => match output {
+                ChainOutput::Donors(donors) => {
+                    self.donors = donors;
                     true
                 }
                 _ => false,
@@ -63,17 +59,16 @@ impl Component for DonorList {
 impl Renderable<DonorList> for DonorList {
     fn view(&self) -> Html<Self> {
         match &self.donors {
-            Some(result) => match result {
-                Ok(table) => {
-                    if table.is_empty() {
-                        self.view_empty()
-                    } else {
-                        self.view_loaded(&table)
-                    }
+            ChainData::NotAsked => self.view_empty(),
+            ChainData::Loading => self.view_loading(),
+            ChainData::Success(data) => {
+                if data.is_empty() {
+                    self.view_empty()
+                } else {
+                    self.view_loaded(&data)
                 }
-                Err(error) => self.view_error(error),
-            },
-            None => self.view_loading(),
+            }
+            ChainData::Failure(error) => self.view_error(error),
         }
     }
 }
@@ -87,10 +82,10 @@ impl DonorList {
         }
     }
 
-    fn view_error(&self, error: &str) -> Html<Self> {
+    fn view_error(&self, error: &ChainError) -> Html<Self> {
         html! {
             <div class="donor_list -error", >
-                { "Error: " }{ error }
+                { "Error: " }{ format!("{:#?}", error) }
             </div>
         }
     }
@@ -125,7 +120,7 @@ impl DonorList {
                     text=donor.account.clone(),
                 />
                 <div class="donor_donated", >
-                    { format!("{:.*}", 4, donated / 10000.) } { " EOS" }
+                    { format!("{:.*} {}", 4, donated / 10000., self.props.chain.core_symbol) }
                 </div>
             </li>
         }

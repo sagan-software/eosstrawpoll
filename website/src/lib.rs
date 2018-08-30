@@ -21,6 +21,7 @@ mod agents;
 mod components;
 mod context;
 mod eos;
+mod prelude;
 mod route;
 mod services;
 mod traits;

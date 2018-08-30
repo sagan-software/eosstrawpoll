@@ -1,12 +1,9 @@
-use agents::api::*;
-use agents::scatter::{
-    self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
-};
+use agents::chain::*;
+use agents::scatter::*;
 use components::*;
 use context::Context;
+use prelude::*;
 use stdweb::traits::IEvent;
-use types::Transfer;
-use yew::prelude::*;
 
 pub struct DonationForm {
     amount: f32,
@@ -14,21 +11,23 @@ pub struct DonationForm {
     context: Context,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
-    scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
-    pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
-    api: Box<Bridge<ApiAgent>>,
+    scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
+    pushed: Option<Result<PushedTransaction, ScatterError>>,
+    chain_agent: Box<Bridge<ChainAgent>>,
+    chain: Chain,
 }
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
     pub context: Context,
+    pub chain: Chain,
 }
 
 pub enum Msg {
     Submit,
     Scatter(ScatterOutput),
     SetAmount(String),
-    Api(ApiOutput),
+    Chain(ChainOutput),
 }
 
 impl Component for DonationForm {
@@ -36,8 +35,7 @@ impl Component for DonationForm {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let api_config = props.context.api_config();
-        let api = ApiAgent::new(api_config, link.send_back(Msg::Api));
+        let chain_agent = ChainAgent::bridge(link.send_back(Msg::Chain));
         let scatter_agent = ScatterAgent::new("eosstrawpoll", 10000, link.send_back(Msg::Scatter));
         DonationForm {
             amount: 0.,
@@ -47,13 +45,14 @@ impl Component for DonationForm {
             scatter_connected: None,
             scatter_identity: None,
             pushed: None,
-            api,
+            chain_agent,
+            chain: props.chain,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Api(_output) => false,
+            Msg::Chain(_output) => false,
             Msg::SetAmount(amount) => {
                 let amount = amount.parse::<f32>();
                 match amount {
@@ -84,16 +83,19 @@ impl Component for DonationForm {
                 let amount = if self.amount == 0. { 1. } else { self.amount };
                 let network = self.context.network();
                 let config = self.context.eos_config();
-                let action: ScatterAction = Transfer {
+                let action = Transfer {
                     from: donor.to_string(),
-                    to: "eosstrawpoll".to_string(),
-                    quantity: format!("{:.4} SYS", amount),
+                    to: self.chain.code_account.clone(),
+                    quantity: format!("{:.4} {}", amount, self.chain.core_symbol.clone()),
                     memo: "Funded EOS Straw Poll".to_string(),
-                }.into();
+                }.to_action(&self.chain);
 
-                let actions = vec![action];
-                self.scatter_agent
-                    .send(ScatterInput::PushActions(network, config, actions));
+                let transaction: ScatterTransaction = action.into();
+                self.scatter_agent.send(ScatterInput::PushTransaction(
+                    network,
+                    config,
+                    transaction,
+                ));
 
                 true
             }
@@ -118,13 +120,13 @@ impl Component for DonationForm {
                     self.scatter_connected = Some(result);
                     true
                 }
-                ScatterOutput::PushedActions(result) => {
+                ScatterOutput::PushedTransaction(result) => {
                     if self.submitting {
                         self.pushed = Some(result);
                         self.submitting = false;
                         self.amount = 0.;
-                        self.api.send(ApiInput::GetDonors);
-                        self.api.send(ApiInput::GetNewDonations);
+                        self.chain_agent.send(ChainInput::GetDonors);
+                        self.chain_agent.send(ChainInput::GetNewDonations);
                         true
                     } else {
                         false

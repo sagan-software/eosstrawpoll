@@ -9,7 +9,7 @@ pub enum ScatterInput {
     GetIdentity(RequiredFields),
     CurrentIdentity,
     ForgetIdentity,
-    PushActions(Network, EosConfig, Vec<ScatterAction>),
+    PushTransaction(Network, EosConfig, ScatterTransaction),
 }
 
 impl Transferable for ScatterInput {}
@@ -17,25 +17,25 @@ impl Transferable for ScatterInput {}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ScatterOutput {
     Connected(Result<(), ScatterError>),
-    GotIdentity(Result<Identity, ScatterError>),
+    GotIdentity(Result<ScatterIdentity, ScatterError>),
     ForgotIdentity(Result<(), ScatterError>),
-    PushedActions(Result<PushedTransaction, ScatterError>),
+    PushedTransaction(Result<PushedTransaction, ScatterError>),
 }
 
 impl Transferable for ScatterOutput {}
 
 pub enum ScatterMsg {
     Connected(Result<ScatterService, ScatterError>),
-    GotIdentity(Result<Identity, ScatterError>),
+    GotIdentity(Result<ScatterIdentity, ScatterError>),
     ForgotIdentity(Result<(), ScatterError>),
-    PushedActions(Result<PushedTransaction, ScatterError>),
+    PushedTransaction(Result<PushedTransaction, ScatterError>),
 }
 
 pub struct ScatterAgent {
     link: AgentLink<ScatterAgent>,
     scatter_service: Option<ScatterService>,
     subscribers: HashSet<HandlerId>,
-    current_identity: Option<Result<Identity, ScatterError>>,
+    current_identity: Option<Result<ScatterIdentity, ScatterError>>,
 }
 
 impl Agent for ScatterAgent {
@@ -90,13 +90,15 @@ impl Agent for ScatterAgent {
                     self.link.response(who, output);
                 }
             },
-            ScatterInput::PushActions(network, config, actions) => match &self.scatter_service {
+            ScatterInput::PushTransaction(network, config, transaction) => match &self
+                .scatter_service
+            {
                 Some(scatter_service) => {
-                    let callback = self.link.send_back(ScatterMsg::PushedActions);
-                    scatter_service.push_actions(network, config, actions, callback);
+                    let callback = self.link.send_back(ScatterMsg::PushedTransaction);
+                    scatter_service.push_transaction(network, config, transaction, callback);
                 }
                 None => {
-                    let output = ScatterOutput::PushedActions(Err(ScatterError::NotConnected));
+                    let output = ScatterOutput::PushedTransaction(Err(ScatterError::NotConnected));
                     self.link.response(who, output);
                 }
             },
@@ -123,7 +125,7 @@ impl Agent for ScatterAgent {
                 self.current_identity = None;
                 ScatterOutput::ForgotIdentity(result)
             }
-            ScatterMsg::PushedActions(result) => ScatterOutput::PushedActions(result),
+            ScatterMsg::PushedTransaction(result) => ScatterOutput::PushedTransaction(result),
         };
         for sub in &self.subscribers {
             self.link.response(*sub, output.clone());

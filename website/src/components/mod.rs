@@ -26,4 +26,4 @@ pub use self::poll_results_page::PollResultsPage;
 pub use self::poll_voting_page::PollVotingPage;
 pub use self::profile_page::ProfilePage;
 pub use self::relative_time::RelativeTime;
-pub use self::svg::{Svg, Symbol};
+pub use self::svg::{Svg, SvgSymbol};

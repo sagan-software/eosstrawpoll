@@ -1,7 +1,10 @@
+use eos::types::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use stdweb::web::Date;
 use types::json::bool_from_u8;
+
+pub type PollName = Name;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GlobalConfig {
@@ -61,8 +64,8 @@ pub enum Id {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Poll {
     pub id: Id,
-    pub creator: String,
-    pub slug: String,
+    pub creator: AccountName,
+    pub slug: PollName,
     pub title: String,
     pub options: Vec<String>,
     pub min_choices: usize,
@@ -70,7 +73,7 @@ pub struct Poll {
     pub max_writeins: usize,
     #[serde(deserialize_with = "bool_from_u8")]
     pub use_allow_list: bool,
-    pub account_list: Vec<String>,
+    pub account_list: Vec<AccountName>,
     pub min_staked: u64,
     pub min_value: u64,
     pub open_time: u32,
@@ -81,8 +84,8 @@ pub struct Poll {
 }
 
 impl Poll {
-    pub fn raw_results(&self) -> HashMap<String, Vec<(String, usize)>> {
-        let mut results: HashMap<String, Vec<(String, usize)>> = HashMap::new();
+    pub fn raw_results(&self) -> HashMap<String, Vec<(AccountName, usize)>> {
+        let mut results: HashMap<String, Vec<(AccountName, usize)>> = HashMap::new();
 
         for vote in &self.votes {
             for (rank, choice) in vote.choices.iter().enumerate() {
@@ -106,7 +109,7 @@ impl Poll {
         results
     }
 
-    pub fn results_by_percent(&self) -> Vec<(String, f32, Vec<(String, usize)>)> {
+    pub fn results_by_percent(&self) -> Vec<(String, f32, Vec<(AccountName, usize)>)> {
         let num_votes = self.num_votes();
         let raw_results = self.raw_results();
         let mut results = Vec::new();
@@ -146,7 +149,7 @@ impl Poll {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Vote {
-    pub voter: String,
+    pub voter: AccountName,
     pub created: u32,
     pub choices: Vec<Choice>,
     pub staked: u64,
@@ -184,7 +187,7 @@ impl Choice {
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Donation {
     pub id: u64,
-    pub account: String,
+    pub account: AccountName,
     pub donated: u64,
     pub memo: String,
     pub created: u32,
@@ -192,14 +195,14 @@ pub struct Donation {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Donor {
-    pub account: String,
+    pub account: AccountName,
     pub donated: u64,
     pub last_donation: Donation,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct User {
-    pub account: String,
+    pub account: AccountName,
     pub first_seen: u32,
 }
 
@@ -207,14 +210,14 @@ pub struct User {
 pub struct Preset {
     pub description: String,
     pub use_allow_list: bool,
-    pub account_list: Vec<String>,
+    pub account_list: Vec<AccountName>,
     pub min_staked: u64,
     pub min_value: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Profile {
-    pub account: String,
+    pub account: AccountName,
     pub url: String,
     pub bio: String,
     pub avatar_hash: String,

@@ -1,17 +1,14 @@
 use agents::router::RouterAgent;
-use agents::scatter::{
-    self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
-};
+use agents::scatter::*;
 use components::*;
 use context::Context;
 use failure::Error;
+use prelude::*;
 use route::Route;
 use services::eos::{self, EosService};
 use stdweb::traits::IEvent;
 use stdweb::web::document;
 use traits::{Page, PageState};
-use types::*;
-use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 
 pub struct PollVotingPage {
@@ -24,13 +21,14 @@ pub struct PollVotingPage {
     chain_id_prefix: String,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
-    scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
-    pushed: Option<Result<scatter::PushedTransaction, ScatterError>>,
+    scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
+    pushed: Option<Result<PushedTransaction, ScatterError>>,
     choices: Vec<Choice>,
     available_choices: Vec<(String, Choice)>,
     writein_input: String,
     submitting: bool,
     link: ComponentLink<PollVotingPage>,
+    chain: Chain,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -39,6 +37,7 @@ pub struct Props {
     pub creator: String,
     pub slug: String,
     pub chain_id_prefix: String,
+    pub chain: Chain,
 }
 
 pub enum Msg {
@@ -74,6 +73,7 @@ impl Component for PollVotingPage {
             submitting: false,
             link,
             chain_id_prefix: props.chain_id_prefix,
+            chain: props.chain,
         };
 
         poll_page.fetch_poll();
@@ -123,7 +123,7 @@ impl Component for PollVotingPage {
                     self.scatter_connected = Some(result);
                     true
                 }
-                ScatterOutput::PushedActions(result) => {
+                ScatterOutput::PushedTransaction(result) => {
                     if self.submitting {
                         self.pushed = Some(result.clone());
                         self.submitting = false;
@@ -178,16 +178,20 @@ impl Component for PollVotingPage {
                 let network = self.context.network();
                 let config = self.context.eos_config();
 
-                let action: ScatterAction = CreateVote {
+                let action = CreateVote {
                     creator: self.creator.to_string(),
                     slug: self.slug.clone(),
                     voter: voter.clone(),
                     choices: self.choices.clone(),
-                }.into();
-                let actions = vec![action];
+                }.to_action(&self.chain);
 
-                self.scatter_agent
-                    .send(ScatterInput::PushActions(network, config, actions));
+                let transaction: ScatterTransaction = action.into();
+
+                self.scatter_agent.send(ScatterInput::PushTransaction(
+                    network,
+                    config,
+                    transaction,
+                ));
                 true
             }
             Msg::SetWriteinInput(input) => {

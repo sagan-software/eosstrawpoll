@@ -1,51 +1,49 @@
+use eos::types::*;
 use stdweb::unstable::TryInto;
-use traits::Action;
+use traits::ToAction;
 use types::json::bool_to_u8;
-use types::{Choice, Preset};
+use types::{Chain, Choice, PollName, Preset};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClearProfile {
-    pub account: String,
+    pub account: AccountName,
 }
 
-impl Action for ClearProfile {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
-
-    fn name(&self) -> String {
-        "clearprofile".to_string()
-    }
-
-    fn actor(&self) -> String {
-        self.account.clone()
+impl ToAction for ClearProfile {
+    fn to_action(&self, chain: &Chain) -> Action<Self> {
+        Action {
+            account: chain.code_account.clone(),
+            name: "clearprofile".into(),
+            authorization: vec![Authorization::active(self.account.clone())],
+            data: self.clone(),
+        }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClosePoll {
-    pub creator: String,
-    pub slug: String,
+    pub creator: AccountName,
+    pub slug: PollName,
 }
 
-impl Action for ClosePoll {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
+// impl Action for ClosePoll {
+//     fn code(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
 
-    fn name(&self) -> String {
-        "closepoll".to_string()
-    }
+//     fn name(&self) -> ActionName {
+//         "closepoll".to_string()
+//     }
 
-    fn actor(&self) -> String {
-        self.creator.clone()
-    }
-}
+//     fn actor(&self) -> AccountName {
+//         self.creator.clone()
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreatePoll {
-    pub creator: String,
-    pub slug: String,
+    pub creator: AccountName,
+    pub slug: PollName,
     pub title: String,
     pub options: Vec<String>,
     pub min_choices: usize,
@@ -53,7 +51,7 @@ pub struct CreatePoll {
     pub max_writeins: usize,
     #[serde(serialize_with = "bool_to_u8")]
     pub use_allow_list: bool,
-    pub account_list: Vec<String>,
+    pub account_list: Vec<AccountName>,
     pub min_staked: u64,
     pub min_value: u64,
     pub open_time: u32,
@@ -80,17 +78,14 @@ impl Default for CreatePoll {
     }
 }
 
-impl Action for CreatePoll {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
-
-    fn name(&self) -> String {
-        "createpoll".to_string()
-    }
-
-    fn actor(&self) -> String {
-        self.creator.clone()
+impl ToAction for CreatePoll {
+    fn to_action(&self, chain: &Chain) -> Action<Self> {
+        Action {
+            account: chain.code_account.clone(),
+            name: "createpoll".into(),
+            authorization: vec![Authorization::active(self.creator.clone())],
+            data: self.clone(),
+        }
     }
 }
 
@@ -110,106 +105,103 @@ impl CreatePoll {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct CreateVote {
-    pub creator: String,
-    pub slug: String,
-    pub voter: String,
+    pub creator: AccountName,
+    pub slug: PollName,
+    pub voter: AccountName,
     pub choices: Vec<Choice>,
 }
 
-impl Action for CreateVote {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
-
-    fn name(&self) -> String {
-        "createvote".to_string()
-    }
-
-    fn actor(&self) -> String {
-        self.voter.clone()
+impl ToAction for CreateVote {
+    fn to_action(&self, chain: &Chain) -> Action<Self> {
+        Action {
+            account: chain.code_account.clone(),
+            name: "createvote".into(),
+            authorization: vec![Authorization::active(self.voter.clone())],
+            data: self.clone(),
+        }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyPoll {
-    pub creator: String,
-    pub slug: String,
+    pub creator: AccountName,
+    pub slug: PollName,
 }
 
-impl Action for DestroyPoll {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
+// impl Action for DestroyPoll {
+//     fn code(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
 
-    fn name(&self) -> String {
-        "destroypoll".to_string()
-    }
+//     fn name(&self) -> ActionName {
+//         "destroypoll".to_string()
+//     }
 
-    fn actor(&self) -> String {
-        self.creator.clone()
-    }
-}
+//     fn actor(&self) -> AccountName {
+//         self.creator.clone()
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyVote {
-    pub creator: String,
-    pub slug: String,
-    pub voter: String,
+    pub creator: AccountName,
+    pub slug: Name,
+    pub voter: AccountName,
 }
 
-impl Action for DestroyVote {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
+// impl Action for DestroyVote {
+//     fn code(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
 
-    fn name(&self) -> String {
-        "destroyvote".to_string()
-    }
+//     fn name(&self) -> ActionName {
+//         "destroyvote".to_string()
+//     }
 
-    fn actor(&self) -> String {
-        self.voter.clone()
-    }
-}
+//     fn actor(&self) -> AccountName {
+//         self.voter.clone()
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyVotes {
-    pub creator: String,
-    pub slug: String,
+    pub creator: AccountName,
+    pub slug: PollName,
 }
 
-impl Action for DestroyVotes {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
+// impl Action for DestroyVotes {
+//     fn code(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
 
-    fn name(&self) -> String {
-        "destroyvotes".to_string()
-    }
+//     fn name(&self) -> ActionName {
+//         "destroyvotes".to_string()
+//     }
 
-    fn actor(&self) -> String {
-        self.creator.clone()
-    }
-}
+//     fn actor(&self) -> AccountName {
+//         self.creator.clone()
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct OpenPoll {
-    pub creator: String,
-    pub slug: String,
+    pub creator: AccountName,
+    pub slug: PollName,
 }
 
-impl Action for OpenPoll {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
+// impl Action for OpenPoll {
+//     fn code(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
 
-    fn name(&self) -> String {
-        "openpoll".to_string()
-    }
+//     fn name(&self) -> Name {
+//         "openpoll".to_string()
+//     }
 
-    fn actor(&self) -> String {
-        self.creator.clone()
-    }
-}
+//     fn actor(&self) -> AccountName {
+//         self.creator.clone()
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetConfig {
@@ -226,23 +218,23 @@ pub struct SetConfig {
     pub profile_unlock_threshold: u64,
 }
 
-impl Action for SetConfig {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
+// impl Action for SetConfig {
+//     fn code(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
 
-    fn name(&self) -> String {
-        "setconfig".to_string()
-    }
+//     fn name(&self) -> Name {
+//         "setconfig".to_string()
+//     }
 
-    fn actor(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
-}
+//     fn actor(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SetProfile {
-    pub account: String,
+    pub account: AccountName,
     pub url: String,
     pub bio: String,
     pub avatar_hash: String,
@@ -258,38 +250,35 @@ pub struct SetProfile {
     pub presets: Vec<Preset>,
 }
 
-impl Action for SetProfile {
-    fn code(&self) -> String {
-        "eosstrawpoll".to_string()
-    }
+// impl Action for SetProfile {
+//     fn code(&self) -> AccountName {
+//         "eosstrawpoll".to_string()
+//     }
 
-    fn name(&self) -> String {
-        "setprofile".to_string()
-    }
+//     fn name(&self) -> Name {
+//         "setprofile".to_string()
+//     }
 
-    fn actor(&self) -> String {
-        self.account.clone()
-    }
-}
+//     fn actor(&self) -> AccountName {
+//         self.account.clone()
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Transfer {
-    pub from: String,
-    pub to: String,
-    pub quantity: String,
+    pub from: AccountName,
+    pub to: AccountName,
+    pub quantity: Asset,
     pub memo: String,
 }
 
-impl Action for Transfer {
-    fn code(&self) -> String {
-        "eosio.token".to_string()
-    }
-
-    fn name(&self) -> String {
-        "transfer".to_string()
-    }
-
-    fn actor(&self) -> String {
-        self.from.clone()
+impl ToAction for Transfer {
+    fn to_action(&self, chain: &Chain) -> Action<Self> {
+        Action {
+            account: chain.eosio_token_account.clone(),
+            name: "transfer".into(),
+            authorization: vec![Authorization::active(self.from.clone())],
+            data: self.clone(),
+        }
     }
 }

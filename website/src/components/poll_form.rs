@@ -1,16 +1,13 @@
-use agents::api::*;
+use agents::chain::*;
 use agents::router::RouterAgent;
-use agents::scatter::{
-    self, ScatterAction, ScatterAgent, ScatterError, ScatterInput, ScatterOutput,
-};
+use agents::scatter::*;
 use components::*;
 use context::Context;
+use prelude::*;
 use route::Route;
 use std::cmp::{max, min};
 use std::collections::HashSet;
 use stdweb::traits::IEvent;
-use types::*;
-use yew::prelude::*;
 
 pub struct PollForm {
     action: CreatePoll,
@@ -18,11 +15,12 @@ pub struct PollForm {
     context: Context,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
-    scatter_identity: Option<Result<scatter::Identity, ScatterError>>,
+    scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
     global_config: GlobalConfig,
-    _api: Box<Bridge<ApiAgent>>,
+    _chain_agent: Box<Bridge<ChainAgent>>,
     use_advanced: bool,
     validation_result: Option<Result<(), String>>,
+    chain: Chain,
 
     // basic options
     allow_multiple_choices: bool,
@@ -32,7 +30,7 @@ pub struct PollForm {
 pub enum Msg {
     NoOp,
     Scatter(ScatterOutput),
-    Api(ApiOutput),
+    Chain(ChainOutput),
     Submit,
     SetTitle(String),
     AddOption,
@@ -48,6 +46,7 @@ pub enum Msg {
 #[derive(PartialEq, Clone, Default, Debug)]
 pub struct Props {
     pub context: Context,
+    pub chain: Chain,
 }
 
 impl Component for PollForm {
@@ -57,9 +56,8 @@ impl Component for PollForm {
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let scatter_agent =
             ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
-        let api_config = props.context.api_config();
-        let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
-        api.send(ApiInput::GetGlobalConfig);
+        let mut chain_agent = ChainAgent::bridge(link.send_back(Msg::Chain));
+        // api.send(ChainInput::GetGlobalConfig);
 
         PollForm {
             action: CreatePoll::default(),
@@ -69,8 +67,9 @@ impl Component for PollForm {
             scatter_connected: None,
             scatter_identity: None,
             global_config: GlobalConfig::default(),
-            _api: api,
+            _chain_agent: chain_agent,
             validation_result: None,
+            chain: props.chain,
             use_advanced: false,
             allow_multiple_choices: false,
             allow_writeins: true,
@@ -177,10 +176,13 @@ impl Component for PollForm {
                     }
                 }
 
-                let actions: Vec<ScatterAction> = vec![action.into()];
+                let transaction: ScatterTransaction = action.to_action(&self.chain).into();
 
-                self.scatter_agent
-                    .send(ScatterInput::PushActions(network, config, actions));
+                self.scatter_agent.send(ScatterInput::PushTransaction(
+                    network,
+                    config,
+                    transaction,
+                ));
                 true
             }
             Msg::Scatter(output) => match output {
@@ -207,7 +209,7 @@ impl Component for PollForm {
                     self.scatter_connected = Some(result);
                     true
                 }
-                ScatterOutput::PushedActions(result) => {
+                ScatterOutput::PushedTransaction(result) => {
                     if self.submitting {
                         self.submitting = false;
                         match (result, self.creator()) {
@@ -234,11 +236,11 @@ impl Component for PollForm {
                     }
                 }
             },
-            Msg::Api(output) => match output {
-                ApiOutput::GlobalConfig(global_config) => {
-                    if let Ok(global_config) = global_config {
-                        self.global_config = global_config;
-                    }
+            Msg::Chain(output) => match output {
+                ChainOutput::GlobalConfig(global_config) => {
+                    // if let Ok(global_config) = global_config {
+                    //     self.global_config = global_config;
+                    // }
                     true
                 }
                 _ => false,
@@ -406,7 +408,7 @@ impl PollForm {
                         Msg::DelOption(index)
                     },
                 >
-                    <Svg: symbol=Symbol::Trash, />
+                    <Svg: symbol=SvgSymbol::Trash, />
                 </button>
             </div>
         }
@@ -440,13 +442,13 @@ impl PollForm {
             None => html! { <></> },
             Some(Ok(_)) => html! {
                 <div class="poll_form_status -valid", >
-                    <Svg: symbol=Symbol::CheckCircle, />
+                    <Svg: symbol=SvgSymbol::CheckCircle, />
                 </div>
             },
             Some(Err(error)) => html! {
                 <div class="poll_form_status -invalid", >
                     <div class="message", >{ error }</div>
-                    <Svg: symbol=Symbol::Warning, />
+                    <Svg: symbol=SvgSymbol::Warning, />
                 </div>
             },
         }

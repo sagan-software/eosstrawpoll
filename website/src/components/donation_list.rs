@@ -1,19 +1,18 @@
-use agents::api::*;
+use agents::chain::*;
 use components::Link;
 use context::Context;
+use prelude::*;
 use route::Route;
 use std::cmp::min;
-use types::Donation;
-use yew::prelude::*;
 
 pub struct DonationList {
     props: Props,
-    donations: Option<Result<Vec<Donation>, String>>,
-    _api: Box<Bridge<ApiAgent>>,
+    donations: ChainData<Vec<Donation>>,
+    _chain_agent: Box<Bridge<ChainAgent>>,
 }
 
 pub enum Msg {
-    Api(ApiOutput),
+    Chain(ChainOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -22,6 +21,7 @@ pub struct Props {
     pub lower_bound: Option<String>,
     pub upper_bound: Option<String>,
     pub limit: Option<usize>,
+    pub chain: Chain,
 }
 
 impl Component for DonationList {
@@ -29,24 +29,20 @@ impl Component for DonationList {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let api_config = props.context.api_config();
-        let mut api = ApiAgent::new(api_config, link.send_back(Msg::Api));
-        api.send(ApiInput::GetNewDonations);
+        let mut chain_agent = ChainAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
+        chain_agent.send(ChainInput::GetNewDonations);
         DonationList {
             props,
-            donations: None,
-            _api: api,
+            donations: ChainData::default(),
+            _chain_agent: chain_agent,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Api(output) => match output {
-                ApiOutput::NewDonations(donations) => {
-                    self.donations = Some(donations);
-                    if let Some(Ok(ref mut donations)) = self.donations {
-                        donations.sort_by(|a, b| b.created.cmp(&a.created));
-                    }
+            Msg::Chain(output) => match output {
+                ChainOutput::NewDonations(donations) => {
+                    self.donations = donations;
                     true
                 }
                 _ => false,
@@ -63,17 +59,16 @@ impl Component for DonationList {
 impl Renderable<DonationList> for DonationList {
     fn view(&self) -> Html<Self> {
         match &self.donations {
-            Some(result) => match result {
-                Ok(table) => {
-                    if table.is_empty() {
-                        self.view_empty()
-                    } else {
-                        self.view_items(&table)
-                    }
+            ChainData::NotAsked => self.view_empty(),
+            ChainData::Loading => self.view_loading(),
+            ChainData::Success(data) => {
+                if data.is_empty() {
+                    self.view_empty()
+                } else {
+                    self.view_items(&data)
                 }
-                Err(error) => self.view_error(error),
-            },
-            None => self.view_loading(),
+            }
+            ChainData::Failure(error) => self.view_error(error),
         }
     }
 }
@@ -87,10 +82,10 @@ impl DonationList {
         }
     }
 
-    fn view_error(&self, error: &str) -> Html<Self> {
+    fn view_error(&self, error: &ChainError) -> Html<Self> {
         html! {
             <div class="donation_list_loading", >
-                { "Error: " }{ error }
+                { "Error: " }{ format!("{:#?}", error) }
             </div>
         }
     }

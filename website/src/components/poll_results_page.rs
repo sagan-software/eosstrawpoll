@@ -2,13 +2,12 @@ use agents::scatter::*;
 use components::Link;
 use context::Context;
 use failure::Error;
+use prelude::*;
 use route::Route;
 use services::eos::{self, EosService};
 use std::time::Duration;
 use stdweb::web::document;
 use traits::{Page, PageState};
-use types::*;
-use yew::prelude::*;
 use yew::services::fetch::FetchTask;
 use yew::services::{IntervalService, Task};
 
@@ -21,7 +20,7 @@ pub struct PollResultsPage {
     slug: String,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
-    scatter_identity: Option<Result<Identity, ScatterError>>,
+    scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
     link: ComponentLink<PollResultsPage>,
     interval_service: IntervalService,
     interval_task: Option<Box<Task>>,
@@ -33,6 +32,7 @@ pub struct Props {
     pub creator: String,
     pub slug: String,
     pub chain_id_prefix: String,
+    pub chain: Chain,
 }
 
 pub enum Msg {
@@ -103,7 +103,7 @@ impl Component for PollResultsPage {
                     }
                     self.scatter_connected = Some(result);
                 }
-                ScatterOutput::PushedActions(_) => (),
+                ScatterOutput::PushedTransaction(_) => (),
             },
             Msg::FetchPolls => {
                 self.fetch_poll();
@@ -175,7 +175,7 @@ impl PollResultsPage {
         self.task = Some(task);
     }
 
-    fn voter(&self) -> Option<String> {
+    fn voter(&self) -> Option<AccountName> {
         let result = match &self.scatter_identity {
             Some(result) => result,
             None => return None,

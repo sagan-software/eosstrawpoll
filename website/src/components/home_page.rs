@@ -1,8 +1,8 @@
 use components::*;
 use context::Context;
+use prelude::*;
 use stdweb::web::document;
 use traits::{Page, PageState};
-use yew::prelude::*;
 
 pub struct HomePage {
     context: Context,
@@ -47,7 +47,7 @@ impl Page for HomePage {
         html! {
             <>
                 <div class="poll_form_wrapper", >
-                    <PollForm: context=&self.context, />
+                    <PollForm: context=&self.context, chain=eos_devnet(), />
                 </div>
                 <aside class="polls", >
                     <div class="popular_polls", >
@@ -57,6 +57,7 @@ impl Page for HomePage {
                             limit=Some(10),
                             table=Some(PollsTable::PopularPolls),
                             order=Some(PollsOrder::Popularity),
+                            chain=eos_devnet(),
                         />
                     </div>
                     <div class="new_polls", >
@@ -66,19 +67,20 @@ impl Page for HomePage {
                             limit=Some(5),
                             table=Some(PollsTable::NewPolls),
                             order=Some(PollsOrder::Created),
+                            chain=eos_devnet(),
                         />
                     </div>
                 </aside>
                 <aside class="donations", >
                     <div class="top_donors", >
                         <h2> { "Top Donors" } </h2>
-                        <DonorList: context=&self.context, />
+                        <DonorList: context=&self.context, chain=eos_devnet(), />
                     </div>
                     <div class="new_donations", >
                         <h2> { "New Donations" } </h2>
-                        <DonationList: context=&self.context, />
+                        <DonationList: context=&self.context, chain=eos_devnet(), />
                     </div>
-                    <DonationForm: context=&self.context, />
+                    <DonationForm: context=&self.context, chain=eos_devnet(), />
                 </aside>
             </>
         }
