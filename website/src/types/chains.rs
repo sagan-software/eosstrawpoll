@@ -1,13 +1,14 @@
 use eos::types::*;
+use services::scatter::{EosConfig, ScatterNetwork, ScatterRequiredFields};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct ChainIdPrefix(String);
 
-impl From<ChainId> for ChainIdPrefix {
-    fn from(chain_id: ChainId) -> ChainIdPrefix {
-        let mut chain_id = chain_id.clone();
-        chain_id.truncate(12);
-        ChainIdPrefix(chain_id)
+impl From<String> for ChainIdPrefix {
+    fn from(s: String) -> ChainIdPrefix {
+        let mut s = s.clone();
+        s.truncate(12);
+        ChainIdPrefix(s)
     }
 }
 
@@ -33,6 +34,8 @@ impl ToString for Endpoint {
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq)]
 pub struct Chain {
     pub chain_id: ChainId,
+    pub short_name: String,
+    pub long_name: String,
     pub code_account: AccountName,
     pub eosio_token_account: AccountName,
     pub core_symbol: Symbol,
@@ -46,8 +49,37 @@ impl From<Chain> for ChainIdPrefix {
 }
 
 impl Chain {
-    pub fn chain_id_prefix(&self) -> ChainIdPrefix {
+    pub fn to_chain_id_prefix(&self) -> ChainIdPrefix {
         self.chain_id.clone().into()
+    }
+
+    pub fn to_scatter_network(&self) -> ScatterNetwork {
+        ScatterNetwork {
+            chain_id: Some(self.chain_id.clone()),
+            protocol: Some(self.endpoint.protocol.clone()),
+            blockchain: Some("eos".to_string()),
+            host: Some(self.endpoint.host.clone()),
+            port: Some(self.endpoint.port),
+        }
+    }
+
+    pub fn to_eos_config(&self) -> EosConfig {
+        EosConfig {
+            chain_id: Some(self.chain_id.clone()),
+            key_provider: None,
+            http_endpoint: Some(self.endpoint.to_string()),
+            expire_in_seconds: None,
+            broadcast: None,
+            verbose: None,
+            debug: None,
+            sign: None,
+        }
+    }
+
+    pub fn to_scatter_required_fields(&self) -> ScatterRequiredFields {
+        ScatterRequiredFields {
+            accounts: Some(vec![self.to_scatter_network()]),
+        }
     }
 }
 
@@ -60,6 +92,8 @@ impl ChainIdPrefix {
 pub fn eos_devnet() -> Chain {
     Chain {
         chain_id: "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f".to_string(),
+        short_name: "EOS DEV".into(),
+        long_name: "EOS Local DevNet".into(),
         code_account: "eosstrawpoll".to_string(),
         eosio_token_account: "eosio.token".to_string(),
         core_symbol: "SYS".to_string(),

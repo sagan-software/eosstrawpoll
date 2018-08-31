@@ -1,16 +1,16 @@
 use components::*;
-use context::Context;
 use prelude::*;
 use stdweb::web::document;
-use traits::{Page, PageState};
 
 pub struct HomePage {
     context: Context,
+    chain: Chain,
 }
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
     pub context: Context,
+    pub chain: Option<Chain>,
 }
 
 impl Component for HomePage {
@@ -18,9 +18,11 @@ impl Component for HomePage {
     type Properties = Props;
 
     fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
-        HomePage {
-            context: props.context,
-        }
+        let context = props.context;
+        let chain = props
+            .chain
+            .unwrap_or_else(|| context.selected_chain.clone());
+        HomePage { context, chain }
     }
 
     fn update(&mut self, _msg: Self::Message) -> ShouldRender {
@@ -47,7 +49,7 @@ impl Page for HomePage {
         html! {
             <>
                 <div class="poll_form_wrapper", >
-                    <PollForm: context=&self.context, chain=eos_devnet(), />
+                    <PollForm: context=&self.context, chain=&self.chain, />
                 </div>
                 <aside class="polls", >
                     <div class="popular_polls", >
@@ -57,7 +59,7 @@ impl Page for HomePage {
                             limit=Some(10),
                             table=Some(PollsTable::PopularPolls),
                             order=Some(PollsOrder::Popularity),
-                            chain=eos_devnet(),
+                            chain=&self.chain,
                         />
                     </div>
                     <div class="new_polls", >
@@ -67,20 +69,20 @@ impl Page for HomePage {
                             limit=Some(5),
                             table=Some(PollsTable::NewPolls),
                             order=Some(PollsOrder::Created),
-                            chain=eos_devnet(),
+                            chain=&self.chain,
                         />
                     </div>
                 </aside>
                 <aside class="donations", >
                     <div class="top_donors", >
                         <h2> { "Top Donors" } </h2>
-                        <DonorList: context=&self.context, chain=eos_devnet(), />
+                        <DonorList: context=&self.context, chain=&self.chain, />
                     </div>
                     <div class="new_donations", >
                         <h2> { "New Donations" } </h2>
-                        <DonationList: context=&self.context, chain=eos_devnet(), />
+                        <DonationList: context=&self.context, chain=&self.chain, />
                     </div>
-                    <DonationForm: context=&self.context, chain=eos_devnet(), />
+                    <DonationForm: context=&self.context, chain=&self.chain, />
                 </aside>
             </>
         }

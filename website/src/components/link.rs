@@ -1,7 +1,6 @@
 use agents::router::{RouterAgent, RouterInput, RouterOutput};
-use route::Route;
+use prelude::*;
 use stdweb::traits::IEvent;
-use yew::prelude::*;
 
 pub struct Link {
     router: Box<Bridge<RouterAgent>>,

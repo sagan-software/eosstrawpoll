@@ -2,9 +2,7 @@ use agents::chain::*;
 use agents::router::RouterAgent;
 use agents::scatter::*;
 use components::*;
-use context::Context;
 use prelude::*;
-use route::Route;
 use std::cmp::{max, min};
 use std::collections::HashSet;
 use stdweb::traits::IEvent;
@@ -12,7 +10,7 @@ use stdweb::traits::IEvent;
 pub struct PollForm {
     action: CreatePoll,
     submitting: bool,
-    context: Context,
+    props: Props,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
@@ -20,7 +18,6 @@ pub struct PollForm {
     _chain_agent: Box<Bridge<ChainAgent>>,
     use_advanced: bool,
     validation_result: Option<Result<(), String>>,
-    chain: Chain,
 
     // basic options
     allow_multiple_choices: bool,
@@ -62,14 +59,13 @@ impl Component for PollForm {
         PollForm {
             action: CreatePoll::default(),
             submitting: false,
-            context: props.context,
+            props,
             scatter_agent,
             scatter_connected: None,
             scatter_identity: None,
             global_config: GlobalConfig::default(),
             _chain_agent: chain_agent,
             validation_result: None,
-            chain: props.chain,
             use_advanced: false,
             allow_multiple_choices: false,
             allow_writeins: true,
@@ -136,7 +132,7 @@ impl Component for PollForm {
                 if let Some(creator) = self.creator() {
                     self.action.creator = creator;
                 } else {
-                    let required_fields = self.context.required_fields();
+                    let required_fields = self.props.chain.to_scatter_required_fields();
                     let scatter_input = ScatterInput::GetIdentity(required_fields);
                     self.scatter_agent.send(scatter_input);
                     return true;
@@ -144,8 +140,8 @@ impl Component for PollForm {
 
                 self.action.random_slug();
 
-                let network = self.context.network();
-                let config = self.context.eos_config();
+                let network = self.props.chain.to_scatter_network();
+                let config = self.props.chain.to_eos_config();
                 let mut action = self.action.clone();
 
                 // Remove empty options
@@ -176,7 +172,7 @@ impl Component for PollForm {
                     }
                 }
 
-                let transaction: ScatterTransaction = action.to_action(&self.chain).into();
+                let transaction: ScatterTransaction = action.to_action(&self.props.chain).into();
 
                 self.scatter_agent.send(ScatterInput::PushTransaction(
                     network,
@@ -215,7 +211,7 @@ impl Component for PollForm {
                         match (result, self.creator()) {
                             (Ok(_), Some(creator)) => {
                                 let route = Route::Poll(
-                                    "cf057bbfb726".into(),
+                                    self.props.chain.to_chain_id_prefix(),
                                     creator,
                                     self.action.slug.clone(),
                                 );
@@ -267,7 +263,7 @@ impl Component for PollForm {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.context = props.context;
+        self.props = props;
         true
     }
 }
@@ -364,7 +360,6 @@ impl PollForm {
                 placeholder="What is your question?",
                 value=&self.action.title,
                 oninput=|e| Msg::SetTitle(e.value),
-                onblur=|_| Msg::Validate,
                 required=true,
                 maxlength=self.global_config.max_title_len,
                 autofocus=true,

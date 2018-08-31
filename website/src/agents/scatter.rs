@@ -6,10 +6,10 @@ use yew::prelude::Callback;
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ScatterInput {
     Connect(String, u32),
-    GetIdentity(RequiredFields),
+    GetIdentity(ScatterRequiredFields),
     CurrentIdentity,
     ForgetIdentity,
-    PushTransaction(Network, EosConfig, ScatterTransaction),
+    PushTransaction(ScatterNetwork, EosConfig, ScatterTransaction),
 }
 
 impl Transferable for ScatterInput {}

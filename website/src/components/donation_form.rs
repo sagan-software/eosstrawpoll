@@ -1,7 +1,6 @@
 use agents::chain::*;
 use agents::scatter::*;
 use components::*;
-use context::Context;
 use prelude::*;
 use stdweb::traits::IEvent;
 
@@ -73,7 +72,7 @@ impl Component for DonationForm {
                 let donor = match self.donor() {
                     Some(donor) => donor,
                     None => {
-                        let required_fields = self.context.required_fields();
+                        let required_fields = self.chain.to_scatter_required_fields();
                         let scatter_input = ScatterInput::GetIdentity(required_fields);
                         self.scatter_agent.send(scatter_input);
                         return true;
@@ -81,8 +80,8 @@ impl Component for DonationForm {
                 };
 
                 let amount = if self.amount == 0. { 1. } else { self.amount };
-                let network = self.context.network();
-                let config = self.context.eos_config();
+                let network = self.chain.to_scatter_network();
+                let config = self.chain.to_eos_config();
                 let action = Transfer {
                     from: donor.to_string(),
                     to: self.chain.code_account.clone(),

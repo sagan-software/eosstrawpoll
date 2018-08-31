@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use stdweb::web::Date;
 use types::*;
-use yew::prelude::worker::*;
+use yew::prelude::worker::{self, *};
 use yew::prelude::Callback;
 use yew::services::fetch::FetchTask;
 
@@ -127,6 +127,10 @@ where
             }
         }
     }
+
+    fn from_task(task: FetchTask) -> InternalChainData<Item> {
+        InternalChainData::Loading(Date::now(), task)
+    }
 }
 
 impl<Item> InternalChainData<Vec<Item>> {
@@ -179,7 +183,7 @@ pub struct ChainAgent {
 }
 
 impl Agent for ChainAgent {
-    type Reach = Context;
+    type Reach = worker::Context;
     type Message = ChainMsg;
     type Input = ChainInput;
     type Output = ChainOutput;
@@ -230,13 +234,14 @@ impl Agent for ChainAgent {
                 let chain_data = self.new_donations.to_chain_data();
                 ChainOutput::NewDonations(chain_data)
             }
-            // ChainInput::GetPolls(chain, account) => {
-            //     if let Some(polls) = self.polls.get(&account) {
-            //         let out = ChainOutput::Polls(account.clone(), polls.clone());
-            //         self.link.response(who, out);
-            //     }
-            //     self.fetch_polls(account.clone())
-            // }
+            ChainInput::GetPolls(account) => {
+                self.fetch_polls(account.clone());
+                let chain_data = match self.polls.get(&account) {
+                    Some(polls) => polls.to_chain_data(),
+                    None => ChainData::default(),
+                };
+                ChainOutput::Polls(account, chain_data)
+            }
             // ChainInput::GetPoll(chain, account, slug) => {}
             _ => ChainOutput::Configured,
         };
@@ -274,11 +279,14 @@ impl Agent for ChainAgent {
                 self.new_donations.sort_by(|a, b| b.created.cmp(&a.created));
                 ChainOutput::NewDonations(self.new_donations.to_chain_data())
             }
-            // ChainMsg::Polls(account, result) => {
-            //     let rows = get_rows(result);
-            //     self.polls.insert(account.clone(), rows.clone());
-            //     Some(ChainOutput::Polls(account.clone(), rows))
-            // }
+            ChainMsg::Polls(account, result) => {
+                self.polls.insert(account.clone(), result.into());
+                let chain_data = match self.polls.get(&account) {
+                    Some(polls) => polls.to_chain_data(),
+                    None => ChainData::default(),
+                };
+                ChainOutput::Polls(account, chain_data)
+            }
             _ => ChainOutput::GlobalConfig(self.global_config.to_chain_data()),
         };
         for sub in &self.subscribers {
@@ -327,30 +335,27 @@ impl ChainAgent {
         self.global_config = self.global_config.with_task(task);
     }
 
-    // fn fetch_polls(
-    //     &mut self,
-    //     link: &AgentLink<ChainAgent>,
-    //     eos: &EosService,
-    //     chain: &Chain,
-    //     account: AccountName,
-    // ) {
-    //     let params = TableRowsParams {
-    //         json: true,
-    //         scope: account.clone(),
-    //         code: chain.code_account,
-    //         table: "polls".to_string(),
-    //         lower_bound: None,
-    //         upper_bound: None,
-    //         limit: Some(150),
-    //         key_type: None,
-    //         index_position: None,
-    //     };
-    //     let acct = account.clone();
-    //     let task = self.fetch(params, move |result| ChainMsg::Polls(acct.clone(), result));
-    //     if let Some(task) = task {
-    //         self.polls_tasks.insert(account, task);
-    //     }
-    // }
+    fn fetch_polls(&mut self, account: AccountName) {
+        let params = TableRowsParams {
+            json: true,
+            scope: account.clone(),
+            code: self.chain.code_account.clone(),
+            table: "polls".to_string(),
+            lower_bound: None,
+            upper_bound: None,
+            limit: Some(150),
+            key_type: None,
+            index_position: None,
+        };
+        let acct = account.clone();
+        let callback = move |result| ChainMsg::Polls(acct.clone(), result);
+        let task = self.fetch_table_rows(params, callback);
+        let polls = match self.polls.get(&account) {
+            Some(polls) => polls.with_task(task),
+            None => InternalChainData::from_task(task),
+        };
+        self.polls.insert(account, polls);
+    }
 
     fn fetch_popular_polls(&mut self) {
         let params = TableRowsParams {

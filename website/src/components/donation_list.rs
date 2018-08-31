@@ -1,8 +1,6 @@
 use agents::chain::*;
 use components::Link;
-use context::Context;
 use prelude::*;
-use route::Route;
 use std::cmp::min;
 
 pub struct DonationList {
@@ -100,7 +98,10 @@ impl DonationList {
     }
 
     fn view_item(&self, donation: &Donation) -> Html<Self> {
-        let donor_route = Route::Profile("cf057bbfb726".into(), donation.account.clone());
+        let donor_route = Route::Profile(
+            self.props.chain.to_chain_id_prefix(),
+            donation.account.clone(),
+        );
         let donated = donation.donated as f64;
         html! {
             <li class="donation_list_item", >
@@ -109,7 +110,7 @@ impl DonationList {
                     text=donation.account.clone(),
                 />
                 <div class="donation_donated", >
-                    { format!("{:.*}", 4, donated / 10000.) } { " EOS" }
+                    { format!("{:.*} {}", 4, donated / 10000., self.props.chain.core_symbol) }
                 </div>
             </li>
         }

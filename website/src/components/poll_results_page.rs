@@ -1,13 +1,10 @@
 use agents::scatter::*;
 use components::Link;
-use context::Context;
 use failure::Error;
 use prelude::*;
-use route::Route;
 use services::eos::{self, EosService};
 use std::time::Duration;
 use stdweb::web::document;
-use traits::{Page, PageState};
 use yew::services::fetch::FetchTask;
 use yew::services::{IntervalService, Task};
 
@@ -24,6 +21,7 @@ pub struct PollResultsPage {
     link: ComponentLink<PollResultsPage>,
     interval_service: IntervalService,
     interval_task: Option<Box<Task>>,
+    chain: Chain,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -31,7 +29,6 @@ pub struct Props {
     pub context: Context,
     pub creator: String,
     pub slug: String,
-    pub chain_id_prefix: String,
     pub chain: Chain,
 }
 
@@ -52,10 +49,9 @@ impl Component for PollResultsPage {
         let mut scatter_agent = ScatterAgent::bridge(callback);
         scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
 
-        let context = props.context;
         let mut poll_page = PollResultsPage {
             eos: EosService::new(),
-            context,
+            context: props.context,
             task: None,
             poll: None,
             slug: props.slug.clone(),
@@ -66,6 +62,7 @@ impl Component for PollResultsPage {
             link,
             interval_service: IntervalService::new(),
             interval_task: None,
+            chain: props.chain,
         };
 
         poll_page.fetch_poll();
@@ -169,9 +166,8 @@ impl PollResultsPage {
         };
 
         let callback = self.link.send_back(Msg::Polls);
-        let task = self
-            .eos
-            .get_table_rows(self.context.endpoint.as_str(), params, callback);
+        let endpoint = self.chain.endpoint.to_string();
+        let task = self.eos.get_table_rows(endpoint.as_str(), params, callback);
         self.task = Some(task);
     }
 
@@ -244,7 +240,7 @@ impl PollResultsPage {
 
     fn view_ok(&self, poll: &Poll) -> Html<Self> {
         let vote = Route::Poll(
-            "cf057bbfb726".into(),
+            self.chain.to_chain_id_prefix(),
             poll.creator.clone(),
             poll.slug.clone(),
         );

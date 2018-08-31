@@ -129,5 +129,9 @@ build:
 deploy: build
 	$(CLEOS) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi
 
+optimize: build
+	wasm-gc build/eosstrawpoll.wasm build/eosstrawpoll.wasm
+	wasm-opt --output build/eosstrawpoll.wasm -Oz build/eosstrawpoll.wasm
+
 generate-certs:
 	openssl req -x509 -newkey rsa:4096 -keyout docker/key.pem -out docker/cert.pem -days 365 -subj '/CN=localhost' -nodes

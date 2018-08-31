@@ -1,14 +1,11 @@
 use agents::router::RouterAgent;
 use agents::scatter::*;
 use components::*;
-use context::Context;
 use failure::Error;
 use prelude::*;
-use route::Route;
 use services::eos::{self, EosService};
 use stdweb::traits::IEvent;
 use stdweb::web::document;
-use traits::{Page, PageState};
 use yew::services::fetch::FetchTask;
 
 pub struct PollVotingPage {
@@ -18,7 +15,7 @@ pub struct PollVotingPage {
     poll: Option<Result<Poll, Error>>,
     creator: String,
     slug: String,
-    chain_id_prefix: String,
+    chain: Chain,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
@@ -28,7 +25,6 @@ pub struct PollVotingPage {
     writein_input: String,
     submitting: bool,
     link: ComponentLink<PollVotingPage>,
-    chain: Chain,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -36,7 +32,6 @@ pub struct Props {
     pub context: Context,
     pub creator: String,
     pub slug: String,
-    pub chain_id_prefix: String,
     pub chain: Chain,
 }
 
@@ -72,7 +67,6 @@ impl Component for PollVotingPage {
             writein_input: "".to_string(),
             submitting: false,
             link,
-            chain_id_prefix: props.chain_id_prefix,
             chain: props.chain,
         };
 
@@ -129,7 +123,7 @@ impl Component for PollVotingPage {
                         self.submitting = false;
                         if result.is_ok() {
                             let route = Route::PollResults(
-                                "cf057bbfb726".into(),
+                                self.chain.to_chain_id_prefix(),
                                 self.creator.clone(),
                                 self.slug.clone(),
                             );
@@ -156,7 +150,7 @@ impl Component for PollVotingPage {
                 let voter = match self.voter() {
                     Some(voter) => voter,
                     None => {
-                        let required_fields = self.context.required_fields();
+                        let required_fields = self.chain.to_scatter_required_fields();
                         let scatter_input = ScatterInput::GetIdentity(required_fields);
                         self.scatter_agent.send(scatter_input);
                         return true;
@@ -175,8 +169,8 @@ impl Component for PollVotingPage {
                     }];
                 }
 
-                let network = self.context.network();
-                let config = self.context.eos_config();
+                let network = self.chain.to_scatter_network();
+                let config = self.chain.to_eos_config();
 
                 let action = CreateVote {
                     creator: self.creator.to_string(),
@@ -287,7 +281,7 @@ impl PollVotingPage {
     fn fetch_poll(&mut self) {
         let params = eos::TableRowsParams {
             scope: self.creator.clone(),
-            code: "eosstrawpoll".to_string(),
+            code: self.chain.code_account.clone(),
             table: "polls".to_string(),
             json: true,
             lower_bound: Some(self.slug.clone()),
@@ -298,9 +292,8 @@ impl PollVotingPage {
         };
 
         let callback = self.link.send_back(Msg::Polls);
-        let task = self
-            .eos
-            .get_table_rows(self.context.endpoint.as_str(), params, callback);
+        let endpoint = self.chain.endpoint.to_string();
+        let task = self.eos.get_table_rows(endpoint.as_str(), params, callback);
         self.task = Some(task);
     }
 
@@ -422,7 +415,7 @@ impl PollVotingPage {
         //  - 1 pre-filled choice and multiple writein options
 
         let results = Route::PollResults(
-            self.chain_id_prefix.clone(),
+            self.chain.to_chain_id_prefix(),
             poll.creator.clone(),
             poll.slug.clone(),
         );

@@ -2,29 +2,28 @@ use eos::types::*;
 use serde::Serialize;
 use serde_json;
 use stdweb::Value;
-use traits::ToAction;
 use yew::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct ScatterService(Value);
 
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct RequiredFields {
+pub struct ScatterRequiredFields {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub accounts: Option<Vec<Network>>,
+    pub accounts: Option<Vec<ScatterNetwork>>,
 }
 
-impl PartialEq for RequiredFields {
-    fn eq(&self, other: &RequiredFields) -> bool {
+impl PartialEq for ScatterRequiredFields {
+    fn eq(&self, other: &ScatterRequiredFields) -> bool {
         self.accounts == other.accounts
     }
 }
 
-js_serializable!(RequiredFields);
+js_serializable!(ScatterRequiredFields);
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct Network {
+pub struct ScatterNetwork {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chain_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -37,8 +36,8 @@ pub struct Network {
     pub port: Option<u16>,
 }
 
-impl PartialEq for Network {
-    fn eq(&self, other: &Network) -> bool {
+impl PartialEq for ScatterNetwork {
+    fn eq(&self, other: &ScatterNetwork) -> bool {
         self.chain_id == other.chain_id
             && self.protocol == other.protocol
             && self.blockchain == other.blockchain
@@ -47,7 +46,7 @@ impl PartialEq for Network {
     }
 }
 
-js_serializable!(Network);
+js_serializable!(ScatterNetwork);
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct ScatterAccount {
@@ -248,7 +247,7 @@ impl ScatterService {
 
     pub fn get_identity(
         &self,
-        required_fields: RequiredFields,
+        required_fields: ScatterRequiredFields,
         callback: Callback<Result<ScatterIdentity, ScatterError>>,
     ) {
         let lib = self.0.as_ref();
@@ -340,7 +339,7 @@ impl ScatterService {
 
     pub fn push_transaction(
         &self,
-        network: Network,
+        network: ScatterNetwork,
         config: EosConfig,
         transaction: ScatterTransaction,
         callback: Callback<Result<PushedTransaction, ScatterError>>,

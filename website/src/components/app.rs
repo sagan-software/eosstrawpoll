@@ -1,9 +1,7 @@
 use agents::router::{RouterAgent, RouterInput, RouterOutput};
 use agents::scatter::*;
 use components::*;
-use context::Context;
 use prelude::*;
-use route::{Route, RouteError};
 use stdweb::traits::IEvent;
 
 pub struct App {
@@ -70,7 +68,7 @@ impl Component for App {
                 ScatterOutput::PushedTransaction(_result) => false,
             },
             Msg::Login => {
-                let required_fields = self.context.required_fields();
+                let required_fields = self.context.selected_chain.to_scatter_required_fields();
                 let scatter_msg = ScatterInput::GetIdentity(required_fields);
                 self.scatter.send(scatter_msg);
                 false
@@ -104,7 +102,7 @@ impl App {
                         href="/",
                         onclick=|e| {
                             e.prevent_default();
-                            Msg::NavigateTo(Route::Home)
+                            Msg::NavigateTo(Route::default())
                         },
                     >
                         { "EOS Straw Poll" }
@@ -190,7 +188,10 @@ impl App {
         let account_name = identity
             .account_name()
             .unwrap_or_else(|| "Anon".to_string());
-        let profile_route = Route::Profile("cf057bbfb726".into(), account_name.clone());
+        let profile_route = Route::Profile(
+            self.context.selected_chain.to_chain_id_prefix(),
+            account_name.clone(),
+        );
         html! {
             <div class="app_user_actions", >
                 <a
@@ -252,40 +253,73 @@ impl App {
         }
     }
 
+    fn view_unknown_chain(&self, chain_id_prefix: &ChainIdPrefix) -> Html<Self> {
+        html! {
+            <>
+                { format!("Unknown chain id prefix: {}", chain_id_prefix.to_string())}
+            </>
+        }
+    }
+
     fn view_page(&self) -> Html<App> {
-        debug!("RENDERING PAGE");
         match &self.route {
             Some(result) => match result {
                 Ok(route) => match route {
-                    Route::Home => html! {
-                        <HomePage: context=&self.context, />
+                    Route::Home(chain_id_prefix) => match chain_id_prefix {
+                        Some(chain_id_prefix) => match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <HomePage:
+                                    context=&self.context,
+                                    chain=Some(chain),
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        },
+                        None => html! {
+                            <HomePage:
+                                context=&self.context,
+                                chain=None,
+                            />
+                        },
                     },
-                    Route::Profile(ref chain_id_prefix, ref account) => html! {
-                        <ProfilePage:
-                            context=&self.context,
-                            chain_id_prefix=chain_id_prefix,
-                            account=account,
-                            chain=eos_devnet(),
-                        />
-                    },
-                    Route::Poll(ref chain_id_prefix, ref creator, ref slug) => html! {
-                        <PollVotingPage:
-                            context=&self.context,
-                            chain_id_prefix=chain_id_prefix,
-                            creator=creator,
-                            slug=slug,
-                            chain=eos_devnet(),
-                        />
-                    },
-                    Route::PollResults(ref chain_id_prefix, ref creator, ref slug) => html! {
-                        <PollResultsPage:
-                            context=&self.context,
-                            chain_id_prefix=chain_id_prefix,
-                            creator=creator,
-                            slug=slug,
-                            chain=eos_devnet(),
-                        />
-                    },
+                    Route::Profile(chain_id_prefix, ref account) => {
+                        match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <ProfilePage:
+                                    context=&self.context,
+                                    account=account,
+                                    chain=chain,
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        }
+                    }
+                    Route::Poll(chain_id_prefix, ref creator, ref slug) => {
+                        match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <PollVotingPage:
+                                    context=&self.context,
+                                    creator=creator,
+                                    slug=slug,
+                                    chain=chain,
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        }
+                    }
+                    Route::PollResults(chain_id_prefix, ref creator, ref slug) => {
+                        match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <PollResultsPage:
+                                    context=&self.context,
+                                    creator=creator,
+                                    slug=slug,
+                                    chain=chain,
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        }
+                    }
                 },
                 Err(error) => match error {
                     RouteError::NotFound(url) => html! {

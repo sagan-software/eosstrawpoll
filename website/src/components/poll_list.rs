@@ -1,8 +1,6 @@
 use agents::chain::*;
 use components::{Link, RelativeTime};
-use context::Context;
 use prelude::*;
-use route::Route;
 use std::cmp::min;
 
 pub struct PollList {
@@ -52,6 +50,7 @@ pub struct Props {
     pub limit: Option<usize>,
     pub order: Option<PollsOrder>,
     pub chain: Chain,
+    pub detailed: bool,
 }
 
 impl Component for PollList {
@@ -162,11 +161,12 @@ impl PollList {
 
     fn view_item(&self, poll: &Poll) -> Html<Self> {
         let poll_route = Route::Poll(
-            "cf057bbfb726".into(),
+            self.props.chain.to_chain_id_prefix(),
             poll.creator.clone(),
             poll.slug.clone(),
         );
-        let creator_route = Route::Profile("cf057bbfb726".into(), poll.creator.clone());
+        let creator_route =
+            Route::Profile(self.props.chain.to_chain_id_prefix(), poll.creator.clone());
         html! {
             <li class="poll", >
                 <Link: class="poll_title",
