@@ -160,15 +160,39 @@ impl App {
     }
 
     fn view_user(&self) -> Html<Self> {
-        let view = match &self.scatter_identity {
-            None => self.view_user_none(),
-            Some(Ok(identity)) => self.view_user_ok(identity),
-            Some(Err(error)) => self.view_user_err(error),
+        let view = match (&self.scatter_connected, &self.scatter_identity) {
+            (None, _) => self.view_user_loading(),
+            (Some(Err(_)), _) => self.view_user_install_scatter(),
+            (_, None) => self.view_user_none(),
+            (_, Some(Ok(identity))) => self.view_user_ok(identity),
+            (_, Some(Err(error))) => self.view_user_err(error),
         };
         html! {
             <nav class="app_user", >
                 { view }
             </nav>
+        }
+    }
+
+    fn view_user_loading(&self) -> Html<Self> {
+        html! {
+            <span
+                class="app_login btn btn-primary btn-lg -loading",
+            >
+                { "Loading..." }
+            </span>
+        }
+    }
+
+    fn view_user_install_scatter(&self) -> Html<Self> {
+        html! {
+            <a
+                class="app_login btn btn-primary btn-lg -install",
+                href="https://get-scatter.com",
+            >
+                { "Install " }
+                <Svg: symbol=SvgSymbol::ScatterFull, />
+            </a>
         }
     }
 
@@ -243,10 +267,18 @@ impl App {
                         { " © 2018" }
                     </p>
                     <p class="app_footer_links", >
-                        <a href="//www.github.com/sagan-software/eosstrawpoll", >{ "Github" }</a>
-                        <a href="//www.twitter.com/SaganSoftware", >{ "Twitter" }</a>
-                        <a href="#", >{ "Telegram" }</a>
-                        <a href="#", >{ "Steem" }</a>
+                        <a href="//www.github.com/sagan-software", >
+                            <Svg: symbol=SvgSymbol::Github, />
+                            { "Github" }
+                        </a>
+                        <a href="//www.twitter.com/SaganSoftware", >
+                            <Svg: symbol=SvgSymbol::Twitter, />
+                            { "Twitter" }
+                        </a>
+                        <a href="https://t.me/SaganSoftware", >
+                            <Svg: symbol=SvgSymbol::Telegram, />
+                            { "Telegram" }
+                        </a>
                     </p>
                 </div>
             </footer>

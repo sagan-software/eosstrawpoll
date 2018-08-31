@@ -15,6 +15,9 @@ pub enum SvgSymbol {
     Head,
     CheckCircle,
     Warning,
+    Github,
+    Telegram,
+    Twitter,
 }
 
 impl Default for SvgSymbol {
@@ -35,6 +38,9 @@ const GEAR: &str = include_str!("../../static/svg/gear2.svg");
 const HEAD: &str = include_str!("../../static/svg/head.svg");
 const CHECK_CIRCLE: &str = include_str!("../../static/svg/check-circle.svg");
 const WARNING: &str = include_str!("../../static/svg/warning.svg");
+const GITHUB: &str = include_str!("../../static/svg/github.svg");
+const TELEGRAM: &str = include_str!("../../static/svg/telegram.svg");
+const TWITTER: &str = include_str!("../../static/svg/twitter.svg");
 
 impl SvgSymbol {
     fn as_str(&self) -> &str {
@@ -50,6 +56,9 @@ impl SvgSymbol {
             SvgSymbol::Head => HEAD,
             SvgSymbol::CheckCircle => CHECK_CIRCLE,
             SvgSymbol::Warning => WARNING,
+            SvgSymbol::Github => GITHUB,
+            SvgSymbol::Telegram => TELEGRAM,
+            SvgSymbol::Twitter => TWITTER,
         }
     }
 }

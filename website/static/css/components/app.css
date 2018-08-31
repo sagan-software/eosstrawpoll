@@ -106,17 +106,24 @@
         height: 100%;
         display: block;
     }
-}
 
-.app_login {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    & .app_login {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        transition: 300ms background-color;
 
-    & svg {
-        fill: currentColor;
-        height: 2rem;
-        width: 6rem;
+        & svg {
+            fill: currentColor;
+            height: 2rem;
+            width: 6rem;
+            margin-left: 0.6rem;
+        }
+
+        &.-install {
+            background-color: green;
+        }
     }
 }
 
@@ -176,23 +183,36 @@
     border-top: 1px solid #ebebeb;
     padding: var(--spacing) 0;
     margin-top: calc(var(--spacing) * 3);
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     color: #999;
 
     & .app_container {
-        grid-template-columns: 25rem 1fr 1fr 25rem;
+        grid-template-columns: 29rem 1fr 1fr 29rem;
+        align-items: center;
+    }
+
+    & svg {
+        height: 2.4rem;
+        fill: currentColor;
+        padding-left: var(--spacing);
     }
 
     & .app_footer_text {
         grid-column: 2;
+        padding: 0 calc(var(--spacing) * 4);
     }
 
     & .app_footer_links {
         grid-column: 3;
         text-align: right;
+        display: flex;
+        justify-content: flex-end;
+        padding: 0 calc(var(--spacing) * 4);
 
         & > * {
-            margin-left: var(--spacing);
+            margin-left: calc(var(--spacing) * 3);
+            align-items: center;
+            display: flex;
         }
     }
 

@@ -61,6 +61,9 @@
         padding: 0;
         background-color: transparent;
         color: #ccc;
+        border: 0;
+        border-left: 0.1rem solid #ccc;
+        cursor: pointer;
 
         &[disabled] {
             color: #a1a5ad;
