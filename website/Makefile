@@ -105,3 +105,8 @@ start-server:
 		--no-ui \
 		--watch \
 		--no-ghost-mode
+
+gh-pages: build
+	git worktree remove ./gh-pages || exit 0
+	git worktree add ./gh-pages gh-pages
+	mv dist/* gh-pages
