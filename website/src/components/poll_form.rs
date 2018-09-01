@@ -1,8 +1,8 @@
-use agents::chain::*;
-use agents::router::RouterAgent;
-use agents::scatter::*;
 use components::*;
+use eos::*;
 use prelude::*;
+use router::RouterAgent;
+use scatter::*;
 use std::cmp::{max, min};
 use std::collections::HashSet;
 use stdweb::traits::IEvent;
@@ -15,7 +15,7 @@ pub struct PollForm {
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
     global_config: GlobalConfig,
-    _chain_agent: Box<Bridge<ChainAgent>>,
+    _eos_agent: Box<Bridge<EosAgent>>,
     use_advanced: bool,
     validation_result: Option<Result<(), String>>,
 
@@ -27,7 +27,7 @@ pub struct PollForm {
 pub enum Msg {
     NoOp,
     Scatter(ScatterOutput),
-    Chain(ChainOutput),
+    Chain(EosOutput),
     Submit,
     SetTitle(String),
     AddOption,
@@ -53,8 +53,8 @@ impl Component for PollForm {
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let scatter_agent =
             ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
-        let mut chain_agent = ChainAgent::bridge(link.send_back(Msg::Chain));
-        // api.send(ChainInput::GetGlobalConfig);
+        let mut eos_agent = EosAgent::bridge(link.send_back(Msg::Chain));
+        // api.send(EosInput::GetGlobalConfig);
 
         PollForm {
             action: CreatePoll::default(),
@@ -64,7 +64,7 @@ impl Component for PollForm {
             scatter_connected: None,
             scatter_identity: None,
             global_config: GlobalConfig::default(),
-            _chain_agent: chain_agent,
+            _eos_agent: eos_agent,
             validation_result: None,
             use_advanced: false,
             allow_multiple_choices: false,
@@ -233,7 +233,7 @@ impl Component for PollForm {
                 }
             },
             Msg::Chain(output) => match output {
-                ChainOutput::GlobalConfig(global_config) => {
+                EosOutput::GlobalConfig(global_config) => {
                     // if let Ok(global_config) = global_config {
                     //     self.global_config = global_config;
                     // }

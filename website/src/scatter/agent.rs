@@ -1,4 +1,5 @@
-pub use services::scatter::*;
+use scatter::service::*;
+use scatter::types::*;
 use std::collections::HashSet;
 use yew::prelude::worker::*;
 use yew::prelude::Callback;

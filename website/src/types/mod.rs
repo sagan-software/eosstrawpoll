@@ -1,13 +1,10 @@
-mod actions;
-mod chains;
-mod context;
-mod json;
-mod route;
-mod tables;
+pub mod actions;
+pub mod chains;
+pub mod context;
+pub mod json;
+pub mod tables;
 
 pub use self::actions::*;
 pub use self::chains::*;
 pub use self::context::*;
-pub use self::route::*;
 pub use self::tables::*;
-pub use eos::types::*;

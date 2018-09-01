@@ -1,5 +1,5 @@
 use eos::types::*;
-use services::scatter::{EosConfig, ScatterNetwork, ScatterRequiredFields};
+use scatter::{EosConfig, ScatterNetwork, ScatterRequiredFields};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct ChainIdPrefix(String);

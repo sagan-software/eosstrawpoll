@@ -1,7 +1,8 @@
-use agents::router::{RouterAgent, RouterInput, RouterOutput};
-use agents::scatter::*;
 use components::*;
+use pages::*;
 use prelude::*;
+use router::{RouterAgent, RouterInput, RouterOutput};
+use scatter::*;
 use stdweb::traits::IEvent;
 
 pub struct App {

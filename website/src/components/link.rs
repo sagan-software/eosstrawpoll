@@ -1,5 +1,5 @@
-use agents::router::{RouterAgent, RouterInput, RouterOutput};
 use prelude::*;
+use router::{RouterAgent, RouterInput, RouterOutput};
 use stdweb::traits::IEvent;
 
 pub struct Link {

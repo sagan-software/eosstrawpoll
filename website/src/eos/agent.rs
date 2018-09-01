@@ -1,7 +1,7 @@
+use eos::service::*;
 use eos::types::*;
 use failure;
 use serde::Deserialize;
-use services::eos::{EosService, TableRows, TableRowsParams};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use stdweb::web::Date;
@@ -11,21 +11,21 @@ use yew::prelude::Callback;
 use yew::services::fetch::FetchTask;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ChainData<Item> {
+pub enum EosData<Item> {
     NotAsked,
     Loading,
     Success(Item),
-    Failure(ChainError),
+    Failure(EosError),
 }
 
-impl<Item> Default for ChainData<Item> {
+impl<Item> Default for EosData<Item> {
     fn default() -> Self {
-        ChainData::NotAsked
+        EosData::NotAsked
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum ChainInput {
+pub enum EosInput {
     Configure(Chain),
     GetGlobalConfig,
     GetPopularPolls,
@@ -36,36 +36,36 @@ pub enum ChainInput {
     GetPoll(AccountName, PollName),
 }
 
-impl Transferable for ChainInput {}
+impl Transferable for EosInput {}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ChainOutput {
+pub enum EosOutput {
     Configured,
-    GlobalConfig(ChainData<Option<GlobalConfig>>),
-    PopularPolls(ChainData<Vec<Poll>>),
-    NewPolls(ChainData<Vec<Poll>>),
-    Donors(ChainData<Vec<Donor>>),
-    NewDonations(ChainData<Vec<Donation>>),
-    Polls(AccountName, ChainData<Vec<Poll>>),
-    Poll(AccountName, PollName, ChainData<Poll>),
+    GlobalConfig(EosData<Option<GlobalConfig>>),
+    PopularPolls(EosData<Vec<Poll>>),
+    NewPolls(EosData<Vec<Poll>>),
+    Donors(EosData<Vec<Donor>>),
+    NewDonations(EosData<Vec<Donation>>),
+    Polls(AccountName, EosData<Vec<Poll>>),
+    Poll(AccountName, PollName, EosData<Poll>),
 }
 
-impl Transferable for ChainOutput {}
+impl Transferable for EosOutput {}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ChainError {
+pub enum EosError {
     Message(String),
 }
 
-impl<Item> From<ChainError> for ChainData<Item> {
-    fn from(chain_error: ChainError) -> ChainData<Item> {
-        ChainData::Failure(chain_error)
+impl<Item> From<EosError> for EosData<Item> {
+    fn from(chain_error: EosError) -> EosData<Item> {
+        EosData::Failure(chain_error)
     }
 }
 
-impl From<failure::Error> for ChainError {
-    fn from(error: failure::Error) -> ChainError {
-        ChainError::Message(format!("{:#?}", error))
+impl From<failure::Error> for EosError {
+    fn from(error: failure::Error) -> EosError {
+        EosError::Message(format!("{:#?}", error))
     }
 }
 
@@ -78,172 +78,170 @@ pub enum ChainMsg {
     Polls(AccountName, Result<TableRows<Poll>, failure::Error>),
 }
 
-pub enum InternalChainData<Item> {
+pub enum InternalEosData<Item> {
     NotAsked,
     Loading(f64, FetchTask),
     Success(f64, Item),
     Updating(f64, Item, FetchTask),
-    Failure(f64, ChainError),
-    Retrying(f64, ChainError, FetchTask),
+    Failure(f64, EosError),
+    Retrying(f64, EosError, FetchTask),
 }
 
-impl<Item> Default for InternalChainData<Item> {
+impl<Item> Default for InternalEosData<Item> {
     fn default() -> Self {
-        InternalChainData::NotAsked
+        InternalEosData::NotAsked
     }
 }
 
-impl<Item> InternalChainData<Item>
+impl<Item> InternalEosData<Item>
 where
     Item: Clone,
 {
-    fn to_chain_data(&self) -> ChainData<Item> {
+    fn to_eos_data(&self) -> EosData<Item> {
         match self {
-            InternalChainData::NotAsked => ChainData::NotAsked,
-            InternalChainData::Loading(_, _) => ChainData::Loading,
-            InternalChainData::Success(_, item) => ChainData::Success(item.clone()),
-            InternalChainData::Updating(_, item, _) => ChainData::Success(item.clone()),
-            InternalChainData::Failure(_, error) => ChainData::Failure(error.clone()),
-            InternalChainData::Retrying(_, error, _) => ChainData::Failure(error.clone()),
+            InternalEosData::NotAsked => EosData::NotAsked,
+            InternalEosData::Loading(_, _) => EosData::Loading,
+            InternalEosData::Success(_, item) => EosData::Success(item.clone()),
+            InternalEosData::Updating(_, item, _) => EosData::Success(item.clone()),
+            InternalEosData::Failure(_, error) => EosData::Failure(error.clone()),
+            InternalEosData::Retrying(_, error, _) => EosData::Failure(error.clone()),
         }
     }
 
-    fn with_task(&self, task: FetchTask) -> InternalChainData<Item> {
+    fn with_task(&self, task: FetchTask) -> InternalEosData<Item> {
         let now = Date::now();
         match self {
-            InternalChainData::NotAsked => InternalChainData::Loading(now, task),
-            InternalChainData::Loading(_, _) => InternalChainData::Loading(now, task),
-            InternalChainData::Success(_, item) => {
-                InternalChainData::Updating(now, item.clone(), task)
+            InternalEosData::NotAsked => InternalEosData::Loading(now, task),
+            InternalEosData::Loading(_, _) => InternalEosData::Loading(now, task),
+            InternalEosData::Success(_, item) => InternalEosData::Updating(now, item.clone(), task),
+            InternalEosData::Updating(_, item, _) => {
+                InternalEosData::Updating(now, item.clone(), task)
             }
-            InternalChainData::Updating(_, item, _) => {
-                InternalChainData::Updating(now, item.clone(), task)
+            InternalEosData::Failure(_, error) => {
+                InternalEosData::Retrying(now, error.clone(), task)
             }
-            InternalChainData::Failure(_, error) => {
-                InternalChainData::Retrying(now, error.clone(), task)
-            }
-            InternalChainData::Retrying(_, error, _) => {
-                InternalChainData::Retrying(now, error.clone(), task)
+            InternalEosData::Retrying(_, error, _) => {
+                InternalEosData::Retrying(now, error.clone(), task)
             }
         }
     }
 
-    fn from_task(task: FetchTask) -> InternalChainData<Item> {
-        InternalChainData::Loading(Date::now(), task)
+    fn from_task(task: FetchTask) -> InternalEosData<Item> {
+        InternalEosData::Loading(Date::now(), task)
     }
 }
 
-impl<Item> InternalChainData<Vec<Item>> {
+impl<Item> InternalEosData<Vec<Item>> {
     fn sort_by<F>(&mut self, compare: F)
     where
         F: FnMut(&Item, &Item) -> Ordering,
     {
         match self {
-            InternalChainData::Success(_, items) => items.sort_by(compare),
-            InternalChainData::Updating(_, items, _) => items.sort_by(compare),
+            InternalEosData::Success(_, items) => items.sort_by(compare),
+            InternalEosData::Updating(_, items, _) => items.sort_by(compare),
             _ => (),
         };
     }
 }
 
-impl<Row> From<Result<TableRows<Row>, failure::Error>> for InternalChainData<Vec<Row>> {
-    fn from(result: Result<TableRows<Row>, failure::Error>) -> InternalChainData<Vec<Row>> {
+impl<Row> From<Result<TableRows<Row>, failure::Error>> for InternalEosData<Vec<Row>> {
+    fn from(result: Result<TableRows<Row>, failure::Error>) -> InternalEosData<Vec<Row>> {
         let now = Date::now();
         match result {
-            Ok(table) => InternalChainData::Success(now, table.rows),
-            Err(error) => InternalChainData::Failure(now, error.into()),
+            Ok(table) => InternalEosData::Success(now, table.rows),
+            Err(error) => InternalEosData::Failure(now, error.into()),
         }
     }
 }
 
-impl<Row> From<Result<TableRows<Row>, failure::Error>> for InternalChainData<Option<Row>>
+impl<Row> From<Result<TableRows<Row>, failure::Error>> for InternalEosData<Option<Row>>
 where
     Row: Clone,
 {
-    fn from(result: Result<TableRows<Row>, failure::Error>) -> InternalChainData<Option<Row>> {
+    fn from(result: Result<TableRows<Row>, failure::Error>) -> InternalEosData<Option<Row>> {
         let now = Date::now();
         match result {
-            Ok(table) => InternalChainData::Success(now, table.rows.iter().cloned().next()),
-            Err(error) => InternalChainData::Failure(now, error.into()),
+            Ok(table) => InternalEosData::Success(now, table.rows.iter().cloned().next()),
+            Err(error) => InternalEosData::Failure(now, error.into()),
         }
     }
 }
 
-pub struct ChainAgent {
-    link: AgentLink<ChainAgent>,
+pub struct EosAgent {
+    link: AgentLink<EosAgent>,
     eos: EosService,
     chain: Chain,
     subscribers: HashSet<HandlerId>,
-    global_config: InternalChainData<Option<GlobalConfig>>,
-    donors: InternalChainData<Vec<Donor>>,
-    new_donations: InternalChainData<Vec<Donation>>,
-    new_polls: InternalChainData<Vec<Poll>>,
-    popular_polls: InternalChainData<Vec<Poll>>,
-    polls: HashMap<AccountName, InternalChainData<Vec<Poll>>>,
+    global_config: InternalEosData<Option<GlobalConfig>>,
+    donors: InternalEosData<Vec<Donor>>,
+    new_donations: InternalEosData<Vec<Donation>>,
+    new_polls: InternalEosData<Vec<Poll>>,
+    popular_polls: InternalEosData<Vec<Poll>>,
+    polls: HashMap<AccountName, InternalEosData<Vec<Poll>>>,
 }
 
-impl Agent for ChainAgent {
+impl Agent for EosAgent {
     type Reach = worker::Context;
     type Message = ChainMsg;
-    type Input = ChainInput;
-    type Output = ChainOutput;
+    type Input = EosInput;
+    type Output = EosOutput;
 
     fn create(link: AgentLink<Self>) -> Self {
-        ChainAgent {
+        EosAgent {
             link,
             eos: EosService::new(),
             chain: Chain::default(),
             subscribers: HashSet::new(),
-            global_config: InternalChainData::default(),
-            donors: InternalChainData::default(),
-            new_donations: InternalChainData::default(),
-            new_polls: InternalChainData::default(),
-            popular_polls: InternalChainData::default(),
+            global_config: InternalEosData::default(),
+            donors: InternalEosData::default(),
+            new_donations: InternalEosData::default(),
+            new_polls: InternalEosData::default(),
+            popular_polls: InternalEosData::default(),
             polls: HashMap::new(),
         }
     }
 
     fn handle(&mut self, msg: Self::Input, who: HandlerId) {
         let output = match msg {
-            ChainInput::Configure(chain) => {
+            EosInput::Configure(chain) => {
                 self.chain = chain;
-                ChainOutput::Configured
+                EosOutput::Configured
             }
-            ChainInput::GetGlobalConfig => {
+            EosInput::GetGlobalConfig => {
                 self.fetch_global_config();
-                let chain_data = self.global_config.to_chain_data();
-                ChainOutput::GlobalConfig(chain_data)
+                let eos_data = self.global_config.to_eos_data();
+                EosOutput::GlobalConfig(eos_data)
             }
-            ChainInput::GetPopularPolls => {
+            EosInput::GetPopularPolls => {
                 self.fetch_popular_polls();
-                let chain_data = self.popular_polls.to_chain_data();
-                ChainOutput::PopularPolls(chain_data)
+                let eos_data = self.popular_polls.to_eos_data();
+                EosOutput::PopularPolls(eos_data)
             }
-            ChainInput::GetNewPolls => {
+            EosInput::GetNewPolls => {
                 self.fetch_new_polls();
-                let chain_data = self.new_polls.to_chain_data();
-                ChainOutput::NewPolls(chain_data)
+                let eos_data = self.new_polls.to_eos_data();
+                EosOutput::NewPolls(eos_data)
             }
-            ChainInput::GetDonors => {
+            EosInput::GetDonors => {
                 self.fetch_donors();
-                let chain_data = self.donors.to_chain_data();
-                ChainOutput::Donors(chain_data)
+                let eos_data = self.donors.to_eos_data();
+                EosOutput::Donors(eos_data)
             }
-            ChainInput::GetNewDonations => {
+            EosInput::GetNewDonations => {
                 self.fetch_new_donations();
-                let chain_data = self.new_donations.to_chain_data();
-                ChainOutput::NewDonations(chain_data)
+                let eos_data = self.new_donations.to_eos_data();
+                EosOutput::NewDonations(eos_data)
             }
-            ChainInput::GetPolls(account) => {
+            EosInput::GetPolls(account) => {
                 self.fetch_polls(account.clone());
-                let chain_data = match self.polls.get(&account) {
-                    Some(polls) => polls.to_chain_data(),
-                    None => ChainData::default(),
+                let eos_data = match self.polls.get(&account) {
+                    Some(polls) => polls.to_eos_data(),
+                    None => EosData::default(),
                 };
-                ChainOutput::Polls(account, chain_data)
+                EosOutput::Polls(account, eos_data)
             }
-            // ChainInput::GetPoll(chain, account, slug) => {}
-            _ => ChainOutput::Configured,
+            // EosInput::GetPoll(chain, account, slug) => {}
+            _ => EosOutput::Configured,
         };
         self.link.response(who, output);
     }
@@ -252,7 +250,7 @@ impl Agent for ChainAgent {
         let output = match msg {
             ChainMsg::GlobalConfig(result) => {
                 self.global_config = result.into();
-                ChainOutput::GlobalConfig(self.global_config.to_chain_data())
+                EosOutput::GlobalConfig(self.global_config.to_eos_data())
             }
             ChainMsg::PopularPolls(result) => {
                 self.popular_polls = result.into();
@@ -261,33 +259,33 @@ impl Agent for ChainAgent {
                     let b_pop: f64 = b.popularity.parse().unwrap();
                     b_pop.partial_cmp(&a_pop).unwrap()
                 });
-                ChainOutput::PopularPolls(self.popular_polls.to_chain_data())
+                EosOutput::PopularPolls(self.popular_polls.to_eos_data())
             }
             ChainMsg::NewPolls(result) => {
                 self.new_polls = result.into();
                 self.new_polls
                     .sort_by(|a, b| b.create_time.cmp(&a.create_time));
-                ChainOutput::NewPolls(self.new_polls.to_chain_data())
+                EosOutput::NewPolls(self.new_polls.to_eos_data())
             }
             ChainMsg::Donors(result) => {
                 self.donors = result.into();
                 self.donors.sort_by(|a, b| b.donated.cmp(&a.donated));
-                ChainOutput::Donors(self.donors.to_chain_data())
+                EosOutput::Donors(self.donors.to_eos_data())
             }
             ChainMsg::NewDonations(result) => {
                 self.new_donations = result.into();
                 self.new_donations.sort_by(|a, b| b.created.cmp(&a.created));
-                ChainOutput::NewDonations(self.new_donations.to_chain_data())
+                EosOutput::NewDonations(self.new_donations.to_eos_data())
             }
             ChainMsg::Polls(account, result) => {
                 self.polls.insert(account.clone(), result.into());
-                let chain_data = match self.polls.get(&account) {
-                    Some(polls) => polls.to_chain_data(),
-                    None => ChainData::default(),
+                let eos_data = match self.polls.get(&account) {
+                    Some(polls) => polls.to_eos_data(),
+                    None => EosData::default(),
                 };
-                ChainOutput::Polls(account, chain_data)
+                EosOutput::Polls(account, eos_data)
             }
-            _ => ChainOutput::GlobalConfig(self.global_config.to_chain_data()),
+            _ => EosOutput::GlobalConfig(self.global_config.to_eos_data()),
         };
         for sub in &self.subscribers {
             self.link.response(*sub, output.clone());
@@ -302,10 +300,10 @@ impl Agent for ChainAgent {
     }
 }
 
-impl ChainAgent {
-    pub fn new(chain: Chain, callback: Callback<ChainOutput>) -> Box<Bridge<ChainAgent>> {
-        let mut agent = ChainAgent::bridge(callback);
-        agent.send(ChainInput::Configure(chain));
+impl EosAgent {
+    pub fn new(chain: Chain, callback: Callback<EosOutput>) -> Box<Bridge<EosAgent>> {
+        let mut agent = EosAgent::bridge(callback);
+        agent.send(EosInput::Configure(chain));
         agent
     }
 
@@ -352,7 +350,7 @@ impl ChainAgent {
         let task = self.fetch_table_rows(params, callback);
         let polls = match self.polls.get(&account) {
             Some(polls) => polls.with_task(task),
-            None => InternalChainData::from_task(task),
+            None => InternalEosData::from_task(task),
         };
         self.polls.insert(account, polls);
     }

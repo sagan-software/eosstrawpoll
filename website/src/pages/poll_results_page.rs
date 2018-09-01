@@ -1,8 +1,8 @@
-use agents::scatter::*;
 use components::Link;
+use eos::{self, EosService};
 use failure::Error;
 use prelude::*;
-use services::eos::{self, EosService};
+use scatter::*;
 use std::time::Duration;
 use stdweb::web::document;
 use yew::services::fetch::FetchTask;

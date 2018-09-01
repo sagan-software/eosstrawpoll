@@ -17,12 +17,14 @@ extern crate failure;
 #[macro_use]
 mod macros;
 
-mod agents;
+mod app;
 mod components;
 mod eos;
+mod pages;
 mod prelude;
-mod services;
+mod router;
+mod scatter;
 mod traits;
 mod types;
 
-pub use components::App as Model;
+pub use app::App as Model;

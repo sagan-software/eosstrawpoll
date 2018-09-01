@@ -1,13 +1,13 @@
-use agents::chain::*;
 use components::{Link, RelativeTime};
+use eos::*;
 use prelude::*;
 use std::cmp::min;
 
 pub struct PollList {
     props: Props,
-    polls: ChainData<Vec<Poll>>,
+    polls: EosData<Vec<Poll>>,
     table: PollsTable,
-    _chain_agent: Box<Bridge<ChainAgent>>,
+    _eos_agent: Box<Bridge<EosAgent>>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -37,7 +37,7 @@ impl Default for PollsOrder {
 }
 
 pub enum Msg {
-    Chain(ChainOutput),
+    Chain(EosOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -58,38 +58,38 @@ impl Component for PollList {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let mut chain_agent = ChainAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
+        let mut eos_agent = EosAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
 
         let table = props.clone().table.unwrap_or_else(|| PollsTable::Polls);
 
         if table == PollsTable::NewPolls {
-            chain_agent.send(ChainInput::GetNewPolls);
+            eos_agent.send(EosInput::GetNewPolls);
         } else if table == PollsTable::PopularPolls {
-            chain_agent.send(ChainInput::GetPopularPolls);
+            eos_agent.send(EosInput::GetPopularPolls);
         } else {
-            chain_agent.send(ChainInput::GetPolls(props.scope.clone()));
+            eos_agent.send(EosInput::GetPolls(props.scope.clone()));
         }
 
         PollList {
             props,
-            polls: ChainData::default(),
+            polls: EosData::default(),
             table,
-            _chain_agent: chain_agent,
+            _eos_agent: eos_agent,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Chain(output) => match (&self.table, output) {
-                (PollsTable::NewPolls, ChainOutput::NewPolls(polls)) => {
+                (PollsTable::NewPolls, EosOutput::NewPolls(polls)) => {
                     self.polls = polls;
                     true
                 }
-                (PollsTable::PopularPolls, ChainOutput::PopularPolls(polls)) => {
+                (PollsTable::PopularPolls, EosOutput::PopularPolls(polls)) => {
                     self.polls = polls;
                     true
                 }
-                (PollsTable::Polls, ChainOutput::Polls(scope, polls)) => {
+                (PollsTable::Polls, EosOutput::Polls(scope, polls)) => {
                     if scope == self.props.scope {
                         self.polls = polls;
                         true
@@ -111,16 +111,16 @@ impl Component for PollList {
 impl Renderable<PollList> for PollList {
     fn view(&self) -> Html<Self> {
         match &self.polls {
-            ChainData::NotAsked => self.view_empty(),
-            ChainData::Loading => self.view_loading(),
-            ChainData::Success(data) => {
+            EosData::NotAsked => self.view_empty(),
+            EosData::Loading => self.view_loading(),
+            EosData::Success(data) => {
                 if data.is_empty() {
                     self.view_empty()
                 } else {
                     self.view_items(&data)
                 }
             }
-            ChainData::Failure(error) => self.view_error(error),
+            EosData::Failure(error) => self.view_error(error),
         }
     }
 }
@@ -134,7 +134,7 @@ impl PollList {
         }
     }
 
-    fn view_error(&self, error: &ChainError) -> Html<Self> {
+    fn view_error(&self, error: &EosError) -> Html<Self> {
         html! {
             <div class="poll_list -error", >
                 { "Error: " }{ format!("{:#?}", error) }

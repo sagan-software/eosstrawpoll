@@ -1,9 +1,9 @@
-use agents::router::RouterAgent;
-use agents::scatter::*;
 use components::*;
+use eos::*;
 use failure::Error;
 use prelude::*;
-use services::eos::{self, EosService};
+use router::RouterAgent;
+use scatter::*;
 use stdweb::traits::IEvent;
 use stdweb::web::document;
 use yew::services::fetch::FetchTask;
@@ -36,7 +36,7 @@ pub struct Props {
 }
 
 pub enum Msg {
-    Polls(Result<eos::TableRows<Poll>, Error>),
+    Polls(Result<TableRows<Poll>, Error>),
     Scatter(ScatterOutput),
     ToggleChoice(Choice),
     SetWriteinInput(String),
@@ -279,7 +279,7 @@ impl PollVotingPage {
     }
 
     fn fetch_poll(&mut self) {
-        let params = eos::TableRowsParams {
+        let params = TableRowsParams {
             scope: self.creator.clone(),
             code: self.chain.code_account.clone(),
             table: "polls".to_string(),

@@ -1,4 +1,5 @@
-use services::history::HistoryService;
+use router::service::HistoryService;
+use router::types::*;
 use std::collections::HashSet;
 use stdweb::web::Location;
 use yew::prelude::worker::*;

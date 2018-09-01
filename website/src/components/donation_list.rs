@@ -1,16 +1,16 @@
-use agents::chain::*;
 use components::Link;
+use eos::*;
 use prelude::*;
 use std::cmp::min;
 
 pub struct DonationList {
     props: Props,
-    donations: ChainData<Vec<Donation>>,
-    _chain_agent: Box<Bridge<ChainAgent>>,
+    donations: EosData<Vec<Donation>>,
+    _eos_agent: Box<Bridge<EosAgent>>,
 }
 
 pub enum Msg {
-    Chain(ChainOutput),
+    Chain(EosOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -27,19 +27,19 @@ impl Component for DonationList {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let mut chain_agent = ChainAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
-        chain_agent.send(ChainInput::GetNewDonations);
+        let mut eos_agent = EosAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
+        eos_agent.send(EosInput::GetNewDonations);
         DonationList {
             props,
-            donations: ChainData::default(),
-            _chain_agent: chain_agent,
+            donations: EosData::default(),
+            _eos_agent: eos_agent,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Chain(output) => match output {
-                ChainOutput::NewDonations(donations) => {
+                EosOutput::NewDonations(donations) => {
                     self.donations = donations;
                     true
                 }
@@ -57,16 +57,16 @@ impl Component for DonationList {
 impl Renderable<DonationList> for DonationList {
     fn view(&self) -> Html<Self> {
         match &self.donations {
-            ChainData::NotAsked => self.view_empty(),
-            ChainData::Loading => self.view_loading(),
-            ChainData::Success(data) => {
+            EosData::NotAsked => self.view_empty(),
+            EosData::Loading => self.view_loading(),
+            EosData::Success(data) => {
                 if data.is_empty() {
                     self.view_empty()
                 } else {
                     self.view_items(&data)
                 }
             }
-            ChainData::Failure(error) => self.view_error(error),
+            EosData::Failure(error) => self.view_error(error),
         }
     }
 }
@@ -80,7 +80,7 @@ impl DonationList {
         }
     }
 
-    fn view_error(&self, error: &ChainError) -> Html<Self> {
+    fn view_error(&self, error: &EosError) -> Html<Self> {
         html! {
             <div class="donation_list_loading", >
                 { "Error: " }{ format!("{:#?}", error) }

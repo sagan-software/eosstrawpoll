@@ -1,3 +1,4 @@
+use eos::types::*;
 use std::str::FromStr;
 use stdweb::web::error::SecurityError;
 use stdweb::web::Location;

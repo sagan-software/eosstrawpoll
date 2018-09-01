@@ -1,5 +1,5 @@
-use agents::chain::*;
-use agents::scatter::*;
+use eos::*;
+use scatter::*;
 use components::*;
 use prelude::*;
 use stdweb::traits::IEvent;
@@ -12,7 +12,7 @@ pub struct DonationForm {
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
     pushed: Option<Result<PushedTransaction, ScatterError>>,
-    chain_agent: Box<Bridge<ChainAgent>>,
+    eos_agent: Box<Bridge<EosAgent>>,
     chain: Chain,
 }
 
@@ -26,7 +26,7 @@ pub enum Msg {
     Submit,
     Scatter(ScatterOutput),
     SetAmount(String),
-    Chain(ChainOutput),
+    Chain(EosOutput),
 }
 
 impl Component for DonationForm {
@@ -34,7 +34,7 @@ impl Component for DonationForm {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let chain_agent = ChainAgent::bridge(link.send_back(Msg::Chain));
+        let eos_agent = EosAgent::bridge(link.send_back(Msg::Chain));
         let scatter_agent = ScatterAgent::new("eosstrawpoll", 10000, link.send_back(Msg::Scatter));
         DonationForm {
             amount: 0.,
@@ -44,7 +44,7 @@ impl Component for DonationForm {
             scatter_connected: None,
             scatter_identity: None,
             pushed: None,
-            chain_agent,
+            eos_agent,
             chain: props.chain,
         }
     }
@@ -124,8 +124,8 @@ impl Component for DonationForm {
                         self.pushed = Some(result);
                         self.submitting = false;
                         self.amount = 0.;
-                        self.chain_agent.send(ChainInput::GetDonors);
-                        self.chain_agent.send(ChainInput::GetNewDonations);
+                        self.eos_agent.send(EosInput::GetDonors);
+                        self.eos_agent.send(EosInput::GetNewDonations);
                         true
                     } else {
                         false
