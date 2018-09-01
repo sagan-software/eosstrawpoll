@@ -110,3 +110,4 @@ gh-pages: build
 	git worktree remove ./gh-pages || exit 0
 	git worktree add ./gh-pages gh-pages
 	mv dist/* gh-pages
+	cp netlify.toml ./gh-pages/
