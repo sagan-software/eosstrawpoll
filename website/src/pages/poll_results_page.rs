@@ -1,6 +1,5 @@
 use components::Link;
-use eos::{self, EosService};
-use failure::Error;
+use eos::service::*;
 use prelude::*;
 use scatter::*;
 use std::time::Duration;
@@ -12,7 +11,7 @@ pub struct PollResultsPage {
     eos: EosService,
     context: Context,
     task: Option<FetchTask>,
-    poll: Option<Result<Poll, Error>>,
+    poll: Option<Result<Poll, EosError>>,
     creator: String,
     slug: String,
     scatter_agent: Box<Bridge<ScatterAgent>>,
@@ -33,7 +32,7 @@ pub struct Props {
 }
 
 pub enum Msg {
-    Polls(Result<eos::TableRows<Poll>, Error>),
+    Polls(Result<TableRows<Poll>, EosError>),
     Scatter(ScatterOutput),
     FetchPolls,
 }
@@ -75,7 +74,7 @@ impl Component for PollResultsPage {
                 self.poll = match result {
                     Ok(table) => match table.rows.first() {
                         Some(poll) => Some(Ok(poll.clone())),
-                        None => Some(Err(format_err!("poll not found"))),
+                        None => Some(Err(EosError::Message("poll not found".to_string()))),
                     },
                     Err(error) => Some(Err(error)),
                 };
@@ -153,7 +152,7 @@ page_view! { PollResultsPage }
 
 impl PollResultsPage {
     fn fetch_poll(&mut self) {
-        let params = eos::TableRowsParams {
+        let params = TableRowsParams {
             scope: self.creator.clone(),
             code: "eosstrawpoll".to_string(),
             table: "polls".to_string(),
@@ -230,10 +229,10 @@ impl PollResultsPage {
         }
     }
 
-    fn view_error(&self, error: &Error) -> Html<Self> {
+    fn view_error(&self, error: &EosError) -> Html<Self> {
         html! {
             <div>
-                <h1>{ "Error: " }{ error }</h1>
+                <h1>{ "Error" }</h1>
             </div>
         }
     }

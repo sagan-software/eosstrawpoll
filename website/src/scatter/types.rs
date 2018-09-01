@@ -86,34 +86,6 @@ impl PartialEq for ScatterIdentity {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct EosConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chain_id: Option<ChainId>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub key_provider: Option<Vec<String>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub http_endpoint: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expire_in_seconds: Option<u32>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub broadcast: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub verbose: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub debug: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sign: Option<bool>,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScatterError {
     NotConnected,

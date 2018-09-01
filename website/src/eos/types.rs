@@ -94,3 +94,31 @@ pub struct TableRowsParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub index_position: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct EosJsConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chain_id: Option<ChainId>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_provider: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_endpoint: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expire_in_seconds: Option<u32>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verbose: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debug: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sign: Option<bool>,
+}

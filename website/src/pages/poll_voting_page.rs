@@ -1,6 +1,5 @@
 use components::*;
 use eos::*;
-use failure::Error;
 use prelude::*;
 use router::RouterAgent;
 use scatter::*;
@@ -12,7 +11,7 @@ pub struct PollVotingPage {
     eos: EosService,
     context: Context,
     task: Option<FetchTask>,
-    poll: Option<Result<Poll, Error>>,
+    poll: Option<Result<Poll, EosError>>,
     creator: String,
     slug: String,
     chain: Chain,
@@ -36,7 +35,7 @@ pub struct Props {
 }
 
 pub enum Msg {
-    Polls(Result<TableRows<Poll>, Error>),
+    Polls(Result<TableRows<Poll>, EosError>),
     Scatter(ScatterOutput),
     ToggleChoice(Choice),
     SetWriteinInput(String),
@@ -80,7 +79,7 @@ impl Component for PollVotingPage {
                 self.poll = match result {
                     Ok(table) => match table.rows.first() {
                         Some(poll) => Some(Ok(poll.clone())),
-                        None => Some(Err(format_err!("poll not found"))),
+                        None => Some(Err(EosError::Message("poll not found".to_string()))),
                     },
                     Err(error) => Some(Err(error)),
                 };
@@ -388,10 +387,10 @@ impl PollVotingPage {
         }
     }
 
-    fn view_error(&self, error: &Error) -> Html<Self> {
+    fn view_error(&self, error: &EosError) -> Html<Self> {
         html! {
             <div>
-                <h1>{ "Error: " }{ error }</h1>
+                <h1>{ "Error " }</h1>
             </div>
         }
     }

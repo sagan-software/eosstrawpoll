@@ -6,7 +6,6 @@ mod link;
 mod poll_form;
 mod poll_list;
 mod relative_time;
-mod svg;
 
 pub use self::donation_form::DonationForm;
 pub use self::donation_list::DonationList;
@@ -16,4 +15,3 @@ pub use self::link::Link;
 pub use self::poll_form::PollForm;
 pub use self::poll_list::{PollList, PollsOrder, PollsTable};
 pub use self::relative_time::RelativeTime;
-pub use self::svg::{Svg, SvgSymbol};

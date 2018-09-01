@@ -1,6 +1,5 @@
 use eos::service::*;
 use eos::types::*;
-use failure;
 use serde::Deserialize;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -52,30 +51,19 @@ pub enum EosOutput {
 
 impl Transferable for EosOutput {}
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum EosError {
-    Message(String),
-}
-
 impl<Item> From<EosError> for EosData<Item> {
     fn from(chain_error: EosError) -> EosData<Item> {
         EosData::Failure(chain_error)
     }
 }
 
-impl From<failure::Error> for EosError {
-    fn from(error: failure::Error) -> EosError {
-        EosError::Message(format!("{:#?}", error))
-    }
-}
-
-pub enum ChainMsg {
-    GlobalConfig(Result<TableRows<GlobalConfig>, failure::Error>),
-    PopularPolls(Result<TableRows<Poll>, failure::Error>),
-    NewPolls(Result<TableRows<Poll>, failure::Error>),
-    Donors(Result<TableRows<Donor>, failure::Error>),
-    NewDonations(Result<TableRows<Donation>, failure::Error>),
-    Polls(AccountName, Result<TableRows<Poll>, failure::Error>),
+pub enum EosMsg {
+    GlobalConfig(Result<TableRows<GlobalConfig>, EosError>),
+    PopularPolls(Result<TableRows<Poll>, EosError>),
+    NewPolls(Result<TableRows<Poll>, EosError>),
+    Donors(Result<TableRows<Donor>, EosError>),
+    NewDonations(Result<TableRows<Donation>, EosError>),
+    Polls(AccountName, Result<TableRows<Poll>, EosError>),
 }
 
 pub enum InternalEosData<Item> {
@@ -144,25 +132,25 @@ impl<Item> InternalEosData<Vec<Item>> {
     }
 }
 
-impl<Row> From<Result<TableRows<Row>, failure::Error>> for InternalEosData<Vec<Row>> {
-    fn from(result: Result<TableRows<Row>, failure::Error>) -> InternalEosData<Vec<Row>> {
+impl<Row> From<Result<TableRows<Row>, EosError>> for InternalEosData<Vec<Row>> {
+    fn from(result: Result<TableRows<Row>, EosError>) -> InternalEosData<Vec<Row>> {
         let now = Date::now();
         match result {
             Ok(table) => InternalEosData::Success(now, table.rows),
-            Err(error) => InternalEosData::Failure(now, error.into()),
+            Err(error) => InternalEosData::Failure(now, error),
         }
     }
 }
 
-impl<Row> From<Result<TableRows<Row>, failure::Error>> for InternalEosData<Option<Row>>
+impl<Row> From<Result<TableRows<Row>, EosError>> for InternalEosData<Option<Row>>
 where
     Row: Clone,
 {
-    fn from(result: Result<TableRows<Row>, failure::Error>) -> InternalEosData<Option<Row>> {
+    fn from(result: Result<TableRows<Row>, EosError>) -> InternalEosData<Option<Row>> {
         let now = Date::now();
         match result {
             Ok(table) => InternalEosData::Success(now, table.rows.iter().cloned().next()),
-            Err(error) => InternalEosData::Failure(now, error.into()),
+            Err(error) => InternalEosData::Failure(now, error),
         }
     }
 }
@@ -182,7 +170,7 @@ pub struct EosAgent {
 
 impl Agent for EosAgent {
     type Reach = worker::Context;
-    type Message = ChainMsg;
+    type Message = EosMsg;
     type Input = EosInput;
     type Output = EosOutput;
 
@@ -248,11 +236,11 @@ impl Agent for EosAgent {
 
     fn update(&mut self, msg: Self::Message) {
         let output = match msg {
-            ChainMsg::GlobalConfig(result) => {
+            EosMsg::GlobalConfig(result) => {
                 self.global_config = result.into();
                 EosOutput::GlobalConfig(self.global_config.to_eos_data())
             }
-            ChainMsg::PopularPolls(result) => {
+            EosMsg::PopularPolls(result) => {
                 self.popular_polls = result.into();
                 self.popular_polls.sort_by(|a, b| {
                     let a_pop: f64 = a.popularity.parse().unwrap();
@@ -261,23 +249,23 @@ impl Agent for EosAgent {
                 });
                 EosOutput::PopularPolls(self.popular_polls.to_eos_data())
             }
-            ChainMsg::NewPolls(result) => {
+            EosMsg::NewPolls(result) => {
                 self.new_polls = result.into();
                 self.new_polls
                     .sort_by(|a, b| b.create_time.cmp(&a.create_time));
                 EosOutput::NewPolls(self.new_polls.to_eos_data())
             }
-            ChainMsg::Donors(result) => {
+            EosMsg::Donors(result) => {
                 self.donors = result.into();
                 self.donors.sort_by(|a, b| b.donated.cmp(&a.donated));
                 EosOutput::Donors(self.donors.to_eos_data())
             }
-            ChainMsg::NewDonations(result) => {
+            EosMsg::NewDonations(result) => {
                 self.new_donations = result.into();
                 self.new_donations.sort_by(|a, b| b.created.cmp(&a.created));
                 EosOutput::NewDonations(self.new_donations.to_eos_data())
             }
-            ChainMsg::Polls(account, result) => {
+            EosMsg::Polls(account, result) => {
                 self.polls.insert(account.clone(), result.into());
                 let eos_data = match self.polls.get(&account) {
                     Some(polls) => polls.to_eos_data(),
@@ -309,7 +297,7 @@ impl EosAgent {
 
     fn fetch_table_rows<ToMsg, Row>(&mut self, params: TableRowsParams, to_msg: ToMsg) -> FetchTask
     where
-        ToMsg: Fn(Result<TableRows<Row>, failure::Error>) -> ChainMsg + 'static,
+        ToMsg: Fn(Result<TableRows<Row>, EosError>) -> EosMsg + 'static,
         for<'de> Row: Deserialize<'de> + 'static,
     {
         let callback = self.link.send_back(to_msg);
@@ -329,7 +317,7 @@ impl EosAgent {
             key_type: None,
             index_position: None,
         };
-        let task = self.fetch_table_rows(params, ChainMsg::GlobalConfig);
+        let task = self.fetch_table_rows(params, EosMsg::GlobalConfig);
         self.global_config = self.global_config.with_task(task);
     }
 
@@ -346,7 +334,7 @@ impl EosAgent {
             index_position: None,
         };
         let acct = account.clone();
-        let callback = move |result| ChainMsg::Polls(acct.clone(), result);
+        let callback = move |result| EosMsg::Polls(acct.clone(), result);
         let task = self.fetch_table_rows(params, callback);
         let polls = match self.polls.get(&account) {
             Some(polls) => polls.with_task(task),
@@ -367,7 +355,7 @@ impl EosAgent {
             key_type: None,
             index_position: None,
         };
-        let task = self.fetch_table_rows(params, ChainMsg::PopularPolls);
+        let task = self.fetch_table_rows(params, EosMsg::PopularPolls);
         self.popular_polls = self.popular_polls.with_task(task);
     }
 
@@ -383,7 +371,7 @@ impl EosAgent {
             key_type: None,
             index_position: None,
         };
-        let task = self.fetch_table_rows(params, ChainMsg::NewPolls);
+        let task = self.fetch_table_rows(params, EosMsg::NewPolls);
         self.new_polls = self.new_polls.with_task(task);
     }
 
@@ -399,7 +387,7 @@ impl EosAgent {
             key_type: None,
             index_position: None,
         };
-        let task = self.fetch_table_rows(params, ChainMsg::Donors);
+        let task = self.fetch_table_rows(params, EosMsg::Donors);
         self.donors = self.donors.with_task(task);
     }
 
@@ -415,7 +403,7 @@ impl EosAgent {
             key_type: None,
             index_position: None,
         };
-        let task = self.fetch_table_rows(params, ChainMsg::NewDonations);
+        let task = self.fetch_table_rows(params, EosMsg::NewDonations);
         self.new_donations = self.new_donations.with_task(task);
     }
 }

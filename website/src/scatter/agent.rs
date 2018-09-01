@@ -1,5 +1,6 @@
-use scatter::service::*;
-use scatter::types::*;
+use super::service::*;
+use super::types::*;
+use eos::types::*;
 use std::collections::HashSet;
 use yew::prelude::worker::*;
 use yew::prelude::Callback;
@@ -10,7 +11,7 @@ pub enum ScatterInput {
     GetIdentity(ScatterRequiredFields),
     CurrentIdentity,
     ForgetIdentity,
-    PushTransaction(ScatterNetwork, EosConfig, ScatterTransaction),
+    PushTransaction(ScatterNetwork, EosJsConfig, ScatterTransaction),
 }
 
 impl Transferable for ScatterInput {}

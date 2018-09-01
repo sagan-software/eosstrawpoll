@@ -1,5 +1,5 @@
 use eos::types::*;
-use scatter::{EosConfig, ScatterNetwork, ScatterRequiredFields};
+use scatter::{ScatterNetwork, ScatterRequiredFields};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct ChainIdPrefix(String);
@@ -63,8 +63,8 @@ impl Chain {
         }
     }
 
-    pub fn to_eos_config(&self) -> EosConfig {
-        EosConfig {
+    pub fn to_eos_config(&self) -> EosJsConfig {
+        EosJsConfig {
             chain_id: Some(self.chain_id.clone()),
             key_provider: None,
             http_endpoint: Some(self.endpoint.to_string()),

@@ -2,6 +2,7 @@ use components::{Link, RelativeTime};
 use eos::*;
 use prelude::*;
 use std::cmp::min;
+use views::svg;
 
 pub struct PollList {
     props: Props,
@@ -137,7 +138,7 @@ impl PollList {
     fn view_error(&self, error: &EosError) -> Html<Self> {
         html! {
             <div class="poll_list -error", >
-                { "Error: " }{ format!("{:#?}", error) }
+                { svg::link_cross() }
             </div>
         }
     }

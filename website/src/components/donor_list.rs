@@ -2,6 +2,7 @@ use components::Link;
 use eos::*;
 use prelude::*;
 use std::cmp::min;
+use views::svg;
 
 pub struct DonorList {
     props: Props,
@@ -83,7 +84,7 @@ impl DonorList {
     fn view_error(&self, error: &EosError) -> Html<Self> {
         html! {
             <div class="donor_list -error", >
-                { "Error: " }{ format!("{:#?}", error) }
+                { svg::link_cross() }
             </div>
         }
     }

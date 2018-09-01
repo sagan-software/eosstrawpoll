@@ -26,5 +26,6 @@ mod router;
 mod scatter;
 mod traits;
 mod types;
+mod views;
 
 pub use app::App as Model;

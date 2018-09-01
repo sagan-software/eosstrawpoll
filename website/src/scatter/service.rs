@@ -1,5 +1,5 @@
+use super::types::*;
 use eos::types::*;
-use scatter::types::*;
 use serde::Serialize;
 use serde_json;
 use stdweb::Value;
@@ -7,7 +7,7 @@ use yew::prelude::*;
 
 js_serializable!(ScatterRequiredFields);
 js_serializable!(ScatterNetwork);
-js_serializable!(EosConfig);
+js_serializable!(EosJsConfig);
 js_serializable!(Authorization);
 js_deserializable!(Authorization);
 js_serializable!(ScatterTransaction);
@@ -181,7 +181,7 @@ impl ScatterService {
     pub fn push_transaction(
         &self,
         network: ScatterNetwork,
-        config: EosConfig,
+        config: EosJsConfig,
         transaction: ScatterTransaction,
         callback: Callback<Result<PushedTransaction, ScatterError>>,
     ) {

@@ -1,14 +1,35 @@
-pub use eos::*;
-use failure::Error;
+use eos::types::*;
+use failure;
 use http::Response;
 use serde;
 use serde_json;
 use yew::callback::Callback;
 use yew::format::Json;
-use yew::services::fetch::{FetchService, FetchTask, Request};
+use yew::services::fetch::{FetchService, FetchTask, Request, StatusCode};
 
 pub struct EosService {
     fetch: FetchService,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum EosError {
+    BadStatus(u16, Option<String>),
+    Message(String),
+}
+
+impl From<failure::Error> for EosError {
+    fn from(error: failure::Error) -> EosError {
+        EosError::Message(format!("{:#?}", error))
+    }
+}
+
+impl From<StatusCode> for EosError {
+    fn from(status_code: StatusCode) -> EosError {
+        EosError::BadStatus(
+            status_code.as_u16(),
+            status_code.canonical_reason().map(|s| s.to_string()),
+        )
+    }
 }
 
 impl EosService {
@@ -22,22 +43,18 @@ impl EosService {
         &mut self,
         endpoint: &str,
         params: TableRowsParams,
-        callback: Callback<Result<TableRows<Row>, Error>>,
+        callback: Callback<Result<TableRows<Row>, EosError>>,
     ) -> FetchTask
     where
         for<'de> Row: serde::Deserialize<'de> + 'static,
     {
-        let handler = move |response: Response<Json<Result<TableRows<Row>, Error>>>| {
+        let handler = move |response: Response<Json<Result<TableRows<Row>, failure::Error>>>| {
             let (meta, Json(data)) = response.into_parts();
             info!("META! {:#?}", meta);
             if meta.status.is_success() {
-                callback.emit(data)
+                callback.emit(data.map_err(|e| e.into()))
             } else {
-                // format_err! is a macro in crate `failure`
-                callback.emit(Err(format_err!(
-                    "{}: error getting profile https://gravatar.com/",
-                    meta.status
-                )))
+                callback.emit(Err(meta.status.into()))
             }
         };
         // let request = get_table_rows_request(endpoint, params);

@@ -6,6 +6,7 @@ use scatter::*;
 use std::cmp::{max, min};
 use std::collections::HashSet;
 use stdweb::traits::IEvent;
+use views::svg;
 
 pub struct PollForm {
     action: CreatePoll,
@@ -403,7 +404,7 @@ impl PollForm {
                         Msg::DelOption(index)
                     },
                 >
-                    <Svg: symbol=SvgSymbol::Trash, />
+                    { svg::trash() }
                 </button>
             </div>
         }
@@ -437,13 +438,13 @@ impl PollForm {
             None => html! { <></> },
             Some(Ok(_)) => html! {
                 <div class="poll_form_status -valid", >
-                    <Svg: symbol=SvgSymbol::CheckCircle, />
+                    { svg::check_circle() }
                 </div>
             },
             Some(Err(error)) => html! {
                 <div class="poll_form_status -invalid", >
                     <div class="message", >{ error }</div>
-                    <Svg: symbol=SvgSymbol::Warning, />
+                    { svg::warning() }
                 </div>
             },
         }

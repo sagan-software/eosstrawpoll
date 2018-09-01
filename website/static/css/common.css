@@ -28,3 +28,42 @@
 .page_loaded {
     opacity: 1;
 }
+
+
+.-error {
+    text-align: center;
+    padding: calc(var(--spacing) * 3);
+    color: #ccc;
+
+    & svg {
+        fill: currentColor;
+        height: 4rem;
+        width: 4rem;
+    }
+}
+
+.error_page {
+
+    & .page_content {
+
+        & .app_container {
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+
+        & svg {
+            height: 10rem;
+            width: 10rem;
+            fill: #ccc;
+        }
+
+        & p {
+            font-size: 2rem;
+            color: #777;
+            padding-top: 3rem;
+        }
+    }
+}

@@ -4,6 +4,7 @@ use prelude::*;
 use router::{RouterAgent, RouterInput, RouterOutput};
 use scatter::*;
 use stdweb::traits::IEvent;
+use views::svg;
 
 pub struct App {
     route: Option<Result<Route, RouteError>>,
@@ -94,23 +95,29 @@ impl Renderable<App> for App {
     }
 }
 
+fn app_logo() -> Html<App> {
+    html! {
+        <a class="app_logo",
+            href="/",
+            onclick=|e| {
+                e.prevent_default();
+                Msg::NavigateTo(Route::default())
+            },
+        >
+            { "EOS Straw Poll" }
+            <span class="app_version", >
+                { "PRE-ALPHA" }
+            </span>
+        </a>
+    }
+}
+
 impl App {
     fn view_header(&self) -> Html<Self> {
         html! {
             <header class="app_header", >
                 <div class="app_container", >
-                    <a class="app_logo",
-                        href="/",
-                        onclick=|e| {
-                            e.prevent_default();
-                            Msg::NavigateTo(Route::default())
-                        },
-                    >
-                        { "EOS Straw Poll" }
-                        <span class="app_version", >
-                            { "PRE-ALPHA" }
-                        </span>
-                    </a>
+                    { app_logo() }
                     { self.view_nav() }
                     { self.view_user() }
                 </div>
@@ -125,38 +132,17 @@ impl App {
                     href="https://github.com/sagan-software/eosstrawpoll/projects/1",
                     target="_blank",
                 >
-                    <Svg: symbol=SvgSymbol::Map, />
+                    { svg::roadmap() }
                     { "Roadmap" }
                 </a>
                 <a class="app_link app_link_feedback",
                     href="https://eos-forum.org/#/e/eosstrawpoll",
                     target="_blank",
                 >
-                    <Svg: symbol=SvgSymbol::Megaphone, />
+                    { svg::megaphone() }
                     { "Feedback" }
                 </a>
             </nav>
-        }
-    }
-
-    fn view_nav_link(
-        &self,
-        route: Route,
-        text: &str,
-        class: &str,
-        symbol: SvgSymbol,
-    ) -> Html<Self> {
-        html! {
-            <a class=format!("app_link app_link_{}", class),
-                href=route.to_string(),
-                onclick=|e| {
-                    e.prevent_default();
-                    Msg::NavigateTo(route.clone())
-                },
-            >
-                <Svg: symbol=symbol, />
-                { text }
-            </a>
         }
     }
 
@@ -192,7 +178,7 @@ impl App {
                 href="https://get-scatter.com",
             >
                 { "Install " }
-                <Svg: symbol=SvgSymbol::ScatterFull, />
+                { svg::scatter_large() }
             </a>
         }
     }
@@ -204,7 +190,7 @@ impl App {
                 onclick=|_| Msg::Login,
             >
                 { "Login with " }
-                <Svg: symbol=SvgSymbol::ScatterFull, />
+                { svg::scatter_large() }
             </button>
         }
     }
@@ -227,13 +213,13 @@ impl App {
                         Msg::NavigateTo(profile_route.clone())
                     },
                 >
-                    <Svg: symbol=SvgSymbol::Head, />
+                    { svg::head() }
                     { account_name }
                 </a>
                 <button class="app_user_logout",
                     onclick=|_| Msg::Logout,
                 >
-                    <Svg: symbol=SvgSymbol::Exit, />
+                    { svg::logout() }
                 </button>
             </div>
         }
@@ -269,15 +255,15 @@ impl App {
                     </p>
                     <p class="app_footer_links", >
                         <a href="//www.github.com/sagan-software", >
-                            <Svg: symbol=SvgSymbol::Github, />
+                            { svg::github() }
                             { "Github" }
                         </a>
                         <a href="//www.twitter.com/SaganSoftware", >
-                            <Svg: symbol=SvgSymbol::Twitter, />
+                            { svg::twitter() }
                             { "Twitter" }
                         </a>
                         <a href="https://t.me/SaganSoftware", >
-                            <Svg: symbol=SvgSymbol::Telegram, />
+                            { svg::telegram() }
                             { "Telegram" }
                         </a>
                     </p>
@@ -288,9 +274,21 @@ impl App {
 
     fn view_unknown_chain(&self, chain_id_prefix: &ChainIdPrefix) -> Html<Self> {
         html! {
-            <>
-                { format!("Unknown chain id prefix: {}", chain_id_prefix.to_string())}
-            </>
+            <div class="page error_page", >
+                <header class="page_header", >
+                    <div class="app_container", >
+                        <h1 class="page_title", >
+                            { "Unknown Chain"}
+                        </h1>
+                    </div>
+                </header>
+                <main class="page_content", >
+                    <div class="app_container", >
+                        { svg::link_cross() }
+                        <p>{ format!("Couldn't find an EOS blockchain with chain ID prefix '{}'", chain_id_prefix.to_string())}</p>
+                    </div>
+                </main>
+            </div>
         }
     }
 

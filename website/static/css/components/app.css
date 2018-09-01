@@ -58,14 +58,13 @@
     grid-column: 2 / span 3;
     display: flex;
     align-items: center;
-    padding: 0 calc(var(--spacing) * 6);
+    padding: 0 calc(var(--spacing) * 4);
 }
 
 .app_link {
     font-size: 1.75rem;
     height: 100%;
     display: flex;
-    flex-direction: row-reverse;
     align-items: center;
     font-weight: normal;
     margin-right: calc(var(--spacing) * 4);
@@ -156,9 +155,7 @@
         order: 1;
         flex: 1;
         display: flex;
-        flex-direction: row-reverse;
         align-items: center;
-        justify-content: flex-end;
 
         & svg {
             transform: translateX(-4px);
@@ -194,7 +191,7 @@
     & svg {
         height: 2.4rem;
         fill: currentColor;
-        padding-left: var(--spacing);
+        padding-right: var(--spacing);
     }
 
     & .app_footer_text {

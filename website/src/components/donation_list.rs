@@ -1,7 +1,8 @@
-use components::Link;
+use super::link::Link;
 use eos::*;
 use prelude::*;
 use std::cmp::min;
+use views::svg;
 
 pub struct DonationList {
     props: Props,
@@ -10,7 +11,7 @@ pub struct DonationList {
 }
 
 pub enum Msg {
-    Chain(EosOutput),
+    Eos(EosOutput),
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -27,7 +28,7 @@ impl Component for DonationList {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let mut eos_agent = EosAgent::new(props.chain.clone(), link.send_back(Msg::Chain));
+        let mut eos_agent = EosAgent::new(props.chain.clone(), link.send_back(Msg::Eos));
         eos_agent.send(EosInput::GetNewDonations);
         DonationList {
             props,
@@ -38,7 +39,7 @@ impl Component for DonationList {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Chain(output) => match output {
+            Msg::Eos(output) => match output {
                 EosOutput::NewDonations(donations) => {
                     self.donations = donations;
                     true
@@ -74,7 +75,7 @@ impl Renderable<DonationList> for DonationList {
 impl DonationList {
     fn view_loading(&self) -> Html<Self> {
         html! {
-            <div class="donation_list_loading", >
+            <div class="donation_list -loading", >
                 { "Loading..." }
             </div>
         }
@@ -82,8 +83,8 @@ impl DonationList {
 
     fn view_error(&self, error: &EosError) -> Html<Self> {
         html! {
-            <div class="donation_list_loading", >
-                { "Error: " }{ format!("{:#?}", error) }
+            <div class="donation_list -error", >
+                { svg::link_cross() }
             </div>
         }
     }
