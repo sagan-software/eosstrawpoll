@@ -3,6 +3,7 @@
 #include <eosiolib/multi_index.hpp>
 #include <eosiolib/types.hpp>
 #include <eosiolib/singleton.hpp>
+#include <eosiolib/symbol.hpp>
 #include <cmath>
 
 namespace eosstrawpoll
@@ -11,6 +12,7 @@ namespace eosstrawpoll
 using eosio::const_mem_fun;
 using eosio::indexed_by;
 using eosio::multi_index;
+using eosio::symbol_name;
 using std::string;
 using std::vector;
 typedef eosio::name poll_name;

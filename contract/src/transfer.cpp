@@ -12,11 +12,23 @@ void contract::transfer(
         return;
     }
 
+    const auto SYS = S(4, SYS);
+    const auto EOS = S(4, EOS);
+    const auto TLOS = S(4, TLOS);
+
+    const auto donated_symbol = t.quantity.symbol;
+
     // only track CORE_SYMBOL transfers
-    if (t.quantity.symbol != CORE_SYMBOL)
+    if (donated_symbol != SYS && donated_symbol != EOS && donated_symbol != TLOS)
     {
         return;
     }
+
+    // only track CORE_SYMBOL transfers
+    // if (t.quantity.symbol != CORE_SYMBOL)
+    // {
+    //     return;
+    // }
 
     const account_name account = t.from;
     const uint64_t donated = t.quantity.amount;

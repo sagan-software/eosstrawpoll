@@ -122,15 +122,15 @@ impl ScatterService {
                         callback.drop();
                     })
                     .catch(function (error) {
-                        console.log("error from scatter");
+                        console.log("promise error from scatter", error, required_fields);
                         console.dir(error);
-                        callback(null, error.type || error.message);
+                        callback(null, error.type || error.message || "Unknown error");
                         callback.drop();
                     });
             } catch (error) {
-                console.log("error from scatter");
+                console.log("try/catch error from scatter", error, required_fields);
                 console.dir(error);
-                callback(null, error.type || error.message);
+                callback(null, error.type || error.message || "Unknown error");
                 callback.drop();
             }
         };
