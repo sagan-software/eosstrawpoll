@@ -3,6 +3,7 @@ PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
 DOCKER := docker-compose exec nodeosd
 CLEOS := $(DOCKER) cleos --url http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8888
+CLEOS_JUNGLE := $(DOCKER) cleos --url https://api.jungle.alohaeos.com:443 --wallet-url http://127.0.0.1:8888
 EOSIOCPP := $(DOCKER) eosiocpp
 DIST := $(PWD)/dist
 
@@ -135,3 +136,9 @@ optimize: build
 
 generate-certs:
 	openssl req -x509 -newkey rsa:4096 -keyout docker/key.pem -out docker/cert.pem -days 365 -subj '/CN=localhost' -nodes
+
+jungle-info:
+	$(CLEOS_JUNGLE) get info
+
+deploy-jungle: optimize
+	$(CLEOS_JUNGLE) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi

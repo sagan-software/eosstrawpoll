@@ -105,17 +105,21 @@ pub fn eos_devnet() -> Chain {
     }
 }
 
-// pub static EOS_TESTNET_JUNGLE: Chain = Chain {
-//     chain_id: "038f4b0fc8ff18a4f0842a8f0564611f6e96e8535901dd45e43ac8691a1c4dca".to_string(),
-//     code_account: "eosstrawpoll".to_string(),
-//     eosio_token_account: "eosio.token".to_string(),
-//     core_symbol: "EOS".to_string(),
-//     endpoint: Endpoint {
-//         protocol: "http".to_string(),
-//         host: "jungle.cryptolions.io".to_string(),
-//         port: 18888,
-//     },
-// };
+pub fn eos_testnet_jungle() -> Chain {
+    Chain {
+        chain_id: "038f4b0fc8ff18a4f0842a8f0564611f6e96e8535901dd45e43ac8691a1c4dca".to_string(),
+        short_name: "Jungle".into(),
+        long_name: "EOS Jungle Testnet".into(),
+        code_account: "eosstrawpoll".to_string(),
+        eosio_token_account: "eosio.token".to_string(),
+        core_symbol: "EOS".to_string(),
+        endpoint: Endpoint {
+            protocol: "https".to_string(),
+            host: "api.jungle.alohaeos.com".to_string(),
+            port: 443,
+        },
+    }
+}
 
 // pub static EOS_MAINNET: Chain = Chain {
 //     chain_id: "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906".to_string(),

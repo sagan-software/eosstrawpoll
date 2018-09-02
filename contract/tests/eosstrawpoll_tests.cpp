@@ -15,7 +15,7 @@ using namespace eosstrawpoll;
 
 BOOST_AUTO_TEST_SUITE(eosstrawpoll_tests)
 
-BOOST_FIXTURE_TEST_CASE(setconfig, eosstrawpoll_tester)
+BOOST_FIXTURE_TEST_CASE(setconfig_tests, eosstrawpoll_tester)
 try
 {
     {
@@ -55,7 +55,7 @@ try
 }
 FC_LOG_AND_RETHROW()
 
-BOOST_FIXTURE_TEST_CASE(createpolls, eosstrawpoll_tester)
+BOOST_FIXTURE_TEST_CASE(createpolls_tests, eosstrawpoll_tester)
 try
 {
     {
@@ -107,7 +107,7 @@ try
 }
 FC_LOG_AND_RETHROW()
 
-BOOST_FIXTURE_TEST_CASE(createvotes, eosstrawpoll_tester)
+BOOST_FIXTURE_TEST_CASE(createvotes_tests, eosstrawpoll_tester)
 try
 {
     // create poll

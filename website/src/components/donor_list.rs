@@ -107,8 +107,8 @@ impl DonorList {
     }
 
     fn view_item(&self, rank: usize, donor: &Donor) -> Html<Self> {
-        let donor_route =
-            Route::Profile(self.props.chain.to_chain_id_prefix(), donor.account.clone());
+        let chain_id_prefix = self.props.chain.to_chain_id_prefix();
+        let donor_route = Route::Profile(chain_id_prefix, donor.account.clone());
         let donated = donor.donated as f64;
         html! {
             <li class="donor_list_item", >

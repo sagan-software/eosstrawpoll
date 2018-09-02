@@ -1,37 +1,50 @@
 use components::PollList;
+use eos::*;
 use prelude::*;
 use stdweb::web::document;
 
-#[derive(PartialEq, Clone, Default)]
 pub struct ProfilePage {
+    props: Props,
+    eos_agent: Box<Bridge<EosAgent>>,
+}
+
+#[derive(PartialEq, Clone, Default)]
+pub struct Props {
     pub context: Context,
     pub chain: Chain,
     pub account: String,
 }
 
-impl Component for ProfilePage {
-    type Message = ();
-    type Properties = Self;
+pub enum Msg {
+    Eos(EosOutput),
+}
 
-    fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
-        props
+impl Component for ProfilePage {
+    type Message = Msg;
+    type Properties = Props;
+
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+        let chain = props.chain.clone();
+        let eos_callback = link.send_back(Msg::Eos);
+        let eos_agent = EosAgent::new(chain, eos_callback);
+        ProfilePage { props, eos_agent }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
-        false
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        match msg {
+            Msg::Eos(output) => true,
+        }
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.context = props.context;
-        self.chain = props.chain;
-        self.account = props.account;
+        self.props = props;
         true
     }
 }
 
 impl Page for ProfilePage {
     fn title(&self) -> String {
-        self.account.clone()
+        self.props.account.clone()
     }
     fn class(&self) -> String {
         "profile_page".to_string()
@@ -43,10 +56,10 @@ impl Page for ProfilePage {
         html! {
             <>
                 <PollList:
-                    context=&self.context,
-                    scope=self.account.clone(),
+                    context=&self.props.context,
+                    scope=&self.props.account,
                     limit=Some(50),
-                    chain=&self.chain,
+                    chain=&self.props.chain,
                 />
             </>
         }
