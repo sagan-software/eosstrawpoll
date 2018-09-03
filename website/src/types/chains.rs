@@ -154,7 +154,7 @@ pub fn telos_testnet() -> Chain {
         chain_id: "6c8aacc339bf1567743eb9c8ab4d933173aa6dca4ae6b6180a849c422f5bb207".to_string(),
         short_name: "Telos Test".into(),
         long_name: "Telos Testnet".into(),
-        code_account: "eosstrawpoll".to_string(),
+        code_account: "espprealpha1".to_string(),
         eosio_token_account: "eosio.token".to_string(),
         core_symbol: "TLOS".to_string(),
         endpoint: Endpoint {

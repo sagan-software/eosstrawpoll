@@ -154,7 +154,7 @@ impl PollResultsPage {
     fn fetch_poll(&mut self) {
         let params = TableRowsParams {
             scope: self.creator.clone(),
-            code: "eosstrawpoll".to_string(),
+            code: self.chain.code_account.clone(),
             table: "polls".to_string(),
             json: true,
             lower_bound: Some(self.slug.clone()),

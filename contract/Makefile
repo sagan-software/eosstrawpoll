@@ -6,7 +6,7 @@ DOCKER := docker-compose exec nodeosd
 CLEOS := $(DOCKER) cleos --url http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8888
 CLEOS_JUNGLE := $(DOCKER) cleos --url https://api.jungle.alohaeos.com:443 --wallet-url http://127.0.0.1:8888
 TECLOS := docker-compose exec tkeosd teclos --url http://tnodeosd:8888 --wallet-url http://127.0.0.1:10900
-TECLOS_TESTNET := $(DOCKER) cleos --url https://api.jungle.alohaeos.com:443 --wallet-url http://127.0.0.1:8888
+TECLOS_TESTNET := docker-compose exec tkeosd teclos --url https://api.eos.miami:17441 --wallet-url http://127.0.0.1:10900
 EOSIOCPP := $(DOCKER) eosiocpp
 DIST := $(PWD)/dist
 
@@ -216,3 +216,9 @@ jungle-info:
 
 deploy-jungle: optimize
 	$(CLEOS_JUNGLE) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi
+
+telos-testnet-info:
+	$(TECLOS_TESTNET) get info
+
+deploy-telos-testnet: optimize
+	$(TECLOS_TESTNET) set contract espprealpha1 /build eosstrawpoll.wasm eosstrawpoll.abi
