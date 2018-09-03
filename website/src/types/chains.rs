@@ -133,6 +133,22 @@ pub fn eos_testnet_jungle() -> Chain {
 //     },
 // };
 
+pub fn telos_devnet() -> Chain {
+    Chain {
+        chain_id: "a773b6d9194c615fae0f0c49dfa54303680031bab6cf12f9888c7f51447e4a90".to_string(),
+        short_name: "Telos Dev".into(),
+        long_name: "Telos Devnet".into(),
+        code_account: "eosstrawpoll".to_string(),
+        eosio_token_account: "eosio.token".to_string(),
+        core_symbol: "SYS".to_string(),
+        endpoint: Endpoint {
+            protocol: "https".to_string(),
+            host: "localhost".to_string(),
+            port: 10889,
+        },
+    }
+}
+
 pub fn telos_testnet() -> Chain {
     Chain {
         chain_id: "6c8aacc339bf1567743eb9c8ab4d933173aa6dca4ae6b6180a849c422f5bb207".to_string(),

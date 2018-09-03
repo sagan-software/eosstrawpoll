@@ -1,9 +1,12 @@
 PWD := `pwd`
 PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
+TELOS_PUBKEY := TLOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 DOCKER := docker-compose exec nodeosd
 CLEOS := $(DOCKER) cleos --url http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8888
 CLEOS_JUNGLE := $(DOCKER) cleos --url https://api.jungle.alohaeos.com:443 --wallet-url http://127.0.0.1:8888
+TECLOS := docker-compose exec tkeosd teclos --url http://tnodeosd:8888 --wallet-url http://127.0.0.1:10900
+TECLOS_TESTNET := $(DOCKER) cleos --url https://api.jungle.alohaeos.com:443 --wallet-url http://127.0.0.1:8888
 EOSIOCPP := $(DOCKER) eosiocpp
 DIST := $(PWD)/dist
 
@@ -12,6 +15,15 @@ docker:
 		--tag sagansoftware/eos:v1.1.3 \
 		--build-arg eos_branch=v1.1.3 \
 		--memory 12G \
+		./docker
+.PHONY: docker
+
+docker-telos:
+	docker build \
+		--tag sagansoftware/telos:stage2.0 \
+		--build-arg telos_branch=stage2.0 \
+		--memory 12G \
+		--file ./docker/Dockerfile.telos \
 		./docker
 .PHONY: docker
 
@@ -84,6 +96,65 @@ chain-accounts:
 init-chain: build chain-bios chain-accounts deploy
 .PHONY: init-chain
 
+chain-bios-telos:
+	$(TECLOS) wallet create --to-console
+	$(TECLOS) wallet import --private-key $(PRIVKEY)
+	$(TECLOS) create account eosio eosio.token $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.msig $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.ram $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.ramfee $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.stake $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.bpay $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.vpay $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.saving $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) create account eosio eosio.names $(TELOS_PUBKEY) $(TELOS_PUBKEY)
+	$(TECLOS) set contract eosio.token /build/eosio.contracts/eosio.token
+	$(TECLOS) set contract eosio.msig /build/eosio.contracts/eosio.msig
+	$(TECLOS) push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token
+	$(TECLOS) push action eosio.token issue '[ "eosio", "10000000000.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) set contract eosio /build/eosio.contracts/eosio.system
+.PHONY: chain-bios
+
+chain-accounts-telos:
+	$(TECLOS) system newaccount eosio --transfer eosstrawpoll $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 2000
+	$(TECLOS) system newaccount eosio --transfer alice $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer bob $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer carol $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer williamcurry $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer saganonroids $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer g4ydegenesis $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer haley $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer clara $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer christine $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer eunice $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer larry $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer janie $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer rod $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer becky $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer helen $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) system newaccount eosio --transfer chuck $(TELOS_PUBKEY) --stake-net "100000.0000 SYS" --stake-cpu "100000.0000 SYS" --buy-ram-kbytes 512
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "eosstrawpoll", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "alice", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "bob", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "carol", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "williamcurry", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "saganonroids", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "g4ydegenesis", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "haley", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "clara", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "christine", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "eunice", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "larry", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "janie", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "rod", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "becky", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "helen", "2500.0000 SYS", "memo" ]' -p eosio
+	$(TECLOS) push action eosio.token transfer '[ "eosio", "chuck", "2500.0000 SYS", "memo" ]' -p eosio
+.PHONY: chain-accounts-telos
+
+init-chain-telos: build chain-bios-telos chain-accounts-telos deploy-telos
+.PHONY: init-chain-telos
+
 $(DIST):
 	mkdir -p $(DIST)
 
@@ -129,6 +200,9 @@ build:
 
 deploy: build
 	$(CLEOS) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi
+
+deploy-telos: build
+	$(TECLOS) set contract eosstrawpoll /build eosstrawpoll.wasm eosstrawpoll.abi
 
 optimize: build
 	wasm-gc build/eosstrawpoll.wasm build/eosstrawpoll.wasm

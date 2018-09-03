@@ -33,11 +33,27 @@ pub enum ScatterMsg {
     PushedTransaction(Result<PushedTransaction, ScatterError>),
 }
 
+pub enum ScatterStatus {
+    Uninitialized,
+    Connecting,
+    Connected(ScatterService),
+    NotConnected(ScatterError),
+}
+
+impl ScatterStatus {
+    fn is_uninitialized(&self) -> bool {
+        match self {
+            ScatterStatus::Uninitialized => true,
+            _ => false,
+        }
+    }
+}
+
 pub struct ScatterAgent {
     link: AgentLink<ScatterAgent>,
-    scatter_service: Option<ScatterService>,
     subscribers: HashSet<HandlerId>,
     current_identity: Option<Result<ScatterIdentity, ScatterError>>,
+    status: ScatterStatus,
 }
 
 impl Agent for ScatterAgent {
@@ -49,24 +65,34 @@ impl Agent for ScatterAgent {
     fn create(link: AgentLink<Self>) -> Self {
         ScatterAgent {
             link,
-            scatter_service: None,
             subscribers: HashSet::new(),
             current_identity: None,
+            status: ScatterStatus::Uninitialized,
         }
     }
 
     fn handle(&mut self, msg: Self::Input, who: HandlerId) {
         match msg {
             ScatterInput::Connect(appname, timeout) => {
-                if self.scatter_service.is_some() {
-                    self.link.response(who, ScatterOutput::Connected(Ok(())));
-                    self.handle(ScatterInput::CurrentIdentity, who);
-                } else {
+                if self.status.is_uninitialized() {
+                    self.status = ScatterStatus::Connecting;
                     let callback = self.link.send_back(ScatterMsg::Connected);
                     ScatterService::connect(appname, timeout, callback);
+                } else {
+                    match self.status {
+                        ScatterStatus::Connected(_) => {
+                            self.link.response(who, ScatterOutput::Connected(Ok(())));
+                            self.handle(ScatterInput::CurrentIdentity, who);
+                        }
+                        ScatterStatus::NotConnected(ref error) => {
+                            self.link
+                                .response(who, ScatterOutput::Connected(Err(error.clone())));
+                        }
+                        _ => {}
+                    }
                 }
             }
-            ScatterInput::GetIdentity(required_fields) => match &self.scatter_service {
+            ScatterInput::GetIdentity(required_fields) => match self.scatter_service() {
                 Some(scatter_service) => {
                     let callback = self.link.send_back(ScatterMsg::GotIdentity);
                     scatter_service.get_identity(required_fields, callback);
@@ -82,7 +108,7 @@ impl Agent for ScatterAgent {
                     self.link.response(who, output);
                 }
             }
-            ScatterInput::ForgetIdentity => match &self.scatter_service {
+            ScatterInput::ForgetIdentity => match self.scatter_service() {
                 Some(scatter_service) => {
                     let callback = self.link.send_back(ScatterMsg::ForgotIdentity);
                     scatter_service.forget_identity(callback);
@@ -92,8 +118,8 @@ impl Agent for ScatterAgent {
                     self.link.response(who, output);
                 }
             },
-            ScatterInput::PushTransaction(network, config, transaction) => match &self
-                .scatter_service
+            ScatterInput::PushTransaction(network, config, transaction) => match self
+                .scatter_service()
             {
                 Some(scatter_service) => {
                     let callback = self.link.send_back(ScatterMsg::PushedTransaction);
@@ -111,11 +137,11 @@ impl Agent for ScatterAgent {
         let output = match msg {
             ScatterMsg::Connected(result) => match result {
                 Ok(scatter_service) => {
-                    self.scatter_service = Some(scatter_service);
+                    self.status = ScatterStatus::Connected(scatter_service);
                     ScatterOutput::Connected(Ok(()))
                 }
                 Err(error) => {
-                    self.scatter_service = None;
+                    self.status = ScatterStatus::NotConnected(error.clone());
                     ScatterOutput::Connected(Err(error))
                 }
             },
@@ -151,5 +177,12 @@ impl ScatterAgent {
         let mut scatter = ScatterAgent::bridge(callback);
         scatter.send(ScatterInput::Connect(appname.to_string(), timeout));
         scatter
+    }
+
+    fn scatter_service(&self) -> Option<&ScatterService> {
+        match &self.status {
+            ScatterStatus::Connected(scatter_service) => Some(scatter_service),
+            _ => None,
+        }
     }
 }

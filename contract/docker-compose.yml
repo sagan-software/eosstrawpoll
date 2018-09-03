@@ -45,5 +45,53 @@ services:
       - "8900"
     links:
       - nodeosd
-    # volumes:
-    #   - keosd-data-volume:/eos/build/data-dir
+
+  tnodeosd:
+    hostname: tnodeosd
+    image: sagansoftware/telos:stage2.0
+    entrypoint: nodeos
+    command: >
+      --data-dir /telos/build/data-dir
+      --config-dir /telos/build/data-dir
+      --genesis-timestamp 2018-09-02T12:00:00.000
+      --enable-stale-production
+      --http-alias=tnodeosd:8888
+      --http-alias=tnodeosd:8889
+      --http-alias=tnodeosd:10888
+      --http-alias=tnodeosd:10889
+      --http-alias=127.0.0.1:10888
+      --http-alias=127.0.0.1:10889
+      --http-alias=localhost:10888
+      --http-alias=localhost:10889
+    ports:
+      - 10888:8888
+      - 10889:8889
+      - 10876:9876
+    expose:
+      - "8888"
+      - "8889"
+    volumes:
+      - ./:/contract:ro
+      - ./build:/build
+      - ./docker/config_telos.ini:/telos/build/data-dir/config.ini:ro
+      - ./docker/cert.pem:/telos/cert.pem:ro
+      - ./docker/key.pem:/telos/key.pem:ro
+
+  tkeosd:
+    hostname: tkeosd
+    image: sagansoftware/telos:stage2.0
+    entrypoint: tkeosd
+    command: >
+      --wallet-dir /telos/build/data-dir
+      --http-server-address=127.0.0.1:10900
+      --http-alias=tkeosd:10900
+      --http-alias=localhost:10900
+    ports:
+      - 10900:10900
+    expose:
+      - "10900"
+    volumes:
+      - ./:/contract:ro
+      - ./build:/build
+    links:
+      - tnodeosd

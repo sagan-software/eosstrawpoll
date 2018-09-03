@@ -38,51 +38,49 @@ impl ScatterService {
             var appname = @{appname};
             var timeout = @{timeout};
 
-            // try {
-            //     // var ScatterJS = require("scatter-js/dist/scatter.cjs.js");
-            //     var Scatter = require("scatter-core");
-            //     var ScatterEos = require("scatter-plugin-eos");
-            //     console.log("SCATTER", Scatter, ScatterEos);
-            //     Scatter.plugins(new ScatterEos());
-            //     console.time("Test!");
-            //     window.Scatter = Scatter;
-            //     Scatter.scatter
-            //         .connect(appname)
-            //         .then(function (connected) {
-            //             console.log("balls 1");
-            //             console.timeEnd("Test!");
-            //             callback(true, Scatter.scatter);
-            //             callback.drop();
-            //         })
-            //         .catch(function (error) {
-            //             console.log("balls 2", error);
-            //             callback(false, null);
-            //             callback.drop();
-            //         })
-            // } catch (error) {
-            //     console.log("balls 3", error, Scatter);
-            //     callback(false, null);
-            //     callback.drop();
-            // }
-
-            if (window.scatter) {
-                var scatter = window.scatter;
-                // window.scatter = null;
-                callback(true, scatter);
+            try {
+                // var ScatterJS = require("scatter-js/dist/scatter.cjs.js");
+                var Scatter = require("scatterjs-core");
+                var ScatterEos = require("scatterjs-plugin-eosjs");
+                console.log("SCATTER", Scatter, ScatterEos);
+                Scatter.plugins(new ScatterEos());
+                window.Scatter = Scatter;
+                Scatter.scatter
+                    .connect(appname)
+                    .then(function (connected) {
+                        console.log("!!!! CONNECTED?", connected);
+                        callback(true, Scatter.scatter);
+                        callback.drop();
+                    })
+                    .catch(function (error) {
+                        console.log("!!!!!!! ERROR CONNECTING", error);
+                        callback(false, null);
+                        callback.drop();
+                    })
+            } catch (error) {
+                console.log("ERROR SETTING UP SCATTER", error, Scatter);
+                callback(false, null);
                 callback.drop();
-            } else {
-                var timeout = setTimeout(function () {
-                    callback(false, null);
-                    callback.drop();
-                }, timeout);
-                document.addEventListener("scatterLoaded", function () {
-                    clearTimeout(timeout);
-                    var scatter = window.scatter;
-                    // window.scatter = null;
-                    callback(true, scatter);
-                    callback.drop();
-                });
             }
+
+            // if (window.scatter) {
+            //     var scatter = window.scatter;
+            //     // window.scatter = null;
+            //     callback(true, scatter);
+            //     callback.drop();
+            // } else {
+            //     var timeout = setTimeout(function () {
+            //         callback(false, null);
+            //         callback.drop();
+            //     }, timeout);
+            //     document.addEventListener("scatterLoaded", function () {
+            //         clearTimeout(timeout);
+            //         var scatter = window.scatter;
+            //         // window.scatter = null;
+            //         callback(true, scatter);
+            //         callback.drop();
+            //     });
+            // }
         };
     }
 
