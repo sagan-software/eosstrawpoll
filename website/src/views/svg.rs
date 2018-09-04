@@ -38,3 +38,5 @@ svg!(github);
 svg!(telegram);
 svg!(plug_cross);
 svg!(link_cross);
+svg!(eos);
+svg!(chevron_down);

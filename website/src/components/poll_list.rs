@@ -8,7 +8,7 @@ pub struct PollList {
     props: Props,
     polls: EosData<Vec<Poll>>,
     table: PollsTable,
-    _eos_agent: Box<Bridge<EosAgent>>,
+    eos_agent: Box<Bridge<EosAgent>>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -75,7 +75,7 @@ impl Component for PollList {
             props,
             polls: EosData::default(),
             table,
-            _eos_agent: eos_agent,
+            eos_agent,
         }
     }
 
@@ -104,7 +104,25 @@ impl Component for PollList {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        let chain = props.chain.clone();
+        self.polls = EosData::Loading;
         self.props = props;
+        self.eos_agent.send(EosInput::Configure(chain));
+
+        let table = self
+            .props
+            .clone()
+            .table
+            .unwrap_or_else(|| PollsTable::Polls);
+        if table == PollsTable::NewPolls {
+            self.eos_agent.send(EosInput::GetNewPolls);
+        } else if table == PollsTable::PopularPolls {
+            self.eos_agent.send(EosInput::GetPopularPolls);
+        } else {
+            self.eos_agent
+                .send(EosInput::GetPolls(self.props.scope.clone()));
+        }
+
         true
     }
 }
@@ -146,7 +164,7 @@ impl PollList {
     fn view_empty(&self) -> Html<Self> {
         html! {
             <div class="poll_list -empty", >
-                { "Empty" }
+                { svg::eos() }
             </div>
         }
     }

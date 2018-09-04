@@ -31,6 +31,9 @@ impl Component for HomePage {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.context = props.context;
+        self.chain = props
+            .chain
+            .unwrap_or_else(|| self.context.selected_chain.clone());
         true
     }
 }

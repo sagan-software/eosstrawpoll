@@ -30,7 +30,8 @@
 }
 
 
-.-error {
+.-error,
+.-empty {
     text-align: center;
     padding: calc(var(--spacing) * 3);
     color: #ccc;
@@ -38,7 +39,7 @@
     & svg {
         fill: currentColor;
         height: 4rem;
-        width: 4rem;
+        width: auto;
     }
 }
 

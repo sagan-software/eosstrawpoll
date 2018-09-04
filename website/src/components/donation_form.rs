@@ -1,7 +1,7 @@
-use eos::*;
-use scatter::*;
 use components::*;
+use eos::*;
 use prelude::*;
+use scatter::*;
 use stdweb::traits::IEvent;
 
 pub struct DonationForm {
@@ -135,7 +135,9 @@ impl Component for DonationForm {
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.context = props.context;
+        self.chain = props.chain;
         true
     }
 }

@@ -45,6 +45,9 @@ services:
       - "8900"
     links:
       - nodeosd
+    volumes:
+      - ./:/contract:ro
+      - ./build:/build
 
   tnodeosd:
     hostname: tnodeosd

@@ -192,7 +192,15 @@ impl Agent for EosAgent {
     fn handle(&mut self, msg: Self::Input, who: HandlerId) {
         let output = match msg {
             EosInput::Configure(chain) => {
-                self.chain = chain;
+                if chain != self.chain {
+                    self.chain = chain;
+                    self.global_config = InternalEosData::NotAsked;
+                    self.donors = InternalEosData::NotAsked;
+                    self.new_donations = InternalEosData::NotAsked;
+                    self.new_polls = InternalEosData::NotAsked;
+                    self.popular_polls = InternalEosData::NotAsked;
+                    self.polls = HashMap::new();
+                }
                 EosOutput::Configured
             }
             EosInput::GetGlobalConfig => {

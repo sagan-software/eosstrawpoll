@@ -7,7 +7,7 @@ use views::svg;
 pub struct DonorList {
     props: Props,
     donors: EosData<Vec<Donor>>,
-    _eos_agent: Box<Bridge<EosAgent>>,
+    eos_agent: Box<Bridge<EosAgent>>,
 }
 
 pub enum Msg {
@@ -33,7 +33,7 @@ impl Component for DonorList {
         DonorList {
             props,
             donors: EosData::default(),
-            _eos_agent: eos_agent,
+            eos_agent,
         }
     }
 
@@ -50,7 +50,11 @@ impl Component for DonorList {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        let chain = props.chain.clone();
+        self.donors = EosData::Loading;
         self.props = props;
+        self.eos_agent.send(EosInput::Configure(chain));
+        self.eos_agent.send(EosInput::GetDonors);
         true
     }
 }
@@ -101,7 +105,7 @@ impl DonorList {
     fn view_empty(&self) -> Html<Self> {
         html! {
             <div class="donor_list -empty", >
-                { "Empty" }
+                { svg::eos() }
             </div>
         }
     }

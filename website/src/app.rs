@@ -16,11 +16,13 @@ pub struct App {
 }
 
 pub enum Msg {
+    Ignore,
     Router(RouterOutput),
     Scatter(ScatterOutput),
     NavigateTo(Route),
     Login,
     Logout,
+    SelectChain(Chain),
 }
 
 impl Component for App {
@@ -79,6 +81,16 @@ impl Component for App {
                 self.scatter.send(ScatterInput::ForgetIdentity);
                 false
             }
+            Msg::SelectChain(chain) => {
+                if chain != self.context.selected_chain {
+                    self.scatter.send(ScatterInput::ForgetIdentity);
+                    self.context.selected_chain = chain;
+                    true
+                } else {
+                    false
+                }
+            }
+            Msg::Ignore => false,
         }
     }
 }
@@ -119,6 +131,7 @@ impl App {
                 <div class="app_container", >
                     { app_logo() }
                     { self.view_nav() }
+                    { self.view_chains_dropdown() }
                     { self.view_user() }
                 </div>
             </header>
@@ -143,6 +156,38 @@ impl App {
                     { "Feedback" }
                 </a>
             </nav>
+        }
+    }
+
+    fn view_chains_dropdown(&self) -> Html<Self> {
+        html! {
+            <div class="chain_dropdown", >
+                <div class="available_chains", >
+                    { for self.context.available_chains.iter().map(|chain| {
+                        self.view_chain_dropdown(chain.clone())
+                    })}
+                </div>
+                <div class="selected_chain", >
+                    { &self.context.selected_chain.long_name }
+                    { svg::chevron_down() }
+                </div>
+            </div>
+        }
+    }
+
+    fn view_chain_dropdown(&self, chain: Chain) -> Html<Self> {
+        let c = chain.clone();
+        let is_selected = chain == self.context.selected_chain;
+        let selected_class = if is_selected { "-selected" } else { "" };
+        html! {
+            <div class=format!("available_chain {}", selected_class),
+                onclick=|e| {
+                    e.prevent_default();
+                    Msg::SelectChain(chain.clone())
+                },
+            >
+                { &c.long_name }
+            </div>
         }
     }
 
@@ -228,10 +273,11 @@ impl App {
     fn view_user_err(&self, _error: &ScatterError) -> Html<Self> {
         html! {
             <button
-                class="app_login",
+                class="app_login btn btn-danger btn-lg",
                 onclick=|_| Msg::Login,
             >
-                { "Login (error)" }
+                { "Login with " }
+                { svg::scatter_large() }
             </button>
         }
     }

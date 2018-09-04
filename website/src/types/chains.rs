@@ -99,7 +99,7 @@ pub fn eos_devnet() -> Chain {
         core_symbol: "SYS".to_string(),
         endpoint: Endpoint {
             protocol: "https".to_string(),
-            host: "localhost".to_string(),
+            host: "127.0.0.1".to_string(),
             port: 8889,
         },
     }
@@ -143,7 +143,7 @@ pub fn telos_devnet() -> Chain {
         core_symbol: "SYS".to_string(),
         endpoint: Endpoint {
             protocol: "https".to_string(),
-            host: "localhost".to_string(),
+            host: "127.0.0.1".to_string(),
             port: 10889,
         },
     }
