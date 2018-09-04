@@ -142,7 +142,7 @@ impl App {
         html! {
             <nav class="app_nav", >
                 <a class="app_link app_link_roadmap",
-                    href="https://github.com/sagan-software/eosstrawpoll/projects/1",
+                    href="https://github.com/sagan-software/eosstrawpoll/projects",
                     target="_blank",
                 >
                     { svg::roadmap() }

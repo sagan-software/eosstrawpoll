@@ -1,10 +1,12 @@
-use components::PollList;
+use components::{Link, PollList, RelativeTime};
 use eos::*;
 use prelude::*;
 use stdweb::web::document;
+use views::svg;
 
 pub struct ProfilePage {
     props: Props,
+    polls: EosData<Vec<Poll>>,
     eos_agent: Box<Bridge<EosAgent>>,
 }
 
@@ -26,19 +28,95 @@ impl Component for ProfilePage {
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let chain = props.chain.clone();
         let eos_callback = link.send_back(Msg::Eos);
-        let eos_agent = EosAgent::new(chain, eos_callback);
-        ProfilePage { props, eos_agent }
+        let mut eos_agent = EosAgent::new(chain, eos_callback);
+        eos_agent.send(EosInput::GetPolls(props.account.clone()));
+        ProfilePage {
+            props,
+            eos_agent,
+            polls: EosData::default(),
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Eos(output) => true,
+            Msg::Eos(output) => match output {
+                EosOutput::Polls(account, data) => {
+                    if account == self.props.account {
+                        self.polls = data;
+                        true
+                    } else {
+                        false
+                    }
+                }
+                _ => false,
+            },
         }
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.props = props;
         true
+    }
+}
+
+impl ProfilePage {
+    fn view_loading(&self) -> Html<Self> {
+        html! {
+            <div class="poll_list -loading", >
+                { "Loading..." }
+            </div>
+        }
+    }
+
+    fn view_error(&self, error: &EosError) -> Html<Self> {
+        html! {
+            <div class="poll_list -error", >
+                { svg::link_cross() }
+            </div>
+        }
+    }
+
+    fn view_empty(&self) -> Html<Self> {
+        html! {
+            <div class="poll_list -empty", >
+                { svg::eos() }
+            </div>
+        }
+    }
+
+    fn view_items(&self, polls: &[Poll]) -> Html<Self> {
+        html! {
+            <ul class="poll_list -loaded", >
+                { for polls.iter().map(|poll| self.view_item(poll)) }
+            </ul>
+        }
+    }
+
+    fn view_item(&self, poll: &Poll) -> Html<Self> {
+        let poll_route = Route::Poll(
+            self.props.chain.to_chain_id_prefix(),
+            poll.creator.clone(),
+            poll.slug.clone(),
+        );
+        let creator_route =
+            Route::Profile(self.props.chain.to_chain_id_prefix(), poll.creator.clone());
+        html! {
+            <li class="poll", >
+                <Link: class="poll_title",
+                    route=poll_route,
+                    text=poll.title.clone(),
+                />
+                <div class="poll_details", >
+                    <div class="poll_create_time", >
+                        { "Submitted " }
+                        <RelativeTime: timestamp=poll.create_time, />
+                    </div>
+                    <div class="poll_votes", >
+                        { &poll.votes.len() } { " vote" }{ if &poll.votes.len() == &1 { "" } else { "s" } }
+                    </div>
+                </div>
+            </li>
+        }
     }
 }
 
@@ -53,15 +131,17 @@ impl Page for ProfilePage {
         PageState::Loaded
     }
     fn content(&self) -> Html<Self> {
-        html! {
-            <>
-                <PollList:
-                    context=&self.props.context,
-                    scope=&self.props.account,
-                    limit=Some(50),
-                    chain=&self.props.chain,
-                />
-            </>
+        match &self.polls {
+            EosData::NotAsked => self.view_empty(),
+            EosData::Loading => self.view_loading(),
+            EosData::Success(data) => {
+                if data.is_empty() {
+                    self.view_empty()
+                } else {
+                    self.view_items(&data)
+                }
+            }
+            EosData::Failure(error) => self.view_error(error),
         }
     }
 }

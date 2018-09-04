@@ -40,8 +40,8 @@ impl Default for Context {
             selected_chain: eos_testnet_jungle(),
             available_chains: vec![
                 eos_testnet_jungle(),
-                // eos_devnet(),
-                // telos_devnet(),
+                eos_devnet(),
+                telos_devnet(),
                 telos_testnet(),
             ],
         }
