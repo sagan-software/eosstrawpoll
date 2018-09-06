@@ -3,8 +3,9 @@ PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
 TELOS_PUBKEY := TLOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 DOCKER := docker-compose exec keosd
-CLEOS := $(DOCKER) cleos --url http://nodeosd:8888 --wallet-url http://127.0.0.1:8900
-CLEOS_JUNGLE := $(DOCKER) cleos --url https://api.jungle.alohaeos.com:443 --wallet-url http://127.0.0.1:8900
+CLEOS := docker-compose exec keosd cleos --url http://nodeosd:8888 --wallet-url http://127.0.0.1:8900
+CLEOS_JUNGLE := docker-compose exec keosd cleos --url https://api.jungle.alohaeos.com:443 --wallet-url http://127.0.0.1:8900
+CLEOS_KYLIN := docker-compose exec keosd cleos --url https://api.kylin.alohaeos.com:443 --wallet-url http://127.0.0.1:8900
 TECLOS := docker-compose exec tkeosd teclos --url http://tnodeosd:8888 --wallet-url http://127.0.0.1:10900
 TECLOS_TESTNET := docker-compose exec tkeosd teclos --url https://api.eos.miami:17441 --wallet-url http://127.0.0.1:10900
 EOSIOCPP := $(DOCKER) eosiocpp
@@ -224,3 +225,9 @@ telos-testnet-info:
 
 deploy-telos-testnet: optimize
 	$(TECLOS_TESTNET) set contract espprealpha1 /build eosstrawpoll.wasm eosstrawpoll.abi
+
+kylin-info:
+	$(CLEOS_KYLIN) get info
+
+deploy-kylin: optimize
+	$(CLEOS_KYLIN) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi
