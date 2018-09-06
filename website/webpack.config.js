@@ -6,7 +6,7 @@ const webpack = require("webpack");
 
 const DIST_DIR = path.resolve(__dirname, "dist");
 const IS_PROD = process.env.NODE_ENV === "production";
-const TARGET_DIR = "./target/wasm32-unknown-unknown/release/";
+const TARGET_DIR = "./build/";
 
 console.log("PRODUCTION?", IS_PROD);
 

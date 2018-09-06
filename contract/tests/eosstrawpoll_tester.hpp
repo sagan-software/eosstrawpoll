@@ -470,78 +470,70 @@ class eosstrawpoll_tester : public TESTER
 
     action_result closepoll(
         const account_name &signer,
-        const account_name creator,
-        const poll_name slug)
+        const poll_id_t poll_id)
     {
-        const auto data = mvo()("creator", creator)("slug", slug);
+        const auto data = mvo()("poll_id", poll_id);
         return push_action(N(eosstrawpoll), signer, N(closepoll), data);
     }
 
     action_result createpoll(
         const account_name &signer,
-        const account_name creator,
-        const poll_name slug,
+        const poll_id_t id,
+        const account_name account,
         const string &title,
-        const vector<string> &options,
-        const uint16_t min_choices,
-        const uint16_t max_choices,
-        const uint16_t max_writeins,
+        const vector<string> &prefilled_options,
+        const uint16_t min_answers,
+        const uint16_t max_answers,
+        const uint16_t max_writein_answers,
         const bool use_allow_list,
         const vector<account_name> &account_list,
-        const uint64_t min_staked,
-        const uint64_t min_value,
-        const esptime open_time,
-        const esptime close_time)
+        const esptime_t open_time,
+        const esptime_t close_time)
     {
-        const auto data = mvo()("creator", creator)("slug", slug)("title", title)("options", options)("min_choices", min_choices)("max_choices", max_choices)("max_writeins", max_writeins)("use_allow_list", use_allow_list)("account_list", account_list)("min_staked", min_staked)("min_value", min_value)("open_time", open_time)("close_time", close_time);
+        const auto data = mvo()("id", id)("account", account)("title", title)("prefilled_options", prefilled_options)("min_answers", min_answers)("max_answers", max_answers)("max_writein_answers", max_writein_answers)("use_allow_list", use_allow_list)("account_list", account_list)("open_time", open_time)("close_time", close_time);
         return push_action(N(eosstrawpoll), signer, N(createpoll), data);
     }
 
     action_result createvote(
         const account_name &signer,
-        const account_name creator,
-        const poll_name slug,
-        const account_name voter,
-        const vector<choice> &choices)
+        const poll_id_t poll_id,
+        const account_name account,
+        const vector<answer_t> &answers)
     {
-        const auto data = mvo()("creator", creator)("slug", slug)("voter", voter)("choices", choices);
+        const auto data = mvo()("poll_id", poll_id)("account", account)("answers", answers);
         return push_action(N(eosstrawpoll), signer, N(createvote), data);
     }
 
     action_result destroypoll(
         const account_name &signer,
-        const account_name creator,
-        const poll_name slug)
+        const poll_id_t poll_id)
     {
-        const auto data = mvo()("creator", creator)("slug", slug);
+        const auto data = mvo()("poll_id", poll_id);
         return push_action(N(eosstrawpoll), signer, N(destroypoll), data);
     }
 
     action_result destroyvote(
         const account_name &signer,
-        const account_name creator,
-        const poll_name slug,
-        const account_name voter)
+        const poll_id_t poll_id,
+        const account_name account)
     {
-        const auto data = mvo()("creator", creator)("slug", slug)("voter", voter);
+        const auto data = mvo()("poll_id", poll_id)("account", account);
         return push_action(N(eosstrawpoll), signer, N(destroyvote), data);
     }
 
     action_result destroyvotes(
         const account_name &signer,
-        const account_name creator,
-        const poll_name slug)
+        const poll_id_t poll_id)
     {
-        const auto data = mvo()("creator", creator)("slug", slug);
+        const auto data = mvo()("poll_id", poll_id);
         return push_action(N(eosstrawpoll), signer, N(destroyvotes), data);
     }
 
     action_result openpoll(
         const account_name &signer,
-        const account_name creator,
-        const poll_name slug)
+        const poll_id_t poll_id)
     {
-        const auto data = mvo()("creator", creator)("slug", slug);
+        const auto data = mvo()("poll_id", poll_id);
         return push_action(N(eosstrawpoll), signer, N(openpoll), data);
     }
 
@@ -551,15 +543,15 @@ class eosstrawpoll_tester : public TESTER
         const uint16_t max_popular_polls,
         const uint16_t max_new_donations,
         const uint16_t max_title_len,
-        const uint16_t max_options_len,
-        const uint16_t max_option_len,
+        const uint16_t max_prefilled_options_len,
+        const uint16_t max_prefilled_option_len,
         const uint16_t max_account_list_len,
         const uint16_t max_writein_len,
-        const uint16_t max_choices_len,
+        const uint16_t max_answers_len,
         const double popularity_gravity,
         const uint64_t profile_unlock_threshold)
     {
-        const auto data = mvo()("max_new_polls", max_new_polls)("max_popular_polls", max_popular_polls)("max_new_donations", max_new_donations)("max_title_len", max_title_len)("max_options_len", max_options_len)("max_option_len", max_option_len)("max_account_list_len", max_account_list_len)("max_writein_len", max_writein_len)("max_choices_len", max_choices_len)("popularity_gravity", popularity_gravity)("profile_unlock_threshold", profile_unlock_threshold);
+        const auto data = mvo()("max_new_polls", max_new_polls)("max_popular_polls", max_popular_polls)("max_new_donations", max_new_donations)("max_title_len", max_title_len)("max_prefilled_options_len", max_prefilled_options_len)("max_prefilled_option_len", max_prefilled_option_len)("max_account_list_len", max_account_list_len)("max_writein_len", max_writein_len)("max_answers_len", max_answers_len)("popularity_gravity", popularity_gravity)("profile_unlock_threshold", profile_unlock_threshold);
         return push_action(N(eosstrawpoll), signer, N(setconfig), data);
     }
 
@@ -578,17 +570,17 @@ class eosstrawpoll_tester : public TESTER
         const string &youtube_id,
         const string &facebook_id,
         const string &theme,
-        const vector<preset> &presets)
+        const vector<account_list_preset_t> &account_list_presets)
     {
-        const auto data = mvo()("account", account)("url", url)("bio", bio)("avatar_hash", avatar_hash)("location", location)("github_id", github_id)("twitter_id", twitter_id)("steem_id", steem_id)("medium_id", medium_id)("twitch_id", twitch_id)("youtube_id", youtube_id)("facebook_id", facebook_id)("theme", theme)("presets", presets);
+        const auto data = mvo()("account", account)("url", url)("bio", bio)("avatar_hash", avatar_hash)("location", location)("github_id", github_id)("twitter_id", twitter_id)("steem_id", steem_id)("medium_id", medium_id)("twitch_id", twitch_id)("youtube_id", youtube_id)("facebook_id", facebook_id)("theme", theme)("account_list_presets", account_list_presets);
         return push_action(N(eosstrawpoll), signer, N(setprofile), data);
     }
 
-    poll get_poll(const account_name &account, const account_name &table, const poll_name &name)
+    poll_t get_poll(const account_name &table, const poll_id_t &poll_id)
     {
-        poll p;
-        get_table_entry(p, N(eosstrawpoll), account, table, name);
-        return p;
+        poll_t poll;
+        get_table_entry(poll, N(eosstrawpoll), N(eosstrawpoll), table, poll_id);
+        return poll;
     }
 
     abi_serializer abi_ser;

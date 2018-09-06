@@ -19,8 +19,8 @@ build: clean css cargo webpack
 .PHONY: build
 
 clean:
-	rm -Rf dist
-	mkdir -p dist
+	rm -Rf dist build
+	mkdir -p dist build
 .PHONY: clean
 
 start: build
@@ -45,26 +45,27 @@ cargo:
 		--target=wasm32-unknown-unknown \
 		--release \
 		--verbose
-	wasm-gc target/wasm32-unknown-unknown/release/eosstrawpoll.wasm target/wasm32-unknown-unknown/release/eosstrawpoll.wasm
-	wasm-opt --output target/wasm32-unknown-unknown/release/eosstrawpoll.wasm -Oz target/wasm32-unknown-unknown/release/eosstrawpoll.wasm
+	mkdir -p ./build
+	mv ../target/wasm32-unknown-unknown/release/eosstrawpoll.* ./build
 .PHONY: cargo
 
+optimize:
+	wasm-gc ./build/eosstrawpoll.wasm ./build/eosstrawpoll.wasm
+	wasm-opt --output ./build/eosstrawpoll.wasm -Oz ./build/eosstrawpoll.wasm
+.PHONY: optimize
+
 clean-cargo:
-	rm -Rf target/wasm32-unknown-unknown
+	rm -Rf ../target/wasm32-unknown-unknown
 .PHONY: clean-cargo
 
 full-clean-cargo:
-	rm -Rf target
+	rm -Rf ../target
 .PHONY: full-clean-cargo
 
 watch-cargo:
 	cargo watch \
-		-i '*.css' \
-		-i '*.html' \
-		-i '*.js*' \
-		-i '*.sh' \
-		-i 'node_modules' \
-		-x "web build --target=wasm32-unknown-unknown --release --verbose"
+		-w src \
+		-s "make cargo"
 .PHONY: watch-cargo
 
 $(DIST):

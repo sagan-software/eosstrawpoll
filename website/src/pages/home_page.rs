@@ -57,20 +57,20 @@ impl Page for HomePage {
                 <aside class="polls", >
                     <div class="popular_polls", >
                         <h2> { "Popular Polls" } </h2>
-                        <PollList:
+                        <PollTeaseList:
                             context=&self.context,
                             limit=Some(10),
-                            table=Some(PollsTable::PopularPolls),
+                            table=PollsTable::PopularPolls,
                             order=Some(PollsOrder::Popularity),
                             chain=&self.chain,
                         />
                     </div>
                     <div class="new_polls", >
                         <h2> { "New Polls" } </h2>
-                        <PollList:
+                        <PollTeaseList:
                             context=&self.context,
                             limit=Some(5),
-                            table=Some(PollsTable::NewPolls),
+                            table=PollsTable::NewPolls,
                             order=Some(PollsOrder::Created),
                             chain=&self.chain,
                         />

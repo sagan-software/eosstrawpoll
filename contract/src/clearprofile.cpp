@@ -7,12 +7,12 @@ void contract::clearprofile(const account_name account)
 {
     require_auth(account);
 
-    // check if profile exists
-    profile_table _profile(_self, account);
-    eosio_assert(_profile.exists(), "no profile to clear");
+    auto profile = profiles_table.find(account);
+    eosio_assert(
+        profile != profiles_table.end(),
+        "poll does not exist");
 
-    // destroy profile
-    _profile.remove();
+    profiles_table.erase(profile);
 };
 
 } // namespace eosstrawpoll

@@ -13,8 +13,3 @@ serde_json = "1.0"
 yew = { git = "https://github.com/DenisKolodin/yew" }
 http = "0.1"
 failure = "0.1"
-
-[profile.release]
-lto = true
-opt-level = "z"
-debug = false

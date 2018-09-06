@@ -18,32 +18,25 @@ namespace eosstrawpoll
 
 contract::contract(account_name self)
     : _self(self),
-      _configs(self, self),
-      _new_donations(self, self),
-      _donors(self, self),
-      _users(self, self),
-      _popular_polls(self, self),
-      _new_polls(self, self)
+      global_config_table(self, self),
+      polls_table(self, self),
+      votes_table(self, self),
+      popular_polls_table(self, self),
+      new_polls_table(self, self),
+      new_donations_table(self, self),
+      donors_table(self, self),
+      profiles_table(self, self)
 {
-    _config = _configs.exists() ? _configs.get() : config();
-}
-
-void contract::ensure_user(const account_name account)
-{
-    auto u = _users.find(account);
-    if (u == _users.end())
-    {
-        _users.emplace(_self, [&](auto &u) {
-            u.account = account;
-            u.first_seen = now();
-        });
-    }
+    global_config =
+        global_config_table.exists()
+            ? global_config_table.get()
+            : global_config_t();
 }
 
 void contract::prune_new_polls()
 {
-    auto created_index = _new_polls.get_index<N(created)>();
-    auto num_left = _config.max_new_polls;
+    auto created_index = new_polls_table.get_index<N(created)>();
+    auto num_left = global_config.max_new_polls;
     for (auto it = created_index.rbegin(); it != created_index.rend();)
     {
         if (num_left <= 0)
@@ -60,8 +53,8 @@ void contract::prune_new_polls()
 
 bool contract::is_popular_polls_full()
 {
-    auto num_left = _config.max_popular_polls;
-    for (auto it = _popular_polls.begin(); it != _popular_polls.end();)
+    auto num_left = global_config.max_popular_polls;
+    for (auto it = popular_polls_table.begin(); it != popular_polls_table.end();)
     {
         num_left -= 1;
         if (num_left <= 0)
@@ -76,8 +69,8 @@ bool contract::is_popular_polls_full()
 
 void contract::prune_popular_polls()
 {
-    auto popularity_index = _popular_polls.get_index<N(popularity)>();
-    auto num_left = _config.max_popular_polls;
+    auto popularity_index = popular_polls_table.get_index<N(popularity)>();
+    auto num_left = global_config.max_popular_polls;
     for (auto it = popularity_index.rbegin(); it != popularity_index.rend();)
     {
         if (num_left <= 0)
@@ -90,6 +83,27 @@ void contract::prune_popular_polls()
             ++it;
         }
     }
+}
+
+uint32_t contract::get_num_votes(const poll_id_t poll_id)
+{
+    uint32_t num_votes = 0;
+    auto pollid_index = votes_table.get_index<N(pollid)>();
+    auto itr = pollid_index.lower_bound(poll_id);
+    for (; itr != pollid_index.end() && itr->poll_id == poll_id; ++itr)
+    {
+        num_votes++;
+    }
+    return num_votes;
+}
+
+double contract::calculate_popularity(
+    const uint32_t num_votes,
+    const time_t start_time)
+{
+    const double elapsed_seconds = now() - start_time;
+    const double elapsed_hours = elapsed_seconds / 60.0 / 60.0;
+    return num_votes / std::pow(elapsed_hours + 2, global_config.popularity_gravity);
 }
 
 void contract::apply(

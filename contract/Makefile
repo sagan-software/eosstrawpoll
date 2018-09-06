@@ -199,10 +199,12 @@ build:
 .PHONY: build
 
 deploy: build
-	$(CLEOS) set contract eosstrawpoll /build /build/eosstrawpoll.wasm /build/eosstrawpoll.abi
+	$(CLEOS) set abi eosstrawpoll /build/eosstrawpoll.abi
+	$(CLEOS) set code eosstrawpoll /build/eosstrawpoll.wasm
 
 deploy-telos: build
-	$(TECLOS) set contract eosstrawpoll /build eosstrawpoll.wasm eosstrawpoll.abi
+	$(TECLOS) set abi eosstrawpoll /build/eosstrawpoll.abi
+	$(TECLOS) set code eosstrawpoll /build/eosstrawpoll.wasm
 
 optimize: build
 	wasm-gc build/eosstrawpoll.wasm build/eosstrawpoll.wasm

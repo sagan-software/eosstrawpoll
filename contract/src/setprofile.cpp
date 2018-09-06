@@ -17,7 +17,7 @@ void contract::setprofile(
     const string &youtube_id,
     const string &facebook_id,
     const string &theme,
-    const vector<preset> &presets)
+    const vector<account_list_preset_t> &account_list_presets)
 {
     require_auth(account);
 
@@ -39,55 +39,72 @@ void contract::setprofile(
     eosio_assert(theme.size() <= 1000, "theme is too long");
 
     // validate presets
-    eosio_assert(presets.size() <= 10, "up to 10 presets are allowed");
-    for (auto &p : presets)
+    eosio_assert(account_list_presets.size() <= 10, "up to 10 account lists are allowed");
+    for (auto &account_list_preset : account_list_presets)
     {
-        const auto account_list = p.account_list;
+        eosio_assert(
+            account_list_preset.description.size() <= 100,
+            "account list preset description is too long");
+        const auto account_list = account_list_preset.account_list;
         const auto account_list_len = account_list.size();
         eosio_assert(
-            account_list_len <= _config.max_account_list_len,
+            account_list_len <= global_config.max_account_list_len,
             "invalid preset: account_list is too long");
         for (auto &account : account_list)
         {
-            eosio_assert(is_account(account), "invalid preset: account_list contains an account that doesn't exist");
+            eosio_assert(
+                is_account(account),
+                "invalid preset: account_list contains an account that doesn't exist");
         }
     }
 
     // check if the user has donated
-    auto d = _donors.find(account);
-    eosio_assert(d != _donors.end(), "user has never donated");
+    auto donor = donors_table.find(account);
+    eosio_assert(donor != donors_table.end(), "user has never donated");
 
     // check if the user has donated enough to enable profiles
     eosio_assert(
-        d->donated >= _config.profile_unlock_threshold,
+        donor->donated >= global_config.profile_unlock_threshold,
         "user has not donated enough to unlock profiles");
 
-    profile p = profile{
-        .account = account,
-        .url = url,
-        .bio = bio,
-        .avatar_hash = avatar_hash,
-        .location = location,
-
-        // social media fields
-        .github_id = github_id,
-        .twitter_id = twitter_id,
-        .steem_id = steem_id,
-        .medium_id = medium_id,
-        .twitch_id = twitch_id,
-        .youtube_id = youtube_id,
-        .facebook_id = facebook_id,
-
-        // settings
-        .theme = theme,
-        .presets = presets};
-
-    // set the profile
-    profile_table _profile(_self, account);
-    _profile.set(p, account);
-
-    // track user
-    ensure_user(account);
+    auto profile = profiles_table.find(account);
+    if (profile != profiles_table.end())
+    {
+        profiles_table.modify(profile, account, [&](auto &p) {
+            p.url = url;
+            p.bio = bio;
+            p.avatar_hash = avatar_hash;
+            p.location = location;
+            p.github_id = github_id;
+            p.twitter_id = twitter_id;
+            p.steem_id = steem_id;
+            p.medium_id = medium_id;
+            p.twitch_id = twitch_id;
+            p.youtube_id = youtube_id;
+            p.facebook_id = facebook_id;
+            p.theme = theme;
+            p.account_list_presets = account_list_presets;
+        });
+    }
+    else
+    {
+        profiles_table.emplace(account, [&](auto &p) {
+            p.account = account;
+            p.url = url;
+            p.bio = bio;
+            p.avatar_hash = avatar_hash;
+            p.location = location;
+            p.github_id = github_id;
+            p.twitter_id = twitter_id;
+            p.steem_id = steem_id;
+            p.medium_id = medium_id;
+            p.twitch_id = twitch_id;
+            p.youtube_id = youtube_id;
+            p.facebook_id = facebook_id;
+            p.theme = theme;
+            p.account_list_presets = account_list_presets;
+        });
+    }
 };
 
 } // namespace eosstrawpoll

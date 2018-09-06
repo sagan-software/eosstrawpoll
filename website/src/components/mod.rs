@@ -4,7 +4,7 @@ mod donor_list;
 mod inputs;
 mod link;
 mod poll_form;
-mod poll_list;
+mod poll_tease_list;
 mod relative_time;
 
 pub use self::donation_form::DonationForm;
@@ -13,5 +13,5 @@ pub use self::donor_list::DonorList;
 pub use self::inputs::*;
 pub use self::link::Link;
 pub use self::poll_form::PollForm;
-pub use self::poll_list::{PollList, PollsOrder, PollsTable};
+pub use self::poll_tease_list::*;
 pub use self::relative_time::RelativeTime;

@@ -21,7 +21,7 @@ pub struct PollForm {
     validation_result: Option<Result<(), String>>,
 
     // basic options
-    allow_multiple_choices: bool,
+    allow_multiple_answers: bool,
     allow_writeins: bool,
 }
 
@@ -37,7 +37,7 @@ pub enum Msg {
     Validate,
 
     // Basic options
-    ToggleAllowMultipleChoices,
+    ToggleAllowMultipleAnswers,
     ToggleAllowWriteins,
 }
 
@@ -68,7 +68,7 @@ impl Component for PollForm {
             _eos_agent: eos_agent,
             validation_result: None,
             use_advanced: false,
-            allow_multiple_choices: false,
+            allow_multiple_answers: false,
             allow_writeins: true,
         }
     }
@@ -83,8 +83,8 @@ impl Component for PollForm {
             }
             Msg::AddOption => {
                 info!("add option");
-                if self.action.options.len() < self.global_config.max_options_len {
-                    self.action.options.push("".to_string());
+                if self.action.prefilled_options.len() < self.global_config.max_options_len {
+                    self.action.prefilled_options.push("".to_string());
                     true
                 } else {
                     false
@@ -92,8 +92,8 @@ impl Component for PollForm {
             }
             Msg::SetOption(i, value) => {
                 info!("setting option {} to {}", i, value);
-                if i < self.action.options.len() {
-                    self.action.options[i] = value;
+                if i < self.action.prefilled_options.len() {
+                    self.action.prefilled_options[i] = value;
                     if self.validation_result.is_some() {
                         self.validation_result = Some(self.validate());
                     }
@@ -101,16 +101,16 @@ impl Component for PollForm {
                 true
             }
             Msg::DelOption(i) => {
-                let options_len = self.action.options.len();
+                let options_len = self.action.prefilled_options.len();
                 if i < options_len && options_len > 1 {
-                    self.action.options.remove(i);
+                    self.action.prefilled_options.remove(i);
                     debug!(
                         "deleted option {}, leaving options {:#?}",
-                        i, self.action.options
+                        i, self.action.prefilled_options
                     );
-                    let options_len = self.action.options.len();
-                    self.action.max_choices = min(self.action.max_choices, options_len);
-                    self.action.min_choices = min(self.action.max_choices, self.action.min_choices);
+                    let options_len = self.action.prefilled_options.len();
+                    self.action.max_answers = min(self.action.max_answers, options_len);
+                    self.action.min_answers = min(self.action.max_answers, self.action.min_answers);
                     if self.validation_result.is_some() {
                         self.validation_result = Some(self.validate());
                     }
@@ -130,8 +130,8 @@ impl Component for PollForm {
 
                 self.submitting = true;
 
-                if let Some(creator) = self.creator() {
-                    self.action.creator = creator;
+                if let Some(account) = self.account() {
+                    self.action.account = account;
                 } else {
                     let required_fields = self.props.chain.to_scatter_required_fields();
                     let scatter_input = ScatterInput::GetIdentity(required_fields);
@@ -147,28 +147,28 @@ impl Component for PollForm {
 
                 // Remove empty options
                 action
-                    .options
+                    .prefilled_options
                     .retain(|ref option| !option.trim().is_empty());
 
                 if !self.use_advanced {
-                    action.min_choices = 1;
-                    let options_len = action.options.len();
-                    match (self.allow_multiple_choices, self.allow_writeins) {
+                    action.min_answers = 1;
+                    let options_len = action.prefilled_options.len();
+                    match (self.allow_multiple_answers, self.allow_writeins) {
                         (true, true) => {
-                            action.max_writeins = max(options_len, 2);
-                            action.max_choices = action.max_writeins;
+                            action.max_writein_answers = max(options_len, 2);
+                            action.max_answers = action.max_writein_answers;
                         }
                         (true, false) => {
-                            action.max_writeins = 0;
-                            action.max_choices = options_len;
+                            action.max_writein_answers = 0;
+                            action.max_answers = options_len;
                         }
                         (false, true) => {
-                            action.max_writeins = 1;
-                            action.max_choices = 1;
+                            action.max_writein_answers = 1;
+                            action.max_answers = 1;
                         }
                         (false, false) => {
-                            action.max_writeins = 0;
-                            action.max_choices = 1;
+                            action.max_writein_answers = 0;
+                            action.max_answers = 1;
                         }
                     }
                 }
@@ -209,19 +209,18 @@ impl Component for PollForm {
                 ScatterOutput::PushedTransaction(result) => {
                     if self.submitting {
                         self.submitting = false;
-                        match (result, self.creator()) {
-                            (Ok(_), Some(creator)) => {
-                                let route = Route::Poll(
+                        match (result, self.account()) {
+                            (Ok(_), Some(account)) => {
+                                let route = Route::PollVoting(
                                     self.props.chain.to_chain_id_prefix(),
-                                    creator,
-                                    self.action.slug.clone(),
+                                    self.action.id.clone(),
                                 );
                                 let url = route.to_string();
                                 RouterAgent::redirect(url);
                                 // self.router.send(RouterInput::ChangeRoute(url, ()));
                             }
                             (Ok(_), None) => {
-                                warn!("Something strange happened: a poll was successfully submitted but no creator was found.");
+                                warn!("Something strange happened: a poll was successfully submitted but no account was found.");
                             }
                             (Err(error), _) => {
                                 error!("Error submitting poll: {:#?}", error);
@@ -242,8 +241,8 @@ impl Component for PollForm {
                 }
                 _ => false,
             },
-            Msg::ToggleAllowMultipleChoices => {
-                self.allow_multiple_choices = !self.allow_multiple_choices;
+            Msg::ToggleAllowMultipleAnswers => {
+                self.allow_multiple_answers = !self.allow_multiple_answers;
                 if self.validation_result.is_some() {
                     self.validation_result = Some(self.validate());
                 }
@@ -289,7 +288,7 @@ impl Renderable<PollForm> for PollForm {
 }
 
 impl PollForm {
-    fn creator(&self) -> Option<String> {
+    fn account(&self) -> Option<String> {
         let result = match &self.scatter_identity {
             Some(result) => result,
             None => return None,
@@ -314,7 +313,7 @@ impl PollForm {
         let mut options = HashSet::new();
         let max_option_len = self.global_config.max_option_len;
 
-        for option in &self.action.options {
+        for option in &self.action.prefilled_options {
             let trimmed = option.trim();
 
             if trimmed.is_empty() {
@@ -371,13 +370,13 @@ impl PollForm {
     fn options_view(&self) -> Html<PollForm> {
         html! {
             <div class="poll_form_options", >
-                { for self.action.options.iter().enumerate().map(|(i, o)| self.option_view(i, o)) }
+                { for self.action.prefilled_options.iter().enumerate().map(|(i, o)| self.option_view(i, o)) }
             </div>
         }
     }
 
     fn option_view(&self, index: usize, option: &str) -> Html<PollForm> {
-        let options_len = self.action.options.len();
+        let options_len = self.action.prefilled_options.len();
         let is_last = index == options_len - 1;
         let is_not_full = options_len < self.global_config.max_options_len;
         html! {
@@ -423,8 +422,8 @@ impl PollForm {
                 </label>
                 <label>
                     <input type="checkbox",
-                        onchange=|_| Msg::ToggleAllowMultipleChoices,
-                        checked=self.allow_multiple_choices,
+                        onchange=|_| Msg::ToggleAllowMultipleAnswers,
+                        checked=self.allow_multiple_answers,
                         disabled=self.submitting,
                     />
                     <span>{ "Allow multiple answers" }</span>

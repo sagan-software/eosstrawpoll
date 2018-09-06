@@ -8,33 +8,32 @@ use yew::services::fetch::FetchTask;
 use yew::services::{IntervalService, Task};
 
 pub struct PollResultsPage {
+    props: Props,
     eos: EosService,
-    context: Context,
-    task: Option<FetchTask>,
+    poll_task: Option<FetchTask>,
     poll: Option<Result<Poll, EosError>>,
-    creator: String,
-    slug: String,
+    votes_task: Option<FetchTask>,
+    votes: Vec<Vote>,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
     link: ComponentLink<PollResultsPage>,
     interval_service: IntervalService,
     interval_task: Option<Box<Task>>,
-    chain: Chain,
 }
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
     pub context: Context,
-    pub creator: String,
-    pub slug: String,
     pub chain: Chain,
+    pub poll_id: PollId,
 }
 
 pub enum Msg {
     Polls(Result<TableRows<Poll>, EosError>),
     Scatter(ScatterOutput),
-    FetchPolls,
+    FetchVotes,
+    Votes(Result<TableRows<Vote>, EosError>),
 }
 
 impl Component for PollResultsPage {
@@ -42,29 +41,27 @@ impl Component for PollResultsPage {
     type Properties = Props;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let creator = props.creator;
-
         let callback = link.send_back(Msg::Scatter);
         let mut scatter_agent = ScatterAgent::bridge(callback);
         scatter_agent.send(ScatterInput::Connect("eosstrawpoll".into(), 10000));
 
         let mut poll_page = PollResultsPage {
+            props,
             eos: EosService::new(),
-            context: props.context,
-            task: None,
+            poll_task: None,
             poll: None,
-            slug: props.slug.clone(),
-            creator: creator.clone(),
+            votes_task: None,
+            votes: vec![],
             scatter_agent,
             scatter_connected: None,
             scatter_identity: None,
             link,
             interval_service: IntervalService::new(),
             interval_task: None,
-            chain: props.chain,
         };
 
         poll_page.fetch_poll();
+        poll_page.fetch_votes();
         poll_page
     }
 
@@ -78,10 +75,10 @@ impl Component for PollResultsPage {
                     },
                     Err(error) => Some(Err(error)),
                 };
-                self.task = None;
+                self.poll_task = None;
 
                 if self.interval_task.is_none() {
-                    let cb = self.link.send_back(|_| Msg::FetchPolls);
+                    let cb = self.link.send_back(|_| Msg::FetchVotes);
                     let task = self.interval_service.spawn(Duration::from_secs(1), cb);
                     self.interval_task = Some(Box::new(task));
                 }
@@ -101,9 +98,17 @@ impl Component for PollResultsPage {
                 }
                 ScatterOutput::PushedTransaction(_) => (),
             },
-            Msg::FetchPolls => {
-                self.fetch_poll();
+            Msg::FetchVotes => {
+                self.fetch_votes();
             }
+            Msg::Votes(result) => match result {
+                Ok(table) => {
+                    self.votes = table.rows;
+                }
+                Err(error) => {
+                    error!("Error getting votes: {:#?}", error);
+                }
+            },
         };
         true
     }
@@ -123,6 +128,7 @@ impl Page for PollResultsPage {
             None => "Loading...".to_string(),
         }
     }
+
     fn class(&self) -> String {
         "poll_page poll_page_results".into()
     }
@@ -153,21 +159,44 @@ page_view! { PollResultsPage }
 impl PollResultsPage {
     fn fetch_poll(&mut self) {
         let params = TableRowsParams {
-            scope: self.creator.clone(),
-            code: self.chain.code_account.clone(),
+            scope: self.props.chain.code_account.clone(),
+            code: self.props.chain.code_account.clone(),
             table: "polls".to_string(),
             json: true,
-            lower_bound: Some(self.slug.clone()),
+            lower_bound: Some(self.props.poll_id.clone()),
             upper_bound: None,
             limit: Some(1),
             key_type: None,
             index_position: None,
+            encode_type: None,
         };
 
         let callback = self.link.send_back(Msg::Polls);
-        let endpoint = self.chain.endpoint.to_string();
+        let endpoint = self.props.chain.endpoint.to_string();
         let task = self.eos.get_table_rows(endpoint.as_str(), params, callback);
-        self.task = Some(task);
+        self.poll_task = Some(task);
+    }
+
+    fn fetch_votes(&mut self) {
+        let lower_bound = name_to_u64(self.props.poll_id.clone());
+        let upper_bound = lower_bound + 1;
+        let params = TableRowsParams {
+            scope: self.props.chain.code_account.clone(),
+            code: self.props.chain.code_account.clone(),
+            table: "votes".to_string(),
+            json: true,
+            lower_bound: Some(lower_bound.to_string()),
+            upper_bound: Some(upper_bound.to_string()),
+            limit: Some(10000),
+            key_type: Some("i64".into()),
+            index_position: Some("2".into()),
+            encode_type: None,
+        };
+
+        let callback = self.link.send_back(Msg::Votes);
+        let endpoint = self.props.chain.endpoint.to_string();
+        let task = self.eos.get_table_rows(endpoint.as_str(), params, callback);
+        self.votes_task = Some(task);
     }
 
     fn voter(&self) -> Option<AccountName> {
@@ -188,37 +217,39 @@ impl PollResultsPage {
     }
 
     fn has_voted(&self) -> bool {
-        let voter = match self.voter() {
-            Some(voter) => voter,
-            None => return false,
-        };
+        // let voter = match self.voter() {
+        //     Some(voter) => voter,
+        //     None => return false,
+        // };
 
-        let votes = match &self.poll {
-            Some(Ok(poll)) => &poll.votes,
-            _ => return false,
-        };
+        // let votes = match &self.poll {
+        //     Some(Ok(poll)) => &poll.votes,
+        //     _ => return false,
+        // };
 
-        votes.into_iter().any(|vote| vote.voter == voter)
+        // votes.into_iter().any(|vote| vote.voter == voter)
+        false
     }
 
     fn get_vote(&mut self) -> Option<Vote> {
-        let voter = match self.voter() {
-            Some(voter) => voter,
-            None => return None,
-        };
+        // let voter = match self.voter() {
+        //     Some(voter) => voter,
+        //     None => return None,
+        // };
 
-        let votes = match &self.poll {
-            Some(Ok(poll)) => &poll.votes,
-            _ => return None,
-        };
+        // let votes = match &self.poll {
+        //     Some(Ok(poll)) => &poll.votes,
+        //     _ => return None,
+        // };
 
-        let filtered_votes = votes
-            .iter()
-            .filter(|vote| vote.voter == voter)
-            .cloned()
-            .collect::<Vec<Vote>>();
+        // let filtered_votes = votes
+        //     .iter()
+        //     .filter(|vote| vote.voter == voter)
+        //     .cloned()
+        //     .collect::<Vec<Vote>>();
 
-        filtered_votes.first().map(|v| v.clone())
+        // filtered_votes.first().map(|v| v.clone())
+        None
     }
 
     fn view_loading(&self) -> Html<Self> {
@@ -238,21 +269,17 @@ impl PollResultsPage {
     }
 
     fn view_ok(&self, poll: &Poll) -> Html<Self> {
-        let vote = Route::Poll(
-            self.chain.to_chain_id_prefix(),
-            poll.creator.clone(),
-            poll.slug.clone(),
-        );
-        let results_text = if poll.votes.len() == 1 {
+        let vote = Route::PollVoting(self.props.chain.to_chain_id_prefix(), poll.id.clone());
+        let results_text = if self.votes.len() == 1 {
             "Results from one voter:".to_string()
         } else {
-            format!("Results from {} voters:", poll.votes.len())
+            format!("Results from {} voters:", self.votes.len())
         };
-        let results = poll.results_by_percent();
+        let results = poll.results_by_percent(&self.votes);
         info!("RESULTS! {:#?}", results);
         html! {
             <>
-                <p class="poll_num_choices", >
+                <p class="poll_num_answers", >
                     { results_text }
                 </p>
                 <div class="poll_options", >

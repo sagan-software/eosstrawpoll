@@ -1,4 +1,4 @@
-use components::{Link, PollList, RelativeTime};
+use components::{Link, RelativeTime};
 use eos::*;
 use prelude::*;
 use stdweb::web::document;
@@ -14,7 +14,7 @@ pub struct ProfilePage {
 pub struct Props {
     pub context: Context,
     pub chain: Chain,
-    pub account: String,
+    pub account: AccountName,
 }
 
 pub enum Msg {
@@ -93,13 +93,7 @@ impl ProfilePage {
     }
 
     fn view_item(&self, poll: &Poll) -> Html<Self> {
-        let poll_route = Route::Poll(
-            self.props.chain.to_chain_id_prefix(),
-            poll.creator.clone(),
-            poll.slug.clone(),
-        );
-        let creator_route =
-            Route::Profile(self.props.chain.to_chain_id_prefix(), poll.creator.clone());
+        let poll_route = Route::PollVoting(self.props.chain.to_chain_id_prefix(), poll.id.clone());
         html! {
             <li class="poll", >
                 <Link: class="poll_title",
@@ -110,9 +104,6 @@ impl ProfilePage {
                     <div class="poll_create_time", >
                         { "Submitted " }
                         <RelativeTime: timestamp=poll.create_time, />
-                    </div>
-                    <div class="poll_votes", >
-                        { &poll.votes.len() } { " vote" }{ if &poll.votes.len() == &1 { "" } else { "s" } }
                     </div>
                 </div>
             </li>

@@ -5,44 +5,25 @@
 namespace eosstrawpoll
 {
 
-void contract::destroypoll(
-    const account_name creator,
-    const poll_name slug)
+void contract::destroypoll(const poll_id_t poll_id)
 {
-    require_auth(creator);
+    auto poll = polls_table.find(poll_id);
+    eosio_assert(poll != polls_table.end(), "poll doesn't exist");
 
-    // check if poll exists
-    polls_table polls(_self, creator);
-    auto p = polls.find(slug);
-    eosio_assert(p != polls.end(), "poll doesn't exist");
+    require_auth(poll->account);
 
-    // erase poll
-    polls.erase(p);
+    polls_table.erase(poll);
 
-    // erase poll from recent polls table
-    for (auto it = _new_polls.begin(); it != _new_polls.end();)
+    auto popular_poll = popular_polls_table.find(poll_id);
+    if (popular_poll != popular_polls_table.end())
     {
-        if (it->creator == creator && it->slug == slug)
-        {
-            it = _new_polls.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
+        popular_polls_table.erase(popular_poll);
     }
 
-    // erase poll from popular polls table
-    for (auto it = _popular_polls.begin(); it != _popular_polls.end();)
+    auto new_poll = new_polls_table.find(poll_id);
+    if (new_poll != new_polls_table.end())
     {
-        if (it->creator == creator && it->slug == slug)
-        {
-            it = _popular_polls.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
+        new_polls_table.erase(new_poll);
     }
 }
 

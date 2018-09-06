@@ -3,32 +3,45 @@
 namespace eosstrawpoll
 {
 
-void contract::closepoll(
-    const account_name creator,
-    const poll_name slug)
+void contract::closepoll(const poll_id_t poll_id)
 {
-    require_auth(creator);
+    auto poll = polls_table.find(poll_id);
 
-    // find poll
-    polls_table _creator_polls(_self, creator);
-    auto _poll = _creator_polls.find(slug);
+    eosio_assert(poll != polls_table.end(), "poll does not exist");
 
-    // check if poll exists
-    eosio_assert(_poll != _creator_polls.end(), "poll does not exist");
+    require_auth(poll->account);
 
-    // check if poll is already closed
-    eosio_assert(!_poll->is_closed(), "poll is already closed");
+    eosio_assert(!poll->is_closed(), "poll is already closed");
 
-    // close poll
-    _creator_polls.modify(_poll, creator, [&](auto &p) {
-        p.close_time = now();
+    const auto close_time = now();
+    auto open_time = poll->open_time;
+    if (open_time > close_time)
+    {
+        open_time = close_time;
+    }
 
-        // set open_time to close_time/now if necessary
-        if (p.open_time > p.close_time)
-        {
-            p.open_time = p.close_time;
-        }
+    polls_table.modify(poll, poll->account, [&](auto &p) {
+        p.close_time = close_time;
+        p.open_time = open_time;
     });
+
+    auto popular_poll = popular_polls_table.find(poll_id);
+    if (popular_poll != popular_polls_table.end())
+    {
+        popular_polls_table.modify(popular_poll, _self, [&](auto &p) {
+            p.close_time = close_time;
+            p.open_time = open_time;
+        });
+    }
+
+    auto new_poll = new_polls_table.find(poll_id);
+    if (new_poll != new_polls_table.end())
+    {
+        new_polls_table.modify(new_poll, _self, [&](auto &p) {
+            p.close_time = close_time;
+            p.open_time = open_time;
+        });
+    }
 };
 
 } // namespace eosstrawpoll

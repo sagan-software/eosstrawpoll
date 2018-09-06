@@ -4,9 +4,9 @@ use yew::prelude::*;
 use yew::services::{Task, TimeoutService};
 
 pub struct RelativeTime {
-    timestamp: u32,
+    timestamp: u64,
     simple: bool,
-    base_timestamp: u32,
+    base_timestamp: u64,
     service: TimeoutService,
     task: Option<Box<Task>>,
     link: ComponentLink<RelativeTime>,
@@ -14,9 +14,9 @@ pub struct RelativeTime {
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
-    pub timestamp: u32,
+    pub timestamp: u64,
     pub simple: bool,
-    pub base_timestamp: Option<u32>,
+    pub base_timestamp: Option<u64>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -31,7 +31,7 @@ impl Component for RelativeTime {
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let base_timestamp = props
             .base_timestamp
-            .unwrap_or_else(|| (Date::now() / 1000.) as u32);
+            .unwrap_or_else(|| (Date::now() / 1000.) as u64);
         let mut relative_time = RelativeTime {
             timestamp: props.timestamp,
             simple: props.simple,
@@ -59,23 +59,23 @@ impl Component for RelativeTime {
         self.simple = props.simple;
         self.base_timestamp = props
             .base_timestamp
-            .unwrap_or_else(|| (Date::now() / 1000.) as u32);
+            .unwrap_or_else(|| (Date::now() / 1000.) as u64);
         true
     }
 }
 
-const SECOND: i32 = 1;
-const MINUTE: i32 = SECOND * 60;
-const HOUR: i32 = MINUTE * 60;
-const DAY: i32 = HOUR * 24;
-const WEEK: i32 = DAY * 7;
-const MONTH: i32 = WEEK * 4;
-const YEAR: i32 = MONTH * 12;
+const SECOND: i64 = 1;
+const MINUTE: i64 = SECOND * 60;
+const HOUR: i64 = MINUTE * 60;
+const DAY: i64 = HOUR * 24;
+const WEEK: i64 = DAY * 7;
+const MONTH: i64 = WEEK * 4;
+const YEAR: i64 = MONTH * 12;
 
 impl RelativeTime {
-    fn wait_seconds(&self) -> u32 {
-        let now = (Date::now() / 1000.) as i32;
-        let timestamp = self.timestamp as i32;
+    fn wait_seconds(&self) -> u64 {
+        let now = (Date::now() / 1000.) as i64;
+        let timestamp = self.timestamp as i64;
         let diff = (now - timestamp).abs();
 
         let interval = if diff < MINUTE {
@@ -96,7 +96,7 @@ impl RelativeTime {
 
         let next_time = now - (now % interval) + interval;
         let wait_seconds = next_time - now;
-        wait_seconds as u32
+        wait_seconds as u64
     }
 
     fn set_timeout(&mut self) {
@@ -113,11 +113,11 @@ impl RelativeTime {
     }
 }
 
-fn time_diff_string(timestamp: u32, base_timestamp: u32) -> String {
-    let timestamp = timestamp as i32;
-    let base_timestamp = base_timestamp as i32;
+fn time_diff_string(timestamp: u64, base_timestamp: u64) -> String {
+    let timestamp = timestamp as i64;
+    let base_timestamp = base_timestamp as i64;
 
-    let sec = ((base_timestamp - timestamp).abs() as f32).round();
+    let sec = ((base_timestamp - timestamp).abs() as f64).round();
     let min = (sec / 60.).round();
     let hr = (min / 60.).round();
     let day = (hr / 24.).round();
@@ -151,10 +151,10 @@ fn time_diff_string(timestamp: u32, base_timestamp: u32) -> String {
     }
 }
 
-fn with_suffix(timestamp: u32, base_timestamp: u32) -> String {
+fn with_suffix(timestamp: u64, base_timestamp: u64) -> String {
     let diff_string = time_diff_string(timestamp, base_timestamp);
-    let base_timestamp = base_timestamp as i32;
-    let timestamp = timestamp as i32;
+    let base_timestamp = base_timestamp as i64;
+    let timestamp = timestamp as i64;
     let diff = timestamp - base_timestamp;
 
     if diff <= 0 {

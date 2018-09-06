@@ -8,19 +8,16 @@ use stdweb::web::document;
 use yew::services::fetch::FetchTask;
 
 pub struct PollVotingPage {
+    props: Props,
     eos: EosService,
-    context: Context,
     task: Option<FetchTask>,
     poll: Option<Result<Poll, EosError>>,
-    creator: String,
-    slug: String,
-    chain: Chain,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
     pushed: Option<Result<PushedTransaction, ScatterError>>,
-    choices: Vec<Choice>,
-    available_choices: Vec<(String, Choice)>,
+    answers: Vec<Answer>,
+    available_answers: Vec<(String, Answer)>,
     writein_input: String,
     submitting: bool,
     link: ComponentLink<PollVotingPage>,
@@ -29,15 +26,14 @@ pub struct PollVotingPage {
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
     pub context: Context,
-    pub creator: String,
-    pub slug: String,
     pub chain: Chain,
+    pub poll_id: PollId,
 }
 
 pub enum Msg {
     Polls(Result<TableRows<Poll>, EosError>),
     Scatter(ScatterOutput),
-    ToggleChoice(Choice),
+    ToggleAnswer(Answer),
     SetWriteinInput(String),
     AddWritein,
     Vote,
@@ -51,22 +47,19 @@ impl Component for PollVotingPage {
         let callback = link.send_back(Msg::Scatter);
         let scatter_agent = ScatterAgent::new("eosstrawpoll", 10000, callback);
         let mut poll_page = PollVotingPage {
+            props,
             eos: EosService::new(),
-            context: props.context,
             task: None,
             poll: None,
-            slug: props.slug,
-            creator: props.creator,
             scatter_agent,
             scatter_connected: None,
             scatter_identity: None,
             pushed: None,
-            choices: Vec::new(),
-            available_choices: Vec::new(),
+            answers: Vec::new(),
+            available_answers: Vec::new(),
             writein_input: "".to_string(),
             submitting: false,
             link,
-            chain: props.chain,
         };
 
         poll_page.fetch_poll();
@@ -84,7 +77,7 @@ impl Component for PollVotingPage {
                     Err(error) => Some(Err(error)),
                 };
                 self.task = None;
-                self.load_choices();
+                self.load_answers();
 
                 true
             }
@@ -99,7 +92,7 @@ impl Component for PollVotingPage {
                         }
                         (true, true) => self.update(Msg::Vote),
                         (true, false) => {
-                            self.load_choices();
+                            self.load_answers();
                             true
                         }
                         (false, false) => true,
@@ -122,9 +115,8 @@ impl Component for PollVotingPage {
                         self.submitting = false;
                         if result.is_ok() {
                             let route = Route::PollResults(
-                                self.chain.to_chain_id_prefix(),
-                                self.creator.clone(),
-                                self.slug.clone(),
+                                self.props.chain.to_chain_id_prefix(),
+                                self.props.poll_id.clone(),
                             );
                             let url = route.to_string();
                             RouterAgent::redirect(url);
@@ -137,9 +129,9 @@ impl Component for PollVotingPage {
                     }
                 }
             },
-            Msg::ToggleChoice(choice) => {
-                info!("CHOICES: {:#?}, CHOICE: {:#?}", self.choices, choice);
-                self.toggle_choice(choice);
+            Msg::ToggleAnswer(answer) => {
+                info!("CHOICES: {:#?}, CHOICE: {:#?}", self.answers, answer);
+                self.toggle_answer(answer);
                 true
             }
             Msg::Vote => {
@@ -149,7 +141,7 @@ impl Component for PollVotingPage {
                 let voter = match self.voter() {
                     Some(voter) => voter,
                     None => {
-                        let required_fields = self.chain.to_scatter_required_fields();
+                        let required_fields = self.props.chain.to_scatter_required_fields();
                         let scatter_input = ScatterInput::GetIdentity(required_fields);
                         self.scatter_agent.send(scatter_input);
                         return true;
@@ -162,21 +154,20 @@ impl Component for PollVotingPage {
                 };
 
                 if is_only_one_writein(poll) {
-                    self.choices = vec![Choice {
-                        option_index: -1,
+                    self.answers = vec![Answer {
+                        prefilled_option_index: -1,
                         writein: self.writein_input.clone(),
                     }];
                 }
 
-                let network = self.chain.to_scatter_network();
-                let config = self.chain.to_eos_config();
+                let network = self.props.chain.to_scatter_network();
+                let config = self.props.chain.to_eos_config();
 
                 let action = CreateVote {
-                    creator: self.creator.to_string(),
-                    slug: self.slug.clone(),
-                    voter: voter.clone(),
-                    choices: self.choices.clone(),
-                }.to_action(&self.chain);
+                    poll_id: self.props.poll_id.clone(),
+                    account: voter.clone(),
+                    answers: self.answers.clone(),
+                }.to_action(&self.props.chain);
 
                 let transaction: ScatterTransaction = action.into();
 
@@ -192,12 +183,12 @@ impl Component for PollVotingPage {
                 true
             }
             Msg::AddWritein => {
-                let choice = Choice::from_writein(self.writein_input.clone());
-                self.toggle_choice(choice.clone());
+                let answer = Answer::from_writein(self.writein_input.clone());
+                self.toggle_answer(answer.clone());
 
-                let available_choice = (self.writein_input.clone(), choice.clone());
-                if !self.available_choices.contains(&available_choice) {
-                    self.available_choices.push(available_choice);
+                let available_answer = (self.writein_input.clone(), answer.clone());
+                if !self.available_answers.contains(&available_answer) {
+                    self.available_answers.push(available_answer);
                 }
 
                 self.writein_input = "".to_string();
@@ -263,35 +254,36 @@ impl Page for PollVotingPage {
 page_view! { PollVotingPage }
 
 impl PollVotingPage {
-    fn toggle_choice(&mut self, choice: Choice) {
-        if self.choices.contains(&choice) {
-            self.choices.retain(|c| choice != *c);
+    fn toggle_answer(&mut self, answer: Answer) {
+        if self.answers.contains(&answer) {
+            self.answers.retain(|c| answer != *c);
         } else {
-            self.choices.push(choice);
+            self.answers.push(answer);
         }
 
         if let Some(Ok(poll)) = &self.poll {
-            if self.choices.len() > poll.max_choices {
-                self.choices.remove(0);
+            if self.answers.len() > poll.max_answers {
+                self.answers.remove(0);
             }
         }
     }
 
     fn fetch_poll(&mut self) {
         let params = TableRowsParams {
-            scope: self.creator.clone(),
-            code: self.chain.code_account.clone(),
+            scope: self.props.chain.code_account.clone(),
+            code: self.props.chain.code_account.clone(),
             table: "polls".to_string(),
             json: true,
-            lower_bound: Some(self.slug.clone()),
+            lower_bound: Some(self.props.poll_id.clone()),
             upper_bound: None,
             limit: Some(1),
             key_type: None,
             index_position: None,
+            encode_type: None,
         };
 
         let callback = self.link.send_back(Msg::Polls);
-        let endpoint = self.chain.endpoint.to_string();
+        let endpoint = self.props.chain.endpoint.to_string();
         let task = self.eos.get_table_rows(endpoint.as_str(), params, callback);
         self.task = Some(task);
     }
@@ -314,34 +306,35 @@ impl PollVotingPage {
     }
 
     fn has_voted(&self) -> bool {
-        let voter = match self.voter() {
-            Some(voter) => voter,
-            None => return false,
-        };
+        // let voter = match self.voter() {
+        //     Some(voter) => voter,
+        //     None => return false,
+        // };
 
-        let votes = match &self.poll {
-            Some(Ok(poll)) => &poll.votes,
-            _ => return false,
-        };
+        // let votes = match &self.poll {
+        //     Some(Ok(poll)) => &poll.votes,
+        //     _ => return false,
+        // };
 
-        votes.into_iter().any(|vote| vote.voter == voter)
+        // votes.into_iter().any(|vote| vote.voter == voter)
+        false
     }
 
-    fn load_choices(&mut self) {
+    fn load_answers(&mut self) {
         let poll = match &self.poll {
             Some(Ok(poll)) => poll,
             _ => return,
         };
 
-        self.available_choices = poll
-            .options
+        self.available_answers = poll
+            .prefilled_options
             .iter()
             .enumerate()
             .map(|(i, label)| {
                 (
                     label.clone(),
-                    Choice {
-                        option_index: i as i16,
+                    Answer {
+                        prefilled_option_index: i as i16,
                         writein: "".into(),
                     },
                 )
@@ -352,31 +345,31 @@ impl PollVotingPage {
             None => return,
         };
 
-        let filtered_votes = poll
-            .votes
-            .iter()
-            .filter(|vote| vote.voter == voter)
-            .cloned()
-            .collect::<Vec<Vote>>();
+        // let filtered_votes = poll
+        //     .votes
+        //     .iter()
+        //     .filter(|vote| vote.voter == voter)
+        //     .cloned()
+        //     .collect::<Vec<Vote>>();
 
-        if let Some(vote) = filtered_votes.first() {
-            self.choices = vote.choices.to_owned();
+        // if let Some(vote) = filtered_votes.first() {
+        //     self.answers = vote.answers.to_owned();
 
-            if is_only_one_writein(poll) {
-                self.writein_input = self
-                    .choices
-                    .first()
-                    .map(|c| c.writein.clone())
-                    .unwrap_or_else(|| "".to_string());
-            } else {
-                for choice in &self.choices {
-                    if !choice.writein.is_empty() {
-                        self.available_choices
-                            .push((choice.writein.clone(), choice.clone()));
-                    }
-                }
-            }
-        }
+        //     if is_only_one_writein(poll) {
+        //         self.writein_input = self
+        //             .answers
+        //             .first()
+        //             .map(|c| c.writein.clone())
+        //             .unwrap_or_else(|| "".to_string());
+        //     } else {
+        //         for answer in &self.answers {
+        //             if !answer.writein.is_empty() {
+        //                 self.available_answers
+        //                     .push((answer.writein.clone(), answer.clone()));
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     fn view_loading(&self) -> Html<Self> {
@@ -406,20 +399,16 @@ impl PollVotingPage {
 
     fn view_ok(&self, poll: &Poll) -> Html<Self> {
         // Possible scenarios:
-        //  - Only 1 pre-filled choice
+        //  - Only 1 pre-filled answer
         //  - Only 1 writein answer
-        //  - Multiple pre-filled choices and 1 writein option
-        //  - Multiple pre-filled choices and multiple writein options
-        //  - 1 pre-filled choice and 1 writein option
-        //  - 1 pre-filled choice and multiple writein options
+        //  - Multiple pre-filled answers and 1 writein option
+        //  - Multiple pre-filled answers and multiple writein options
+        //  - 1 pre-filled answer and 1 writein option
+        //  - 1 pre-filled answer and multiple writein options
 
-        let results = Route::PollResults(
-            self.chain.to_chain_id_prefix(),
-            poll.creator.clone(),
-            poll.slug.clone(),
-        );
-        let select_text = if self.choices.len() < poll.min_choices && !self.choices.is_empty() {
-            let diff = poll.min_choices - self.choices.len();
+        let results = Route::PollResults(self.props.chain.to_chain_id_prefix(), poll.id.clone());
+        let select_text = if self.answers.len() < poll.min_answers && !self.answers.is_empty() {
+            let diff = poll.min_answers - self.answers.len();
             if diff == 1 {
                 "Select one more option".to_string()
             } else {
@@ -433,7 +422,7 @@ impl PollVotingPage {
         } else {
             self.view_options(poll)
         };
-        let can_submit = (self.choices.len() >= poll.min_choices)
+        let can_submit = (self.answers.len() >= poll.min_answers)
             || (is_only_one_writein(poll) && !self.writein_input.trim().is_empty());
         html! {
             <form class="poll_voting_form", onsubmit=|e| {
@@ -471,22 +460,22 @@ impl PollVotingPage {
     }
 
     fn view_options(&self, poll: &Poll) -> Html<Self> {
-        let choose_one = poll.min_choices == 1 && poll.max_choices == 1;
+        let choose_one = poll.min_answers == 1 && poll.max_answers == 1;
 
         html! {
             <>
-                <p class="poll_num_choices", >
+                <p class="poll_num_answers", >
                     { format!("Please {}:", vote_help_text(poll)) }
                 </p>
                 <div class="poll_options", >
-                    { for self.available_choices.iter().map(|(label, choice)| self.view_option(label, (*choice).clone(), choose_one)) }
+                    { for self.available_answers.iter().map(|(label, answer)| self.view_option(label, (*answer).clone(), choose_one)) }
                 </div>
             </>
         }
     }
 
     fn view_writein_input(&self, poll: &Poll) -> Html<Self> {
-        if poll.max_writeins == 0 {
+        if poll.max_writein_answers == 0 {
             return html! { <></> };
         }
         html! {
@@ -508,14 +497,14 @@ impl PollVotingPage {
         }
     }
 
-    fn view_option(&self, label: &str, choice: Choice, choose_one: bool) -> Html<Self> {
-        let is_selected = self.choices.contains(&choice);
+    fn view_option(&self, label: &str, answer: Answer, choose_one: bool) -> Html<Self> {
+        let is_selected = self.answers.contains(&answer);
         let input = if choose_one {
             html! {
                 <input class="poll_option_checkbox",
                     type="radio",
-                    name="choices",
-                    onchange=|_| Msg::ToggleChoice(choice.clone()),
+                    name="answers",
+                    onchange=|_| Msg::ToggleAnswer(answer.clone()),
                     checked=is_selected,
                 />
             }
@@ -523,7 +512,7 @@ impl PollVotingPage {
             html! {
                 <input class="poll_option_checkbox",
                     type="checkbox",
-                    onchange=|_| Msg::ToggleChoice(choice.clone()),
+                    onchange=|_| Msg::ToggleAnswer(answer.clone()),
                     checked=is_selected,
                 />
             }
@@ -540,7 +529,7 @@ impl PollVotingPage {
 }
 
 fn is_only_one_writein(poll: &Poll) -> bool {
-    poll.options.is_empty() && poll.max_writeins == 1
+    poll.prefilled_options.is_empty() && poll.max_writein_answers == 1
 }
 
 fn vote_help_text(poll: &Poll) -> String {
@@ -548,19 +537,19 @@ fn vote_help_text(poll: &Poll) -> String {
         return "write in your answer".to_string();
     }
 
-    let num_options = poll.options.len();
+    let num_options = poll.prefilled_options.len();
     match (
-        poll.min_choices,
-        poll.max_choices,
-        poll.min_choices == poll.max_choices,
-        poll.max_choices == num_options,
+        poll.min_answers,
+        poll.max_answers,
+        poll.min_answers == poll.max_answers,
+        poll.max_answers == num_options,
     ) {
         (1, 1, _, _) => "choose one option".to_string(),
         (_, _, true, true) => "rank all options".to_string(),
-        (_, _, true, false) => format!("choose and rank {} options", poll.min_choices),
+        (_, _, true, false) => format!("choose and rank {} options", poll.min_answers),
         (_, _, false, _) => format!(
             "choose and rank {} to {} options",
-            poll.min_choices, poll.max_choices
+            poll.min_answers, poll.max_answers
         ),
     }
 }

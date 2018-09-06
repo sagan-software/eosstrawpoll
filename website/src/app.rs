@@ -364,34 +364,32 @@ impl App {
                             Some(chain) => html! {
                                 <ProfilePage:
                                     context=&self.context,
-                                    account=account,
                                     chain=chain,
+                                    account=account,
                                 />
                             },
                             None => self.view_unknown_chain(chain_id_prefix),
                         }
                     }
-                    Route::Poll(chain_id_prefix, ref creator, ref slug) => {
+                    Route::PollVoting(chain_id_prefix, ref poll_id) => {
                         match self.context.find_chain(chain_id_prefix) {
                             Some(chain) => html! {
                                 <PollVotingPage:
                                     context=&self.context,
-                                    creator=creator,
-                                    slug=slug,
                                     chain=chain,
+                                    poll_id=poll_id,
                                 />
                             },
                             None => self.view_unknown_chain(chain_id_prefix),
                         }
                     }
-                    Route::PollResults(chain_id_prefix, ref creator, ref slug) => {
+                    Route::PollResults(chain_id_prefix, ref poll_id) => {
                         match self.context.find_chain(chain_id_prefix) {
                             Some(chain) => html! {
                                 <PollResultsPage:
                                     context=&self.context,
-                                    creator=creator,
-                                    slug=slug,
                                     chain=chain,
+                                    poll_id=poll_id,
                                 />
                             },
                             None => self.view_unknown_chain(chain_id_prefix),

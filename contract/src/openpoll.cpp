@@ -3,32 +3,25 @@
 namespace eosstrawpoll
 {
 
-void contract::openpoll(
-    const account_name creator,
-    const poll_name slug)
+void contract::openpoll(const poll_id_t poll_id)
 {
-    require_auth(creator);
+    auto poll = polls_table.find(poll_id);
+    eosio_assert(poll != polls_table.end(), "poll does not exist");
 
-    // find poll
-    polls_table _creator_polls(_self, creator);
-    auto _poll = _creator_polls.find(slug);
+    require_auth(poll->account);
 
-    // check if poll exists
-    eosio_assert(_poll != _creator_polls.end(), "poll does not exist");
+    eosio_assert(!poll->is_open(), "poll is already open");
 
-    // check if poll is already open
-    eosio_assert(!_poll->is_open(), "poll is already open");
-
-    // open poll
-    _creator_polls.modify(_poll, creator, [&](auto &p) {
+    polls_table.modify(poll, poll->account, [&](auto &p) {
         p.open_time = now();
 
-        // set close_time to 0 if necessary
         if (p.open_time > p.close_time)
         {
             p.close_time = 0;
         }
     });
+
+    // TODO: update popular polls, new polls
 };
 
 } // namespace eosstrawpoll

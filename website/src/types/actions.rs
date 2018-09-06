@@ -2,7 +2,7 @@ use eos::types::*;
 use stdweb::unstable::TryInto;
 use traits::ToAction;
 use types::json::bool_to_u8;
-use types::{Chain, Choice, PollName, Preset};
+use types::{AccountListPreset, Answer, Chain, PollId};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClearProfile {
@@ -22,8 +22,7 @@ impl ToAction for ClearProfile {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClosePoll {
-    pub creator: AccountName,
-    pub slug: PollName,
+    pub slug: PollId,
 }
 
 // impl Action for ClosePoll {
@@ -36,24 +35,22 @@ pub struct ClosePoll {
 //     }
 
 //     fn actor(&self) -> AccountName {
-//         self.creator.clone()
+//         self.account.clone()
 //     }
 // }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreatePoll {
-    pub creator: AccountName,
-    pub slug: PollName,
+    pub id: PollId,
+    pub account: AccountName,
     pub title: String,
-    pub options: Vec<String>,
-    pub min_choices: usize,
-    pub max_choices: usize,
-    pub max_writeins: usize,
+    pub prefilled_options: Vec<String>,
+    pub min_answers: usize,
+    pub max_answers: usize,
+    pub max_writein_answers: usize,
     #[serde(serialize_with = "bool_to_u8")]
     pub use_allow_list: bool,
     pub account_list: Vec<AccountName>,
-    pub min_staked: u64,
-    pub min_value: u64,
     pub open_time: u32,
     pub close_time: u32,
 }
@@ -61,17 +58,15 @@ pub struct CreatePoll {
 impl Default for CreatePoll {
     fn default() -> CreatePoll {
         CreatePoll {
-            creator: "".to_string(),
-            slug: "".to_string(),
+            id: "".to_string(),
+            account: "".to_string(),
             title: "".to_string(),
-            options: vec!["".to_string(), "".to_string(), "".to_string()],
-            min_choices: 1,
-            max_choices: 1,
-            max_writeins: 0,
+            prefilled_options: vec!["".to_string(), "".to_string(), "".to_string()],
+            min_answers: 1,
+            max_answers: 1,
+            max_writein_answers: 0,
             use_allow_list: true,
             account_list: Vec::new(),
-            min_staked: 0,
-            min_value: 0,
             open_time: 0,
             close_time: 0,
         }
@@ -83,7 +78,7 @@ impl ToAction for CreatePoll {
         Action {
             account: chain.code_account.clone(),
             name: "createpoll".into(),
-            authorization: vec![Authorization::active(self.creator.clone())],
+            authorization: vec![Authorization::active(self.account.clone())],
             data: self.clone(),
         }
     }
@@ -91,7 +86,7 @@ impl ToAction for CreatePoll {
 
 impl CreatePoll {
     pub fn random_slug(&mut self) {
-        self.slug = js! {
+        self.id = js! {
             var text = "";
             var possible = "abcdefghijklmnopqrstuvwxyz12345";
             for (var i = 0; i < 12; i++) {
@@ -105,10 +100,9 @@ impl CreatePoll {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct CreateVote {
-    pub creator: AccountName,
-    pub slug: PollName,
-    pub voter: AccountName,
-    pub choices: Vec<Choice>,
+    pub poll_id: PollId,
+    pub account: AccountName,
+    pub answers: Vec<Answer>,
 }
 
 impl ToAction for CreateVote {
@@ -116,7 +110,7 @@ impl ToAction for CreateVote {
         Action {
             account: chain.code_account.clone(),
             name: "createvote".into(),
-            authorization: vec![Authorization::active(self.voter.clone())],
+            authorization: vec![Authorization::active(self.account.clone())],
             data: self.clone(),
         }
     }
@@ -124,8 +118,7 @@ impl ToAction for CreateVote {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyPoll {
-    pub creator: AccountName,
-    pub slug: PollName,
+    pub poll_id: PollId,
 }
 
 // impl Action for DestroyPoll {
@@ -138,15 +131,14 @@ pub struct DestroyPoll {
 //     }
 
 //     fn actor(&self) -> AccountName {
-//         self.creator.clone()
+//         self.account.clone()
 //     }
 // }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyVote {
-    pub creator: AccountName,
-    pub slug: Name,
-    pub voter: AccountName,
+    pub poll_id: PollId,
+    pub account: AccountName,
 }
 
 // impl Action for DestroyVote {
@@ -165,8 +157,7 @@ pub struct DestroyVote {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyVotes {
-    pub creator: AccountName,
-    pub slug: PollName,
+    pub poll_id: PollId,
 }
 
 // impl Action for DestroyVotes {
@@ -179,14 +170,13 @@ pub struct DestroyVotes {
 //     }
 
 //     fn actor(&self) -> AccountName {
-//         self.creator.clone()
+//         self.account.clone()
 //     }
 // }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct OpenPoll {
-    pub creator: AccountName,
-    pub slug: PollName,
+    pub poll_id: PollId,
 }
 
 // impl Action for OpenPoll {
@@ -199,7 +189,7 @@ pub struct OpenPoll {
 //     }
 
 //     fn actor(&self) -> AccountName {
-//         self.creator.clone()
+//         self.account.clone()
 //     }
 // }
 
@@ -209,11 +199,11 @@ pub struct SetConfig {
     pub max_popular_polls: usize,
     pub max_new_donations: usize,
     pub max_title_len: usize,
-    pub max_options_len: usize,
-    pub max_option_len: usize,
+    pub max_prefilled_options_len: usize,
+    pub max_prefilled_option_len: usize,
     pub max_account_list_len: usize,
     pub max_writein_len: usize,
-    pub max_choices_len: usize,
+    pub max_answers_len: usize,
     pub popularity_gravity: f32,
     pub profile_unlock_threshold: u64,
 }
@@ -247,7 +237,7 @@ pub struct SetProfile {
     pub youtube_id: String,
     pub facebook_id: String,
     pub theme: String,
-    pub presets: Vec<Preset>,
+    pub account_list_presets: Vec<AccountListPreset>,
 }
 
 // impl Action for SetProfile {

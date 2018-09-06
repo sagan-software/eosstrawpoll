@@ -7,4 +7,5 @@
 /contract/*.abi
 /contract/build
 /website/dist
+/target
 .DS_Store

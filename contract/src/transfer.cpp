@@ -34,52 +34,51 @@ void contract::transfer(
     const uint64_t donated = t.quantity.amount;
 
     // add new donation
-    _new_donations.emplace(_self, [&](auto &d) {
-        d.id = _new_donations.available_primary_key();
+    new_donations_table.emplace(_self, [&](auto &d) {
+        d.id = new_donations_table.available_primary_key();
         d.account = account;
         d.donated = donated;
         d.memo = t.memo;
-        d.created = now();
+        d.create_time = now();
     });
 
     prune_new_donations();
 
-    const auto dono = donation{
+    const auto donation = donation_t{
         .id = 0,
         .account = account,
         .donated = donated,
         .memo = t.memo,
-        .created = now()};
+        .create_time = now()};
 
     // update donors table
-    auto d = _donors.find(account);
-    if (d == _donors.end())
+    auto donor = donors_table.find(account);
+    if (donor == donors_table.end())
     {
-        _donors.emplace(_self, [&](auto &d) {
+        donors_table.emplace(_self, [&](auto &d) {
             d.account = account;
             d.donated = donated;
-            d.first_donation = dono;
-            d.last_donation = dono;
+            d.first_donation = donation;
+            d.last_donation = donation;
         });
     }
     else
     {
-        _donors.modify(d, _self, [&](auto &d) {
+        donors_table.modify(donor, _self, [&](auto &d) {
             d.donated += donated;
-            d.last_donation = dono;
+            d.last_donation = donation;
         });
     }
 };
 
 void contract::prune_new_donations()
 {
-    auto created_index = _new_donations.get_index<N(created)>();
-    auto num_left = _config.max_new_donations;
-    for (auto it = created_index.rbegin(); it != created_index.rend();)
+    auto num_left = global_config.max_new_donations;
+    for (auto it = new_donations_table.rbegin(); it != new_donations_table.rend();)
     {
         if (num_left <= 0)
         {
-            it = decltype(it){created_index.erase(std::next(it).base())};
+            it = decltype(it){new_donations_table.erase(std::next(it).base())};
         }
         else
         {

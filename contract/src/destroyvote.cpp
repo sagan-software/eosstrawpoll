@@ -4,20 +4,33 @@ namespace eosstrawpoll
 {
 
 void contract::destroyvote(
-    const account_name creator,
-    const poll_name slug,
-    const account_name voter)
+    const poll_id_t poll_id,
+    const account_name account)
 {
-    require_auth(voter);
+    require_auth(account);
 
-    // check if poll exists
-    polls_table polls(_self, creator);
-    auto p = polls.find(slug);
-    eosio_assert(p != polls.end(), "poll doesn't exist");
+    auto poll = polls_table.find(poll_id);
+    eosio_assert(poll != polls_table.end(), "poll doesn't exist");
 
-    // check if voter has voted on this poll
+    auto pollid_index = votes_table.get_index<N(pollid)>();
+    auto itr = pollid_index.lower_bound(poll_id);
+    bool found_vote = false;
+    for (; itr != pollid_index.end() && itr->poll_id == poll_id;)
+    {
+        if (itr->account == account)
+        {
+            // itr = decltype(itr){pollid_index.erase(std::next(itr).base())};
+            found_vote = true;
+        }
+        else
+        {
+            ++itr;
+        }
+    }
 
-    // destroy vote
+    eosio_assert(found_vote, "no vote found for this poll_id and account combination");
+
+    // TODO: update popular polls, new polls
 };
 
 } // namespace eosstrawpoll

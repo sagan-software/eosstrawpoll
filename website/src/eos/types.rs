@@ -1,6 +1,18 @@
+use stdweb::unstable::TryInto;
+
 pub type ChainId = String;
 
 pub type Name = String;
+
+pub fn name_to_u64(name: Name) -> u64 {
+    let num_str: String = js! {
+        const Eos = require("eosjs");
+        const name = @{name};
+        return Eos.modules.format.encodeName(name, false);
+    }.try_into()
+    .unwrap();
+    num_str.parse().unwrap()
+}
 
 pub type AccountName = Name;
 
@@ -79,10 +91,10 @@ pub struct TableRows<Row> {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct TableRowsParams {
+    pub json: bool,
     pub scope: AccountName,
     pub code: AccountName,
     pub table: TableName,
-    pub json: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lower_bound: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -93,6 +105,8 @@ pub struct TableRowsParams {
     pub key_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub index_position: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encode_type: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

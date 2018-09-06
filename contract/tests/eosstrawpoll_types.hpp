@@ -16,13 +16,13 @@ using namespace fc;
 
 namespace eosstrawpoll
 {
-typedef name poll_name;
-typedef uint32_t esptime;
+typedef uint64_t esptime_t;
+typedef account_name poll_id_t;
 } // namespace eosstrawpoll
 
 using namespace eosstrawpoll;
 
-struct espconfig
+struct global_config_t
 {
     // tables
     uint16_t max_new_polls = 100;
@@ -31,11 +31,11 @@ struct espconfig
 
     // poll fields
     uint16_t max_title_len = 100;
-    uint16_t max_options_len = 50;
-    uint16_t max_option_len = 80;
+    uint16_t max_prefilled_options_len = 50;
+    uint16_t max_prefilled_option_len = 80;
     uint16_t max_account_list_len = 300;
     uint16_t max_writein_len = 80;
-    uint16_t max_choices_len = 100;
+    uint16_t max_answers_len = 100;
 
     // misc
     double popularity_gravity = 1.8;
@@ -43,135 +43,111 @@ struct espconfig
 };
 
 FC_REFLECT(
-    espconfig,
+    global_config_t,
     // tables
     (max_new_polls)(max_popular_polls)(max_new_donations)
     // polls fields
-    (max_title_len)(max_options_len)(max_option_len)(max_account_list_len)(max_writein_len)(max_choices_len)
+    (max_title_len)(max_prefilled_options_len)(max_prefilled_option_len)(max_account_list_len)(max_writein_len)(max_answers_len)
     // misc
     (popularity_gravity)(profile_unlock_threshold));
 
-struct choice
+struct answer_t
 {
-    int16_t option_index;
+    int16_t prefilled_option_index;
     string writein;
 };
 
-FC_REFLECT(choice, (option_index)(writein));
+FC_REFLECT(answer_t, (prefilled_option_index)(writein));
 
-struct espvote
+struct vote_t
 {
-    account_name voter;
-    esptime created;
-    vector<choice> choices;
-    uint64_t staked = 0;
-    uint64_t value = 0;
+    uint64_t id;
+    poll_id_t poll_id;
+    account_name account;
+    esptime_t create_time;
+    vector<answer_t> answers;
 };
 
-FC_REFLECT(espvote, (voter)(created)(choices)(staked)(value));
+FC_REFLECT(vote_t, (id)(poll_id)(account)(create_time)(answers));
 
-struct poll
+struct poll_t
 {
     // Basics
-    uint64_t id;
-    account_name creator;
-    poll_name slug;
+    poll_id_t id;
+    account_name account;
     string title;
 
     // Options & choices
-    vector<string> options;
-    uint16_t min_choices;
-    uint16_t max_choices;
-    uint16_t max_writeins;
+    vector<string> prefilled_options;
+    uint16_t min_answers;
+    uint16_t max_answers;
+    uint16_t max_writein_answers;
 
     // Voter requirements
     bool use_allow_list;
     vector<account_name> account_list;
-    uint64_t min_staked;
-    uint64_t min_value;
 
     // Times
-    esptime open_time;
-    esptime close_time;
-
-    // Internal
-    esptime create_time;
-    vector<espvote> votes;
-    double popularity;
+    esptime_t create_time;
+    esptime_t open_time;
+    esptime_t close_time;
 
     // Indexing functions
     uint64_t primary_key() const { return id; }
-    uint64_t by_created() const { return create_time; }
-    uint64_t by_closed() const { return close_time; }
-    double by_popularity() const { return popularity; }
+    uint64_t by_account() const { return account; }
 
     // Helper functions
     bool has_opened() const;
     bool is_closed() const;
-    double calculate_popularity(double gravity) const;
 };
 
 FC_REFLECT(
-    poll,
+    poll_t,
     // basics
-    (id)(creator)(slug)(title)
+    (id)(account)(title)
     // voting
-    (options)(min_choices)(max_choices)(max_writeins)
+    (prefilled_options)(min_answers)(max_answers)(max_writein_answers)
     // voter requirements
-    (use_allow_list)(account_list)(min_staked)(min_value)
+    (use_allow_list)(account_list)
     // times
-    (open_time)(close_time)(create_time)
-    // misc
-    (votes)(popularity));
+    (create_time)(open_time)(close_time));
 
-struct donation
+struct donation_t
 {
     uint64_t id;
     account_name account;
     uint64_t donated;
     string memo;
-    uint64_t created;
+    esptime_t create_time;
 
     uint64_t primary_key() const { return id; }
-    uint64_t by_time() const { return created; }
+    uint64_t by_created() const { return create_time; }
 };
 
-FC_REFLECT(donation, (id)(account)(donated)(memo)(created));
+FC_REFLECT(donation_t, (id)(account)(donated)(memo)(create_time));
 
-struct donor
+struct donor_t
 {
     account_name account;
     uint64_t donated;
-    donation last_donation;
+    donation_t first_donation;
+    donation_t last_donation;
 
-    account_name primary_key() const { return account; }
+    uint64_t primary_key() const { return account; }
     uint64_t by_donated() const { return donated; }
 };
 
-FC_REFLECT(donor, (account)(donated)(last_donation));
+FC_REFLECT(donor_t, (account)(donated)(first_donation)(last_donation));
 
-struct user
-{
-    account_name account;
-    esptime first_seen;
-
-    account_name primary_key() const { return account; }
-};
-
-FC_REFLECT(user, (account)(first_seen));
-
-struct preset
+struct account_list_preset_t
 {
     string description;
-    bool use_allow_list;
     vector<account_name> account_list;
-    uint64_t min_staked;
-    uint64_t min_value;
 };
 
-FC_REFLECT(preset, (description)(use_allow_list)(account_list)(min_staked)(min_value));
+FC_REFLECT(account_list_preset_t, (description)(account_list));
 
-struct profile
+struct profile_t
 {
     // basic fields
     account_name account;
@@ -191,13 +167,13 @@ struct profile
 
     // settings
     string theme;
-    vector<preset> presets;
+    vector<account_list_preset_t> account_list_presets;
 
     account_name primary_key() const { return account; }
 };
 
 FC_REFLECT(
-    profile,
+    profile_t,
 
     // basics
     (account)(url)(bio)(avatar_hash)(location)
@@ -206,4 +182,4 @@ FC_REFLECT(
     (github_id)(twitter_id)(steem_id)(medium_id)(twitch_id)(youtube_id)(facebook_id)
 
     // settings
-    (theme)(presets));
+    (theme)(account_list_presets));

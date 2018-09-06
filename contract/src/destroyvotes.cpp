@@ -3,26 +3,20 @@
 namespace eosstrawpoll
 {
 
-void contract::destroyvotes(
-    const account_name creator,
-    const poll_name slug)
+void contract::destroyvotes(const poll_id_t poll_id)
 {
-    require_auth(creator);
+    auto poll = polls_table.find(poll_id);
+    eosio_assert(poll != polls_table.end(), "poll does not exist");
+    require_auth(poll->account);
 
-    // find poll
-    polls_table _creator_polls(_self, creator);
-    auto _poll = _creator_polls.find(slug);
+    auto pollid_index = votes_table.get_index<N(pollid)>();
+    auto itr = pollid_index.lower_bound(poll_id);
+    for (; itr != pollid_index.end() && itr->poll_id == poll_id;)
+    {
+        // itr = decltype(itr){pollid_index.erase(std::next(itr).base())};
+    }
 
-    // check if poll exists
-    eosio_assert(_poll != _creator_polls.end(), "poll does not exist");
-
-    // check if there are any votes to clear
-    eosio_assert(!_poll->votes.empty(), "there are no votes to clear");
-
-    // clear votes
-    _creator_polls.modify(_poll, creator, [&](auto &p) {
-        p.votes = {};
-    });
+    // TODO: update popular polls, new polls
 };
 
 } // namespace eosstrawpoll

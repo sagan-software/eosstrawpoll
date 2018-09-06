@@ -6,152 +6,146 @@ namespace eosstrawpoll
 {
 
 void contract::createpoll(
-    const account_name creator,
-    const poll_name slug,
+    const poll_id_t id,
+    const account_name account,
     const string &title,
-    const vector<string> &options,
-    const uint16_t min_choices,
-    const uint16_t max_choices,
-    const uint16_t max_writeins,
+    const vector<string> &prefilled_options,
+    const uint16_t min_answers,
+    const uint16_t max_answers,
+    const uint16_t max_writein_answers,
     const bool use_allow_list,
     const vector<account_name> &account_list,
-    const uint64_t min_staked,
-    const uint64_t min_value,
-    const time open_time,
-    const time close_time)
+    const time_t open_time,
+    const time_t close_time)
 {
-    require_auth(creator);
+    require_auth(account);
 
-    // check title
-    eosio_assert(!title.empty(), "title must not be empty");
-    eosio_assert(title.size() <= _config.max_title_len, "title is too long");
+    const auto num_prefilled_options = prefilled_options.size();
+    const auto title_len = title.size();
 
-    // check options
-    const uint16_t num_options = options.size();
-    eosio_assert(num_options <= _config.max_options_len, "too many options");
-    eosio_assert(num_options >= 2 || max_writeins >= 1, "must have at least 2 options or allow writeins");
+    eosio_assert(title_len != 0, "title must not be empty");
+    eosio_assert(
+        title_len <= global_config.max_title_len,
+        "title is longer than allowed by the global config");
+    eosio_assert(
+        min_answers <= max_answers,
+        "min_answers cannot be greater than max_answers");
+    eosio_assert(
+        max_answers <= global_config.max_answers_len,
+        "max_answers is larger than allowed by the global config");
+    eosio_assert(
+        min_answers > 0,
+        "min_answers must be greater than zero");
+    eosio_assert(
+        num_prefilled_options <= global_config.max_prefilled_options_len,
+        "prefilled_options contains more options than allowed by the global config");
+    eosio_assert(
+        max_writein_answers <= max_answers,
+        "max_writein_answers cannot be greater than max_answers");
 
-    std::map<string, bool> seen_options;
-    for (auto &option : options)
+    if (max_writein_answers == 0)
     {
-        // TODO: check that options are not just empty whitespace
-        eosio_assert(!option.empty(), "empty options are not allowed");
-        eosio_assert(option.size() <= _config.max_option_len, "an option is too long");
-        eosio_assert(seen_options.count(option) == 0, "duplicate options are not allowed");
-        seen_options[option] = true;
+        eosio_assert(
+            max_answers <= num_prefilled_options,
+            "max_answers cannot be greater than the number of prefilled options when writein answers are disabled");
+        eosio_assert(
+            num_prefilled_options >= 2,
+            "prefilled_options must contain at least two options when writein answers are disabled");
+    }
+    else
+    {
+        eosio_assert(
+            max_writein_answers + num_prefilled_options >= max_answers,
+            "not enough writein answers or prefilled options to satisfy max_answers requirement");
     }
 
-    // check num choices
-    eosio_assert(
-        min_choices > 0,
-        "min_choices must be greater than 0");
-    eosio_assert(
-        min_choices <= max_choices,
-        "max_choices cannot be less than min_choices");
-    eosio_assert(
-        max_writeins <= max_choices,
-        "max_writeins cannot be greater than max_choices");
-    eosio_assert(
-        min_choices <= num_options + max_writeins,
-        "min_choices cannot be greater than the total number of options and max writeins");
-    eosio_assert(
-        max_choices <= num_options + max_writeins,
-        "max_choices cannot be greater than the total number of options and max writeins");
-    eosio_assert(
-        max_choices <= _config.max_choices_len,
-        "max_choices is too large"
-    );
+    std::map<string, bool> seen_prefilled_options;
+    for (auto &prefilled_option : prefilled_options)
+    {
+        // TODO: check that options are not just empty whitespace
+        const auto prefilled_option_len = prefilled_option.size();
+        eosio_assert(
+            prefilled_option_len != 0,
+            "empty prefilled options are not allowed");
+        eosio_assert(
+            prefilled_option_len <= global_config.max_prefilled_option_len,
+            "a prefilled option is longer than allowed by the global config");
+        eosio_assert(
+            seen_prefilled_options.count(prefilled_option) == 0,
+            "duplicate prefilled options are not allowed");
+        seen_prefilled_options[prefilled_option] = true;
+    }
 
     // check times
     eosio_assert(
         close_time == 0 || close_time > open_time,
         "close_time must be 0 or after open_time");
 
-    const time current_time = now();
+    const time_t current_time = now();
     eosio_assert(
         close_time == 0 || close_time > current_time,
         "close_time must be 0 or in the future");
 
     // check account_list
-    auto account_list_len = account_list.size();
+    const auto account_list_len = account_list.size();
     eosio_assert(
-        account_list_len <= _config.max_account_list_len,
-        "account_list is too long");
+        account_list_len <= global_config.max_account_list_len,
+        "account_list is longer than allowed by the global config");
     for (auto &account : account_list)
     {
-        eosio_assert(is_account(account), "account_list contains an account that doesn't exist");
+        eosio_assert(
+            is_account(account),
+            "account_list contains an account that doesn't exist");
     }
 
-    // check if poll already exists
-    polls_table _creator_polls(_self, creator);
-    {
-        auto p = _creator_polls.find(slug);
-        eosio_assert(p == _creator_polls.end(), "poll already exists with this slug");
-    }
+    auto poll = polls_table.find(id);
+    eosio_assert(
+        poll == polls_table.end(),
+        "poll already exists with this ID");
 
     // Poll is valid!
-
-    // add user
-    ensure_user(creator);
+    time_t start_time = open_time;
+    if (start_time < current_time)
+    {
+        start_time = current_time;
+    }
 
     // create the poll
-    _creator_polls.emplace(creator, [&](auto &p) {
-        p.id = slug;
-        p.creator = creator;
-        p.slug = slug;
+    polls_table.emplace(account, [&](auto &p) {
+        p.id = id;
+        p.account = account;
         p.title = title;
-        p.options = options;
-        p.min_choices = min_choices;
-        p.max_choices = max_choices;
-        p.max_writeins = max_writeins;
+        p.prefilled_options = prefilled_options;
+        p.min_answers = min_answers;
+        p.max_answers = max_answers;
+        p.max_writein_answers = max_writein_answers;
         p.use_allow_list = use_allow_list;
         p.account_list = account_list;
-        p.min_staked = min_staked;
-        p.min_value = min_value;
+        p.create_time = current_time;
         p.open_time = open_time;
         p.close_time = close_time;
-        p.create_time = current_time;
     });
 
-    // add to new polls table
-    _new_polls.emplace(creator, [&](auto &p) {
-        p.id = _new_polls.available_primary_key();
-        p.creator = creator;
-        p.slug = slug;
+    new_polls_table.emplace(_self, [&](auto &p) {
+        p.id = id;
+        p.account = account;
         p.title = title;
-        p.options = options;
-        p.min_choices = min_choices;
-        p.max_choices = max_choices;
-        p.max_writeins = max_writeins;
-        p.use_allow_list = use_allow_list;
-        p.account_list = account_list;
-        p.min_staked = min_staked;
-        p.min_value = min_value;
+        p.create_time = current_time;
         p.open_time = open_time;
         p.close_time = close_time;
-        p.create_time = current_time;
     });
 
     prune_new_polls();
 
     if (!is_popular_polls_full())
     {
-        _popular_polls.emplace(creator, [&](auto &p) {
-            p.id = _popular_polls.available_primary_key();
-            p.creator = creator;
-            p.slug = slug;
+        popular_polls_table.emplace(_self, [&](auto &p) {
+            p.id = id;
+            p.account = account;
             p.title = title;
-            p.options = options;
-            p.min_choices = min_choices;
-            p.max_choices = max_choices;
-            p.max_writeins = max_writeins;
-            p.use_allow_list = use_allow_list;
-            p.account_list = account_list;
-            p.min_staked = min_staked;
-            p.min_value = min_value;
+            p.create_time = current_time;
             p.open_time = open_time;
             p.close_time = close_time;
-            p.create_time = current_time;
         });
     }
 }

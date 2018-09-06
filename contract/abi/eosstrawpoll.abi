@@ -6,12 +6,12 @@
             "type": "name"
         },
         {
-            "new_type_name": "poll_name",
+            "new_type_name": "poll_id",
             "type": "name"
         },
         {
             "new_type_name": "time",
-            "type": "uint32"
+            "type": "uint64"
         }
     ],
     "structs": [
@@ -30,12 +30,8 @@
             "base": "",
             "fields": [
                 {
-                    "name": "creator",
-                    "type": "account_name"
-                },
-                {
-                    "name": "slug",
-                    "type": "poll_name"
+                    "name": "poll_id",
+                    "type": "poll_id"
                 }
             ]
         },
@@ -44,31 +40,31 @@
             "base": "",
             "fields": [
                 {
-                    "name": "creator",
-                    "type": "account_name"
+                    "name": "id",
+                    "type": "poll_id"
                 },
                 {
-                    "name": "slug",
-                    "type": "poll_name"
+                    "name": "account",
+                    "type": "account_name"
                 },
                 {
                     "name": "title",
                     "type": "string"
                 },
                 {
-                    "name": "options",
+                    "name": "prefilled_options",
                     "type": "string[]"
                 },
                 {
-                    "name": "min_choices",
+                    "name": "min_answers",
                     "type": "uint16"
                 },
                 {
-                    "name": "max_choices",
+                    "name": "max_answers",
                     "type": "uint16"
                 },
                 {
-                    "name": "max_writeins",
+                    "name": "max_writein_answers",
                     "type": "uint16"
                 },
                 {
@@ -78,14 +74,6 @@
                 {
                     "name": "account_list",
                     "type": "account_name[]"
-                },
-                {
-                    "name": "min_staked",
-                    "type": "uint64"
-                },
-                {
-                    "name": "min_value",
-                    "type": "uint64"
                 },
                 {
                     "name": "open_time",
@@ -102,20 +90,16 @@
             "base": "",
             "fields": [
                 {
-                    "name": "creator",
+                    "name": "poll_id",
+                    "type": "poll_id"
+                },
+                {
+                    "name": "account",
                     "type": "account_name"
                 },
                 {
-                    "name": "slug",
-                    "type": "poll_name"
-                },
-                {
-                    "name": "voter",
-                    "type": "account_name"
-                },
-                {
-                    "name": "choices",
-                    "type": "choice[]"
+                    "name": "answers",
+                    "type": "answer[]"
                 }
             ]
         },
@@ -124,12 +108,8 @@
             "base": "",
             "fields": [
                 {
-                    "name": "creator",
-                    "type": "account_name"
-                },
-                {
-                    "name": "slug",
-                    "type": "poll_name"
+                    "name": "poll_id",
+                    "type": "poll_id"
                 }
             ]
         },
@@ -138,15 +118,11 @@
             "base": "",
             "fields": [
                 {
-                    "name": "creator",
-                    "type": "account_name"
+                    "name": "poll_id",
+                    "type": "poll_id"
                 },
                 {
-                    "name": "slug",
-                    "type": "poll_name"
-                },
-                {
-                    "name": "voter",
+                    "name": "account",
                     "type": "account_name"
                 }
             ]
@@ -156,12 +132,8 @@
             "base": "",
             "fields": [
                 {
-                    "name": "creator",
-                    "type": "account_name"
-                },
-                {
-                    "name": "slug",
-                    "type": "poll_name"
+                    "name": "poll_id",
+                    "type": "poll_id"
                 }
             ]
         },
@@ -170,12 +142,8 @@
             "base": "",
             "fields": [
                 {
-                    "name": "creator",
-                    "type": "account_name"
-                },
-                {
-                    "name": "slug",
-                    "type": "poll_name"
+                    "name": "poll_id",
+                    "type": "poll_id"
                 }
             ]
         },
@@ -200,11 +168,11 @@
                     "type": "uint16"
                 },
                 {
-                    "name": "max_options_len",
+                    "name": "max_prefilled_options_len",
                     "type": "uint16"
                 },
                 {
-                    "name": "max_option_len",
+                    "name": "max_prefilled_option_len",
                     "type": "uint16"
                 },
                 {
@@ -216,7 +184,7 @@
                     "type": "uint16"
                 },
                 {
-                    "name": "max_choices_len",
+                    "name": "max_answers_len",
                     "type": "uint16"
                 },
                 {
@@ -286,13 +254,13 @@
                     "type": "string"
                 },
                 {
-                    "name": "presets",
-                    "type": "string"
+                    "name": "account_list_presets",
+                    "type": "account_list_preset[]"
                 }
             ]
         },
         {
-            "name": "config",
+            "name": "global_config",
             "base": "",
             "fields": [
                 {
@@ -312,11 +280,11 @@
                     "type": "uint16"
                 },
                 {
-                    "name": "max_options_len",
+                    "name": "max_prefilled_options_len",
                     "type": "uint16"
                 },
                 {
-                    "name": "max_option_len",
+                    "name": "max_prefilled_option_len",
                     "type": "uint16"
                 },
                 {
@@ -328,7 +296,7 @@
                     "type": "uint16"
                 },
                 {
-                    "name": "max_choices_len",
+                    "name": "max_answers_len",
                     "type": "uint16"
                 },
                 {
@@ -342,11 +310,11 @@
             ]
         },
         {
-            "name": "choice",
+            "name": "answer",
             "base": "",
             "fields": [
                 {
-                    "name": "option_index",
+                    "name": "prefilled_option_index",
                     "type": "int16"
                 },
                 {
@@ -360,24 +328,24 @@
             "base": "",
             "fields": [
                 {
-                    "name": "voter",
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "poll_id",
+                    "type": "poll_id"
+                },
+                {
+                    "name": "account",
                     "type": "account_name"
                 },
                 {
-                    "name": "created",
+                    "name": "create_time",
                     "type": "time"
                 },
                 {
-                    "name": "choices",
-                    "type": "choice[]"
-                },
-                {
-                    "name": "staked",
-                    "type": "uint64"
-                },
-                {
-                    "name": "value",
-                    "type": "uint64"
+                    "name": "answers",
+                    "type": "answer[]"
                 }
             ]
         },
@@ -387,34 +355,30 @@
             "fields": [
                 {
                     "name": "id",
-                    "type": "uint64"
+                    "type": "poll_id"
                 },
                 {
-                    "name": "creator",
+                    "name": "account",
                     "type": "account_name"
-                },
-                {
-                    "name": "slug",
-                    "type": "poll_name"
                 },
                 {
                     "name": "title",
                     "type": "string"
                 },
                 {
-                    "name": "options",
+                    "name": "prefilled_options",
                     "type": "string[]"
                 },
                 {
-                    "name": "min_choices",
+                    "name": "min_answers",
                     "type": "uint16"
                 },
                 {
-                    "name": "max_choices",
+                    "name": "max_answers",
                     "type": "uint16"
                 },
                 {
-                    "name": "max_writeins",
+                    "name": "max_writein_answers",
                     "type": "uint16"
                 },
                 {
@@ -426,12 +390,38 @@
                     "type": "account_name[]"
                 },
                 {
-                    "name": "min_staked",
-                    "type": "uint64"
+                    "name": "create_time",
+                    "type": "time"
                 },
                 {
-                    "name": "min_value",
-                    "type": "uint64"
+                    "name": "open_time",
+                    "type": "time"
+                },
+                {
+                    "name": "close_time",
+                    "type": "time"
+                }
+            ]
+        },
+        {
+            "name": "poll_tease",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "poll_id"
+                },
+                {
+                    "name": "account",
+                    "type": "account_name"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "create_time",
+                    "type": "time"
                 },
                 {
                     "name": "open_time",
@@ -442,12 +432,8 @@
                     "type": "time"
                 },
                 {
-                    "name": "create_time",
-                    "type": "time"
-                },
-                {
-                    "name": "votes",
-                    "type": "vote[]"
+                    "name": "num_votes",
+                    "type": "uint32"
                 },
                 {
                     "name": "popularity",
@@ -476,8 +462,8 @@
                     "type": "string"
                 },
                 {
-                    "name": "created",
-                    "type": "uint64"
+                    "name": "create_time",
+                    "type": "time"
                 }
             ]
         },
@@ -504,21 +490,7 @@
             ]
         },
         {
-            "name": "user",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "account_name"
-                },
-                {
-                    "name": "first_seen",
-                    "type": "time"
-                }
-            ]
-        },
-        {
-            "name": "preset",
+            "name": "account_list_preset",
             "base": "",
             "fields": [
                 {
@@ -526,20 +498,8 @@
                     "type": "string"
                 },
                 {
-                    "name": "use_allow_list",
-                    "type": "bool"
-                },
-                {
                     "name": "account_list",
                     "type": "account_name[]"
-                },
-                {
-                    "name": "min_staked",
-                    "type": "uint64"
-                },
-                {
-                    "name": "min_value",
-                    "type": "uint64"
                 }
             ]
         },
@@ -600,8 +560,8 @@
                     "type": "string"
                 },
                 {
-                    "name": "presets",
-                    "type": "preset[]"
+                    "name": "account_list_presets",
+                    "type": "account_list_preset[]"
                 }
             ]
         }
@@ -660,8 +620,8 @@
     ],
     "tables": [
         {
-            "name": "config",
-            "type": "config",
+            "name": "globalconfig",
+            "type": "global_config",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -671,43 +631,39 @@
             "type": "poll",
             "index_type": "i64",
             "key_names": [
-                "popularity",
-                "created"
+                "account"
             ],
             "key_types": [
-                "double",
+                "i64"
+            ]
+        },
+        {
+            "name": "votes",
+            "type": "vote",
+            "index_type": "i64",
+            "key_names": [
+                "pollid",
+                "account"
+            ],
+            "key_types": [
+                "i64",
                 "i64"
             ]
         },
         {
             "name": "popularpolls",
-            "type": "poll",
+            "type": "poll_tease",
             "index_type": "i64",
             "key_names": [
-                "popularity",
-                "created"
+                "popularity"
             ],
             "key_types": [
-                "double",
-                "i64"
+                "double"
             ]
         },
         {
             "name": "newpolls",
-            "type": "poll",
-            "index_type": "i64",
-            "key_names": [
-                "popularity",
-                "created"
-            ],
-            "key_types": [
-                "double",
-                "i64"
-            ]
-        },
-        {
-            "name": "donations",
-            "type": "donation",
+            "type": "poll_tease",
             "index_type": "i64",
             "key_names": [
                 "created"
@@ -720,27 +676,12 @@
             "name": "newdonations",
             "type": "donation",
             "index_type": "i64",
-            "key_names": [
-                "created"
-            ],
-            "key_types": [
-                "i64"
-            ]
+            "key_names": [],
+            "key_types": []
         },
         {
             "name": "donors",
             "type": "donor",
-            "index_type": "i64",
-            "key_names": [
-                "donated"
-            ],
-            "key_types": [
-                "i64"
-            ]
-        },
-        {
-            "name": "users",
-            "type": "user",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

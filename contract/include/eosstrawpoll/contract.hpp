@@ -11,19 +11,26 @@ class contract
 
   private:
     account_name _self;
-    config_table _configs;
-    config _config;
-    new_donations_table _new_donations;
-    donors_table _donors;
-    users_table _users;
-    popular_polls_table _popular_polls;
-    new_polls_table _new_polls;
+    global_config_t global_config;
 
+    // tables
+    global_config_table_t global_config_table;
+    polls_table_t polls_table;
+    votes_table_t votes_table;
+    popular_polls_table_t popular_polls_table;
+    new_polls_table_t new_polls_table;
+    new_donations_table_t new_donations_table;
+    donors_table_t donors_table;
+    profiles_table_t profiles_table;
+
+    // utils
     void prune_new_donations();
     void prune_new_polls();
     void prune_popular_polls();
     bool is_popular_polls_full();
     void ensure_user(const account_name account);
+    uint32_t get_num_votes(const poll_id_t poll_id);
+    double calculate_popularity(const uint32_t num_votes, const time_t start_time);
 
   public:
     contract(account_name self);
@@ -32,58 +39,46 @@ class contract
 
     void clearprofile(const account_name account);
 
-    void closepoll(
-        const account_name creator,
-        const poll_name slug);
+    void closepoll(const poll_id_t poll_id);
 
     void createpoll(
-        const account_name creator,
-        const poll_name slug,
+        const poll_id_t id,
+        const account_name account,
         const string &title,
-        const vector<string> &options,
-        const uint16_t min_choices,
-        const uint16_t max_choices,
-        const uint16_t max_writeins,
+        const vector<string> &prefilled_options,
+        const uint16_t min_answers,
+        const uint16_t max_answers,
+        const uint16_t max_writein_answers,
         const bool use_allow_list,
         const vector<account_name> &account_list,
-        const uint64_t min_staked,
-        const uint64_t min_value,
-        const time open_time,
-        const time close_time);
+        const time_t open_time,
+        const time_t close_time);
 
     void createvote(
-        const account_name creator,
-        const poll_name slug,
-        const account_name voter,
-        const vector<choice> &choices);
+        const poll_id_t poll_id,
+        const account_name account,
+        const vector<answer_t> &answers);
 
-    void destroypoll(
-        const account_name creator,
-        const poll_name slug);
+    void destroypoll(const poll_id_t poll_id);
 
     void destroyvote(
-        const account_name creator,
-        const poll_name slug,
-        const account_name voter);
+        const poll_id_t poll_id,
+        const account_name account);
 
-    void destroyvotes(
-        const account_name creator,
-        const poll_name slug);
+    void destroyvotes(const poll_id_t poll_id);
 
-    void openpoll(
-        const account_name creator,
-        const poll_name slug);
+    void openpoll(const poll_id_t poll_id);
 
     void setconfig(
         const uint16_t max_new_polls,
         const uint16_t max_popular_polls,
         const uint16_t max_new_donations,
         const uint16_t max_title_len,
-        const uint16_t max_options_len,
-        const uint16_t max_option_len,
+        const uint16_t max_prefilled_options_len,
+        const uint16_t max_prefilled_option_len,
         const uint16_t max_account_list_len,
         const uint16_t max_writein_len,
-        const uint16_t max_choices_len,
+        const uint16_t max_answers_len,
         const double popularity_gravity,
         const uint64_t profile_unlock_threshold);
 
@@ -101,7 +96,7 @@ class contract
         const string &youtube_id,
         const string &facebook_id,
         const string &theme,
-        const vector<preset> &presets);
+        const vector<account_list_preset_t> &account_list_presets);
 
     void transfer(
         const eosio::currency::transfer &t,

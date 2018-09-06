@@ -1,6 +1,6 @@
 .poll_page {
 
-    & .poll_num_choices {
+    & .poll_num_answers {
         grid-row: 1;
         grid-column: 2 / span 3;
         font-size: 1.8rem;

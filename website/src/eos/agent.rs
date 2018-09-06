@@ -32,7 +32,7 @@ pub enum EosInput {
     GetDonors,
     GetNewDonations,
     GetPolls(AccountName),
-    GetPoll(AccountName, PollName),
+    GetPoll(AccountName, PollId),
 }
 
 impl Transferable for EosInput {}
@@ -41,12 +41,12 @@ impl Transferable for EosInput {}
 pub enum EosOutput {
     Configured,
     GlobalConfig(EosData<Option<GlobalConfig>>),
-    PopularPolls(EosData<Vec<Poll>>),
-    NewPolls(EosData<Vec<Poll>>),
+    PopularPolls(EosData<Vec<PollTease>>),
+    NewPolls(EosData<Vec<PollTease>>),
     Donors(EosData<Vec<Donor>>),
     NewDonations(EosData<Vec<Donation>>),
     Polls(AccountName, EosData<Vec<Poll>>),
-    Poll(AccountName, PollName, EosData<Poll>),
+    Poll(AccountName, PollId, EosData<Poll>),
 }
 
 impl Transferable for EosOutput {}
@@ -59,8 +59,8 @@ impl<Item> From<EosError> for EosData<Item> {
 
 pub enum EosMsg {
     GlobalConfig(Result<TableRows<GlobalConfig>, EosError>),
-    PopularPolls(Result<TableRows<Poll>, EosError>),
-    NewPolls(Result<TableRows<Poll>, EosError>),
+    PopularPolls(Result<TableRows<PollTease>, EosError>),
+    NewPolls(Result<TableRows<PollTease>, EosError>),
     Donors(Result<TableRows<Donor>, EosError>),
     NewDonations(Result<TableRows<Donation>, EosError>),
     Polls(AccountName, Result<TableRows<Poll>, EosError>),
@@ -163,8 +163,8 @@ pub struct EosAgent {
     global_config: InternalEosData<Option<GlobalConfig>>,
     donors: InternalEosData<Vec<Donor>>,
     new_donations: InternalEosData<Vec<Donation>>,
-    new_polls: InternalEosData<Vec<Poll>>,
-    popular_polls: InternalEosData<Vec<Poll>>,
+    new_polls: InternalEosData<Vec<PollTease>>,
+    popular_polls: InternalEosData<Vec<PollTease>>,
     polls: HashMap<AccountName, InternalEosData<Vec<Poll>>>,
 }
 
@@ -250,11 +250,11 @@ impl Agent for EosAgent {
             }
             EosMsg::PopularPolls(result) => {
                 self.popular_polls = result.into();
-                self.popular_polls.sort_by(|a, b| {
-                    let a_pop: f64 = a.popularity.parse().unwrap();
-                    let b_pop: f64 = b.popularity.parse().unwrap();
-                    b_pop.partial_cmp(&a_pop).unwrap()
-                });
+                // self.popular_polls.sort_by(|a, b| {
+                //     let a_pop: f64 = a.popularity.parse().unwrap();
+                //     let b_pop: f64 = b.popularity.parse().unwrap();
+                //     b_pop.partial_cmp(&a_pop).unwrap()
+                // });
                 EosOutput::PopularPolls(self.popular_polls.to_eos_data())
             }
             EosMsg::NewPolls(result) => {
@@ -270,7 +270,8 @@ impl Agent for EosAgent {
             }
             EosMsg::NewDonations(result) => {
                 self.new_donations = result.into();
-                self.new_donations.sort_by(|a, b| b.created.cmp(&a.created));
+                self.new_donations
+                    .sort_by(|a, b| b.create_time.cmp(&a.create_time));
                 EosOutput::NewDonations(self.new_donations.to_eos_data())
             }
             EosMsg::Polls(account, result) => {
@@ -324,22 +325,26 @@ impl EosAgent {
             limit: Some(1),
             key_type: None,
             index_position: None,
+            encode_type: None,
         };
         let task = self.fetch_table_rows(params, EosMsg::GlobalConfig);
         self.global_config = self.global_config.with_task(task);
     }
 
     fn fetch_polls(&mut self, account: AccountName) {
+        let lower_bound = name_to_u64(account.clone());
+        let upper_bound = lower_bound + 1;
         let params = TableRowsParams {
             json: true,
-            scope: account.clone(),
+            scope: self.chain.code_account.clone(),
             code: self.chain.code_account.clone(),
             table: "polls".to_string(),
-            lower_bound: None,
-            upper_bound: None,
+            lower_bound: Some(lower_bound.to_string()),
+            upper_bound: Some(upper_bound.to_string()),
             limit: Some(150),
-            key_type: None,
-            index_position: None,
+            key_type: Some("i64".into()),
+            index_position: Some("2".into()),
+            encode_type: None,
         };
         let acct = account.clone();
         let callback = move |result| EosMsg::Polls(acct.clone(), result);
@@ -362,6 +367,7 @@ impl EosAgent {
             limit: Some(150),
             key_type: None,
             index_position: None,
+            encode_type: None,
         };
         let task = self.fetch_table_rows(params, EosMsg::PopularPolls);
         self.popular_polls = self.popular_polls.with_task(task);
@@ -378,6 +384,7 @@ impl EosAgent {
             limit: Some(150),
             key_type: None,
             index_position: None,
+            encode_type: None,
         };
         let task = self.fetch_table_rows(params, EosMsg::NewPolls);
         self.new_polls = self.new_polls.with_task(task);
@@ -394,6 +401,7 @@ impl EosAgent {
             limit: Some(150),
             key_type: None,
             index_position: None,
+            encode_type: None,
         };
         let task = self.fetch_table_rows(params, EosMsg::Donors);
         self.donors = self.donors.with_task(task);
@@ -410,6 +418,7 @@ impl EosAgent {
             limit: Some(150),
             key_type: None,
             index_position: None,
+            encode_type: None,
         };
         let task = self.fetch_table_rows(params, EosMsg::NewDonations);
         self.new_donations = self.new_donations.with_task(task);

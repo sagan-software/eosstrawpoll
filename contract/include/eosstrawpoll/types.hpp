@@ -15,10 +15,13 @@ using eosio::multi_index;
 using eosio::symbol_name;
 using std::string;
 using std::vector;
-typedef eosio::name poll_name;
-typedef uint32_t time;
 
-struct config
+// Custom scalars
+typedef uint64_t time_t;
+typedef account_name poll_id_t;
+
+// Global configuration object
+struct global_config_t
 {
     // tables
     uint16_t max_new_polls = 100;
@@ -27,79 +30,50 @@ struct config
 
     // poll fields
     uint16_t max_title_len = 100;
-    uint16_t max_options_len = 50;
-    uint16_t max_option_len = 80;
+    uint16_t max_prefilled_options_len = 50;
+    uint16_t max_prefilled_option_len = 80;
     uint16_t max_account_list_len = 300;
     uint16_t max_writein_len = 80;
-    uint16_t max_choices_len = 100;
+    uint16_t max_answers_len = 100;
 
     // misc
     double popularity_gravity = 1.8;
     uint64_t profile_unlock_threshold = 10000; // 1 EOS
 
     EOSLIB_SERIALIZE(
-        config,
+        global_config_t,
         // tables
         (max_new_polls)(max_popular_polls)(max_new_donations)
         // polls fields
-        (max_title_len)(max_options_len)(max_option_len)(max_account_list_len)(max_writein_len)(max_choices_len)
+        (max_title_len)(max_prefilled_options_len)(max_prefilled_option_len)(max_account_list_len)(max_writein_len)(max_answers_len)
         // misc
         (popularity_gravity)(profile_unlock_threshold))
 };
 
-typedef eosio::singleton<N(config), config> config_table;
-
-struct choice
-{
-    int16_t option_index;
-    string writein;
-
-    EOSLIB_SERIALIZE(choice, (option_index)(writein))
-};
-
-struct vote
-{
-    account_name voter;
-    time created;
-    vector<choice> choices;
-    uint64_t staked = 0;
-    uint64_t value = 0;
-
-    EOSLIB_SERIALIZE(vote, (voter)(created)(choices)(staked)(value))
-};
-
-struct poll
+struct poll_t
 {
     // Basics
-    uint64_t id;
-    account_name creator;
-    poll_name slug;
+    poll_id_t id;
+    account_name account;
     string title;
 
     // Options & choices
-    vector<string> options;
-    uint16_t min_choices;
-    uint16_t max_choices;
-    uint16_t max_writeins;
+    vector<string> prefilled_options;
+    uint16_t min_answers;
+    uint16_t max_answers;
+    uint16_t max_writein_answers;
 
     // Voter requirements
     bool use_allow_list;
     vector<account_name> account_list;
-    uint64_t min_staked;
-    uint64_t min_value;
 
     // Times
-    time open_time;
-    time close_time;
+    time_t create_time;
+    time_t open_time;
+    time_t close_time;
 
-    // Internal
-    time create_time;
-    vector<vote> votes;
-    double popularity;
-
-    uint64_t primary_key() const { return id; }
-    uint64_t by_created() const { return create_time; }
-    double by_popularity() const { return popularity; }
+    poll_id_t primary_key() const { return id; }
+    account_name by_account() const { return account; }
 
     bool has_opened() const
     {
@@ -116,108 +90,100 @@ struct poll
         return has_opened() && !is_closed();
     }
 
-    double calculate_popularity(double popularity_gravity) const
-    {
-        const double elapsed_seconds = now() - std::max(open_time, create_time);
-        const double elapsed_hours = elapsed_seconds / 60.0 / 60.0;
-        return votes.size() / std::pow(elapsed_hours + 2, popularity_gravity);
-    }
-
     EOSLIB_SERIALIZE(
-        poll,
+        poll_t,
         // basics
-        (id)(creator)(slug)(title)
+        (id)(account)(title)
         // voting
-        (options)(min_choices)(max_choices)(max_writeins)
+        (prefilled_options)(min_answers)(max_answers)(max_writein_answers)
         // voter requirements
-        (use_allow_list)(account_list)(min_staked)(min_value)
+        (use_allow_list)(account_list)
         // times
-        (open_time)(close_time)(create_time)
-        // misc
-        (votes)(popularity))
+        (create_time)(open_time)(close_time))
 };
 
-typedef multi_index<
-    N(polls), poll,
-    indexed_by<N(popularity), const_mem_fun<poll, double, &poll::by_popularity>>,
-    indexed_by<N(created), const_mem_fun<poll, uint64_t, &poll::by_created>>>
-    polls_table;
-typedef multi_index<
-    N(popularpolls), poll,
-    indexed_by<N(popularity), const_mem_fun<poll, double, &poll::by_popularity>>,
-    indexed_by<N(created), const_mem_fun<poll, uint64_t, &poll::by_created>>>
-    popular_polls_table;
-typedef multi_index<
-    N(newpolls), poll,
-    indexed_by<N(popularity), const_mem_fun<poll, double, &poll::by_popularity>>,
-    indexed_by<N(created), const_mem_fun<poll, uint64_t, &poll::by_created>>>
-    new_polls_table;
+struct answer_t
+{
+    int16_t prefilled_option_index;
+    string writein;
 
-struct donation
+    friend bool operator==(const answer_t &a, const answer_t &b)
+    {
+        return std::tie(a.prefilled_option_index, a.writein) == std::tie(b.prefilled_option_index, b.writein);
+    }
+
+    EOSLIB_SERIALIZE(answer_t, (prefilled_option_index)(writein))
+};
+
+struct vote_t
+{
+    uint64_t id;
+    poll_id_t poll_id;
+    account_name account;
+    time_t create_time;
+    vector<answer_t> answers;
+
+    uint64_t primary_key() const { return id; }
+    poll_id_t by_poll_id() const { return poll_id; }
+    account_name by_account() const { return account; }
+
+    EOSLIB_SERIALIZE(vote_t, (id)(poll_id)(account)(create_time)(answers))
+};
+
+struct poll_tease_t
+{
+    poll_id_t id;
+    account_name account;
+    string title;
+    time_t create_time;
+    time_t open_time;
+    time_t close_time;
+    uint32_t num_votes;
+    double popularity;
+
+    poll_id_t primary_key() const { return id; }
+    time_t by_created() const { return create_time; }
+    double by_popularity() const { return popularity; }
+
+    EOSLIB_SERIALIZE(poll_tease_t, (id)(account)(title)(create_time)(open_time)(close_time)(num_votes)(popularity))
+};
+
+struct donation_t
 {
     uint64_t id;
     account_name account;
     uint64_t donated;
     string memo;
-    uint64_t created;
+    time_t create_time;
 
     uint64_t primary_key() const { return id; }
-    uint64_t by_created() const { return created; }
+    uint64_t by_created() const { return create_time; }
 
-    EOSLIB_SERIALIZE(donation, (id)(account)(donated)(memo)(created))
+    EOSLIB_SERIALIZE(donation_t, (id)(account)(donated)(memo)(create_time))
 };
 
-typedef multi_index<
-    N(donations), donation,
-    indexed_by<N(created), const_mem_fun<donation, uint64_t, &donation::by_created>>>
-    donations_table;
-typedef multi_index<
-    N(newdonations), donation,
-    indexed_by<N(created), const_mem_fun<donation, uint64_t, &donation::by_created>>>
-    new_donations_table;
-
-struct donor
+struct donor_t
 {
     account_name account;
     uint64_t donated;
-    donation first_donation;
-    donation last_donation;
+    donation_t first_donation;
+    donation_t last_donation;
 
-    account_name primary_key() const { return account; }
+    uint64_t primary_key() const { return account; }
     uint64_t by_donated() const { return donated; }
 
-    EOSLIB_SERIALIZE(donor, (account)(donated)(first_donation)(last_donation))
+    EOSLIB_SERIALIZE(donor_t, (account)(donated)(first_donation)(last_donation))
 };
 
-typedef multi_index<
-    N(donors), donor,
-    indexed_by<N(donated), const_mem_fun<donor, uint64_t, &donor::by_donated>>>
-    donors_table;
-
-struct user
-{
-    account_name account;
-    time first_seen;
-
-    account_name primary_key() const { return account; }
-
-    EOSLIB_SERIALIZE(user, (account)(first_seen))
-};
-
-typedef multi_index<N(users), user> users_table;
-
-struct preset
+struct account_list_preset_t
 {
     string description;
-    bool use_allow_list;
     vector<account_name> account_list;
-    uint64_t min_staked;
-    uint64_t min_value;
 
-    EOSLIB_SERIALIZE(preset, (description)(use_allow_list)(account_list)(min_staked)(min_value))
+    EOSLIB_SERIALIZE(account_list_preset_t, (description)(account_list))
 };
 
-struct profile
+struct profile_t
 {
     // basic fields
     account_name account;
@@ -237,12 +203,12 @@ struct profile
 
     // settings
     string theme;
-    vector<preset> presets;
+    vector<account_list_preset_t> account_list_presets;
 
     account_name primary_key() const { return account; }
 
     EOSLIB_SERIALIZE(
-        profile,
+        profile_t,
 
         // basics
         (account)(url)(bio)(avatar_hash)(location)
@@ -251,9 +217,31 @@ struct profile
         (github_id)(twitter_id)(steem_id)(medium_id)(twitch_id)(youtube_id)(facebook_id)
 
         // settings
-        (theme)(presets))
+        (theme)(account_list_presets))
 };
 
-typedef eosio::singleton<N(profile), profile> profile_table;
+// Tables
+typedef eosio::singleton<N(globalconfig), global_config_t> global_config_table_t;
+typedef multi_index<
+    N(polls), poll_t,
+    indexed_by<N(account), const_mem_fun<poll_t, uint64_t, &poll_t::by_account>>>
+    polls_table_t;
+typedef multi_index<
+    N(votes),
+    vote_t,
+    indexed_by<N(pollid), const_mem_fun<vote_t, uint64_t, &vote_t::by_poll_id>>,
+    indexed_by<N(account), const_mem_fun<vote_t, uint64_t, &vote_t::by_account>>>
+    votes_table_t;
+typedef multi_index<
+    N(popularpolls), poll_tease_t,
+    indexed_by<N(popularity), const_mem_fun<poll_tease_t, double, &poll_tease_t::by_popularity>>>
+    popular_polls_table_t;
+typedef multi_index<
+    N(newpolls), poll_tease_t,
+    indexed_by<N(created), const_mem_fun<poll_tease_t, uint64_t, &poll_tease_t::by_created>>>
+    new_polls_table_t;
+typedef multi_index<N(newdonations), donation_t> new_donations_table_t;
+typedef multi_index<N(donors), donor_t> donors_table_t;
+typedef multi_index<N(profiles), profile_t> profiles_table_t;
 
 } // namespace eosstrawpoll

@@ -8,8 +8,8 @@ use types::*;
 pub enum Route {
     Home(Option<ChainIdPrefix>),
     Profile(ChainIdPrefix, AccountName),
-    Poll(ChainIdPrefix, AccountName, PollName),
-    PollResults(ChainIdPrefix, AccountName, PollName),
+    PollVoting(ChainIdPrefix, PollId),
+    PollResults(ChainIdPrefix, PollId),
 }
 
 impl Default for Route {
@@ -36,19 +36,17 @@ impl Route {
         match &strs[..] {
             [""] => Ok(Route::Home(None)),
             [chain_id_prefix] => Ok(Route::Home(Some(chain_id_prefix.to_string().into()))),
-            [chain_id_prefix, account] => Ok(Route::Profile(
+            [chain_id_prefix, "u", account] => Ok(Route::Profile(
                 chain_id_prefix.to_string().into(),
                 account.to_string(),
             )),
-            [chain_id_prefix, creator, slug] => Ok(Route::Poll(
+            [chain_id_prefix, "v", poll_id] => Ok(Route::PollVoting(
                 chain_id_prefix.to_string().into(),
-                creator.to_string(),
-                slug.to_string(),
+                poll_id.to_string(),
             )),
-            [chain_id_prefix, creator, slug, "results"] => Ok(Route::PollResults(
+            [chain_id_prefix, "r", poll_id] => Ok(Route::PollResults(
                 chain_id_prefix.to_string().into(),
-                creator.to_string(),
-                slug.to_string(),
+                poll_id.to_string(),
             )),
             _ => Err(RouteError::NotFound(format!("/{}", pathnames.join("/")))),
         }
@@ -59,21 +57,18 @@ impl ToString for Route {
     fn to_string(&self) -> String {
         match self {
             Route::Home(chain_id_prefix) => match chain_id_prefix {
-                Some(chain_id_prefix) => format!("/{}/", chain_id_prefix.to_string()),
+                Some(chain_id_prefix) => format!("/{}", chain_id_prefix.to_string()),
                 None => "/".into(),
             },
             Route::Profile(chain_id_prefix, account) => {
-                format!("/{}/{}", chain_id_prefix.to_string(), account)
+                format!("/{}/u/{}", chain_id_prefix.to_string(), account)
             }
-            Route::Poll(chain_id_prefix, creator, slug) => {
-                format!("/{}/{}/{}", chain_id_prefix.to_string(), creator, slug)
+            Route::PollVoting(chain_id_prefix, poll_id) => {
+                format!("/{}/v/{}", chain_id_prefix.to_string(), poll_id)
             }
-            Route::PollResults(chain_id_prefix, creator, slug) => format!(
-                "/{}/{}/{}/results",
-                chain_id_prefix.to_string(),
-                creator,
-                slug
-            ),
+            Route::PollResults(chain_id_prefix, poll_id) => {
+                format!("/{}/r/{}", chain_id_prefix.to_string(), poll_id)
+            }
         }
     }
 }

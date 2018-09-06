@@ -23,7 +23,7 @@
         color: #999;
     }
 
-    & .poll_creator {
+    & .poll_account {
         order: 1;
         margin-right: var(--spacing);
         color: #999;
