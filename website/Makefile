@@ -15,7 +15,7 @@ install: node_modules
 	cargo install --force wasm-snip
 .PHONY: install
 
-build: clean css cargo webpack
+build: clean css cargo optimize webpack
 .PHONY: build
 
 clean:
