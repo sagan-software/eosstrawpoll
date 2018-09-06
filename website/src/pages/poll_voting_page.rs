@@ -5,13 +5,16 @@ use router::RouterAgent;
 use scatter::*;
 use stdweb::traits::IEvent;
 use stdweb::web::document;
+use views::svg;
 use yew::services::fetch::FetchTask;
 
 pub struct PollVotingPage {
     props: Props,
     eos: EosService,
-    task: Option<FetchTask>,
+    poll_task: Option<FetchTask>,
     poll: Option<Result<Poll, EosError>>,
+    votes_task: Option<FetchTask>,
+    votes: Vec<Vote>,
     scatter_agent: Box<Bridge<ScatterAgent>>,
     scatter_connected: Option<Result<(), ScatterError>>,
     scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
@@ -32,6 +35,7 @@ pub struct Props {
 
 pub enum Msg {
     Polls(Result<TableRows<Poll>, EosError>),
+    Votes(Result<TableRows<Vote>, EosError>),
     Scatter(ScatterOutput),
     ToggleAnswer(Answer),
     SetWriteinInput(String),
@@ -49,8 +53,10 @@ impl Component for PollVotingPage {
         let mut poll_page = PollVotingPage {
             props,
             eos: EosService::new(),
-            task: None,
+            poll_task: None,
             poll: None,
+            votes_task: None,
+            votes: Vec::new(),
             scatter_agent,
             scatter_connected: None,
             scatter_identity: None,
@@ -76,11 +82,22 @@ impl Component for PollVotingPage {
                     },
                     Err(error) => Some(Err(error)),
                 };
-                self.task = None;
+                self.poll_task = None;
                 self.load_answers();
-
+                self.fetch_votes();
                 true
             }
+            Msg::Votes(result) => match result {
+                Ok(table) => {
+                    self.votes = table.rows;
+                    self.load_answers();
+                    true
+                }
+                Err(error) => {
+                    error!("Error getting votes: {:#?}", error);
+                    false
+                }
+            },
             Msg::Scatter(output) => match output {
                 ScatterOutput::GotIdentity(result) => {
                     let is_ok = result.is_ok();
@@ -183,6 +200,10 @@ impl Component for PollVotingPage {
                 true
             }
             Msg::AddWritein => {
+                if self.writein_input.is_empty() {
+                    return false;
+                }
+
                 let answer = Answer::from_writein(self.writein_input.clone());
                 self.toggle_answer(answer.clone());
 
@@ -218,8 +239,10 @@ impl Page for PollVotingPage {
                 Ok(poll) => {
                     if is_only_one_writein(poll) {
                         "-loaded -only-one-writein"
+                    } else if poll.max_writein_answers == 0 {
+                        "-loaded -no-writein"
                     } else {
-                        ""
+                        "-loaded -allow-writein"
                     }
                 }
                 Err(_) => "",
@@ -285,7 +308,29 @@ impl PollVotingPage {
         let callback = self.link.send_back(Msg::Polls);
         let endpoint = self.props.chain.endpoint.to_string();
         let task = self.eos.get_table_rows(endpoint.as_str(), params, callback);
-        self.task = Some(task);
+        self.poll_task = Some(task);
+    }
+
+    fn fetch_votes(&mut self) {
+        let lower_bound = name_to_u64(self.props.poll_id.clone());
+        let upper_bound = lower_bound + 1;
+        let params = TableRowsParams {
+            scope: self.props.chain.code_account.clone(),
+            code: self.props.chain.code_account.clone(),
+            table: "votes".to_string(),
+            json: true,
+            lower_bound: Some(lower_bound.to_string()),
+            upper_bound: Some(upper_bound.to_string()),
+            limit: Some(10000),
+            key_type: Some("i64".into()),
+            index_position: Some("2".into()),
+            encode_type: None,
+        };
+
+        let callback = self.link.send_back(Msg::Votes);
+        let endpoint = self.props.chain.endpoint.to_string();
+        let task = self.eos.get_table_rows(endpoint.as_str(), params, callback);
+        self.votes_task = Some(task);
     }
 
     fn voter(&self) -> Option<String> {
@@ -345,31 +390,31 @@ impl PollVotingPage {
             None => return,
         };
 
-        // let filtered_votes = poll
-        //     .votes
-        //     .iter()
-        //     .filter(|vote| vote.voter == voter)
-        //     .cloned()
-        //     .collect::<Vec<Vote>>();
+        let filtered_votes = self
+            .votes
+            .iter()
+            .filter(|vote| vote.account == voter)
+            .cloned()
+            .collect::<Vec<Vote>>();
 
-        // if let Some(vote) = filtered_votes.first() {
-        //     self.answers = vote.answers.to_owned();
+        if let Some(vote) = filtered_votes.first() {
+            self.answers = vote.answers.to_owned();
 
-        //     if is_only_one_writein(poll) {
-        //         self.writein_input = self
-        //             .answers
-        //             .first()
-        //             .map(|c| c.writein.clone())
-        //             .unwrap_or_else(|| "".to_string());
-        //     } else {
-        //         for answer in &self.answers {
-        //             if !answer.writein.is_empty() {
-        //                 self.available_answers
-        //                     .push((answer.writein.clone(), answer.clone()));
-        //             }
-        //         }
-        //     }
-        // }
+            if is_only_one_writein(poll) {
+                self.writein_input = self
+                    .answers
+                    .first()
+                    .map(|c| c.writein.clone())
+                    .unwrap_or_else(|| "".to_string());
+            } else {
+                for answer in &self.answers {
+                    if !answer.writein.is_empty() {
+                        self.available_answers
+                            .push((answer.writein.clone(), answer.clone()));
+                    }
+                }
+            }
+        }
     }
 
     fn view_loading(&self) -> Html<Self> {
@@ -461,7 +506,11 @@ impl PollVotingPage {
 
     fn view_options(&self, poll: &Poll) -> Html<Self> {
         let choose_one = poll.min_answers == 1 && poll.max_answers == 1;
-
+        let writein_input = if poll.max_writein_answers > 0 {
+            self.view_writein_input(poll)
+        } else {
+            html! { <></> }
+        };
         html! {
             <>
                 <p class="poll_num_answers", >
@@ -469,6 +518,7 @@ impl PollVotingPage {
                 </p>
                 <div class="poll_options", >
                     { for self.available_answers.iter().map(|(label, answer)| self.view_option(label, (*answer).clone(), choose_one)) }
+                    { writein_input }
                 </div>
             </>
         }
@@ -479,21 +529,22 @@ impl PollVotingPage {
             return html! { <></> };
         }
         html! {
-            <>
+            <div class="poll_writein", >
                 <input class="poll_writein_input",
                     oninput=|e| Msg::SetWriteinInput(e.value),
                     value=&self.writein_input,
                     placeholder="Write in your answer",
                 />
                 <button class="poll_writein_button",
+                    disabled=self.writein_input.is_empty(),
                     onclick=|e| {
                         e.prevent_default();
                         Msg::AddWritein
                     },
                 >
-                    { "Add" }
+                    { svg::plus() }
                 </button>
-            </>
+            </div>
         }
     }
 

@@ -47,6 +47,7 @@
 
             & + .poll_form_option_delete {
                 color: #d23636;
+                border-left-color: var(--brand-color);
             }
 
         }
@@ -64,6 +65,8 @@
         border: 0;
         border-left: 0.1rem solid #ccc;
         cursor: pointer;
+        transition: 300ms border-color;
+        will-change: border-color;
 
         &[disabled] {
             color: #a1a5ad;
@@ -78,6 +81,8 @@
         }
 
         & svg {
+            transition: 300ms fill;
+            will-change: fill;
             fill: currentColor;
             height: 2rem;
             width: 2rem;

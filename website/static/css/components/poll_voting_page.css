@@ -10,8 +10,63 @@
         }
     }
 
+    & .poll_options {
+
+        & .poll_writein {
+            margin-top: var(--spacing);
+            height: 5rem;
+            display: grid;
+            grid-template-columns: 1fr 5rem;
+        }
+
+        & .poll_writein_input {
+            padding: 0 calc(var(--spacing) * 3);
+            font-size: 1.6rem;
+            grid-column: 1 / span 2;
+            grid-row: 1;
+            padding-right: 5rem;
+
+            &:focus + button {
+                border-left-color: var(--brand-color);
+            }
+        }
+
+        & .poll_writein_button {
+            grid-column: 2;
+            grid-row: 1;
+            transition: 300ms color;
+            padding: 0;
+            background-color: transparent;
+            color: #ccc;
+            border: 0;
+            border-left: 0.1rem solid #ccc;
+            font-size: 1.5rem;
+            outline: 0;
+
+            &[disabled] {
+                color: #a1a5ad;
+                cursor: not-allowed;
+            }
+
+            &:not([disabled]) {
+                color: var(--brand-color);
+            }
+
+            & svg {
+                fill: currentColor;
+                height: 2rem;
+                width: 2rem;
+            }
+        }
+
+    }
+
     & .poll_voting_form {
         display: contents;
+    }
+
+    &.-allow-writein .poll_writein {
+
     }
 
     &.-only-one-writein {
