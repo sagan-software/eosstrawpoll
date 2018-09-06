@@ -59,7 +59,11 @@ class contract
         const account_name account,
         const vector<answer_t> &answers);
 
+    void destroyold(const string &table, const account_name scope);
+
     void destroypoll(const poll_id_t poll_id);
+
+    void destroytable(const string &table);
 
     void destroyvote(
         const poll_id_t poll_id,

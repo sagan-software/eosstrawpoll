@@ -1,5 +1,7 @@
 {
     "files.associations": {
+        "*.svg": "html",
+        "*.abi": "json",
         "in": "cpp",
         "abi": "json",
         "thread": "cpp",
@@ -89,6 +91,7 @@
         "__split_buffer": "cpp",
         "__string": "cpp",
         "__memory": "cpp",
-        "__functional_base": "cpp"
+        "__functional_base": "cpp",
+        "filesystem": "cpp"
     }
 }

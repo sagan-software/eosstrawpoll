@@ -165,6 +165,22 @@ pub fn telos_testnet() -> Chain {
     }
 }
 
+pub fn kylin_testnet() -> Chain {
+    Chain {
+        chain_id: "5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191".to_string(),
+        short_name: "Kylin".into(),
+        long_name: "Kylin Testnet".into(),
+        code_account: "eosstrawpoll".to_string(),
+        eosio_token_account: "eosio.token".to_string(),
+        core_symbol: "EOS".to_string(),
+        endpoint: Endpoint {
+            protocol: "https".to_string(),
+            host: "api.kylin.alohaeos.com".to_string(),
+            port: 443,
+        },
+    }
+}
+
 // pub static CHAINS: [&Chain; 4] = [
 //     &EOS_DEVNET,
 //     &EOS_TESTNET_JUNGLE,

@@ -13,7 +13,7 @@ void contract::destroyvotes(const poll_id_t poll_id)
     auto itr = pollid_index.lower_bound(poll_id);
     for (; itr != pollid_index.end() && itr->poll_id == poll_id;)
     {
-        // itr = decltype(itr){pollid_index.erase(std::next(itr).base())};
+        itr = pollid_index.erase(itr);
     }
 
     // TODO: update popular polls, new polls

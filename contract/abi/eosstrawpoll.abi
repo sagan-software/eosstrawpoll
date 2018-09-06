@@ -104,12 +104,36 @@
             ]
         },
         {
+            "name": "destroyold",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table",
+                    "type": "string"
+                },
+                {
+                    "name": "scope",
+                    "type": "account_name"
+                }
+            ]
+        },
+        {
             "name": "destroypoll",
             "base": "",
             "fields": [
                 {
                     "name": "poll_id",
                     "type": "poll_id"
+                }
+            ]
+        },
+        {
+            "name": "destroytable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table",
+                    "type": "string"
                 }
             ]
         },
@@ -564,6 +588,134 @@
                     "type": "account_list_preset[]"
                 }
             ]
+        },
+        {
+            "name": "oldpoll",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "creator",
+                    "type": "account_name"
+                },
+                {
+                    "name": "slug",
+                    "type": "poll_id"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "options",
+                    "type": "string[]"
+                },
+                {
+                    "name": "min_choices",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_choices",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_writeins",
+                    "type": "uint16"
+                },
+                {
+                    "name": "use_allow_list",
+                    "type": "bool"
+                },
+                {
+                    "name": "account_list",
+                    "type": "account_name[]"
+                },
+                {
+                    "name": "min_staked",
+                    "type": "uint64"
+                },
+                {
+                    "name": "min_value",
+                    "type": "uint64"
+                },
+                {
+                    "name": "open_time",
+                    "type": "time"
+                },
+                {
+                    "name": "close_time",
+                    "type": "time"
+                },
+                {
+                    "name": "create_time",
+                    "type": "time"
+                },
+                {
+                    "name": "votes",
+                    "type": "oldvote[]"
+                },
+                {
+                    "name": "popularity",
+                    "type": "float64"
+                }
+            ]
+        },
+        {
+            "name": "olduser",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "account_name"
+                },
+                {
+                    "name": "first_seen",
+                    "type": "time"
+                }
+            ]
+        },
+        {
+            "name": "oldchoice",
+            "base": "",
+            "fields": [
+                {
+                    "name": "option_index",
+                    "type": "int16"
+                },
+                {
+                    "name": "writein",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "oldvote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "voter",
+                    "type": "account_name"
+                },
+                {
+                    "name": "created",
+                    "type": "time"
+                },
+                {
+                    "name": "choices",
+                    "type": "oldchoice[]"
+                },
+                {
+                    "name": "staked",
+                    "type": "uint64"
+                },
+                {
+                    "name": "value",
+                    "type": "uint64"
+                }
+            ]
         }
     ],
     "actions": [
@@ -588,8 +740,18 @@
             "ricardian_contract": ""
         },
         {
+            "name": "destroyold",
+            "type": "destroyold",
+            "ricardian_contract": ""
+        },
+        {
             "name": "destroypoll",
             "type": "destroypoll",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "destroytable",
+            "type": "destroytable",
             "ricardian_contract": ""
         },
         {

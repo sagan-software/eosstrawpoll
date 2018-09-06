@@ -5,7 +5,9 @@
 #include "closepoll.cpp"
 #include "createpoll.cpp"
 #include "createvote.cpp"
+#include "destroyold.cpp"
 #include "destroypoll.cpp"
+#include "destroytable.cpp"
 #include "destroyvote.cpp"
 #include "destroyvotes.cpp"
 #include "openpoll.cpp"
@@ -126,7 +128,7 @@ void contract::apply(
     {
         EOSIO_API(
             contract,
-            (clearprofile)(closepoll)(createpoll)(createvote)(destroypoll)(destroyvote)(destroyvotes)(openpoll)(setconfig)(setprofile))
+            (clearprofile)(closepoll)(createpoll)(createvote)(destroyold)(destroypoll)(destroytable)(destroyvote)(destroyvotes)(openpoll)(setconfig)(setprofile))
     };
 }
 
