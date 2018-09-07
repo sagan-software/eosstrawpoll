@@ -550,27 +550,13 @@ impl PollVotingPage {
 
     fn view_option(&self, label: &str, answer: Answer, choose_one: bool) -> Html<Self> {
         let is_selected = self.answers.contains(&answer);
-        let input = if choose_one {
-            html! {
-                <input class="poll_option_checkbox",
-                    type="radio",
-                    name="answers",
-                    onchange=|_| Msg::ToggleAnswer(answer.clone()),
-                    checked=is_selected,
-                />
-            }
-        } else {
-            html! {
+        html! {
+            <label class="poll_option", >
                 <input class="poll_option_checkbox",
                     type="checkbox",
                     onchange=|_| Msg::ToggleAnswer(answer.clone()),
                     checked=is_selected,
                 />
-            }
-        };
-        html! {
-            <label class="poll_option", >
-                { input }
                 <span class="poll_option_text", >
                     { label }
                 </span>

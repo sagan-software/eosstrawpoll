@@ -3,7 +3,8 @@ macro_rules! page_view {
     ($($t:ty)*) => ($(
         impl Renderable<$t> for $t {
             fn view(&self) -> Html<Self> {
-                document().set_title(&self.title());
+                let title = format!("{} - EOS Straw Poll", self.title());
+                document().set_title(&title);
                 let state_class = match self.get_state() {
                     PageState::Loading => "page_loading",
                     PageState::Loaded => "page_loaded",

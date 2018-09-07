@@ -42,6 +42,7 @@
             border-left: 0.1rem solid #ccc;
             font-size: 1.5rem;
             outline: 0;
+            cursor: pointer;
 
             &[disabled] {
                 color: #a1a5ad;
