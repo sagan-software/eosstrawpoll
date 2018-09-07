@@ -119,7 +119,7 @@ impl Component for PollResultsPage {
 }
 
 impl Page for PollResultsPage {
-    fn title(&self) -> String {
+    fn get_title(&self) -> String {
         match &self.poll {
             Some(result) => match result {
                 Ok(poll) => poll.title.clone(),
@@ -129,7 +129,7 @@ impl Page for PollResultsPage {
         }
     }
 
-    fn class(&self) -> String {
+    fn get_class(&self) -> String {
         "poll_page poll_page_results".into()
     }
 
@@ -143,7 +143,19 @@ impl Page for PollResultsPage {
         }
     }
 
-    fn content(&self) -> Html<Self> {
+    fn get_route(&self) -> Route {
+        Route::PollResults(
+            self.props.chain.to_chain_id_prefix(),
+            self.props.poll_id.clone(),
+        )
+    }
+
+    fn get_description(&self) -> String {
+        // TODO
+        "View poll results".to_string()
+    }
+
+    fn get_content(&self) -> Html<Self> {
         match &self.poll {
             Some(result) => match result {
                 Ok(poll) => self.view_ok(poll),

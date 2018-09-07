@@ -224,7 +224,7 @@ impl Component for PollVotingPage {
 }
 
 impl Page for PollVotingPage {
-    fn title(&self) -> String {
+    fn get_title(&self) -> String {
         match &self.poll {
             Some(result) => match result {
                 Ok(poll) => poll.title.clone(),
@@ -233,7 +233,7 @@ impl Page for PollVotingPage {
             None => "Loading...".to_string(),
         }
     }
-    fn class(&self) -> String {
+    fn get_class(&self) -> String {
         let state_modifier = match &self.poll {
             Some(result) => match result {
                 Ok(poll) => {
@@ -263,7 +263,7 @@ impl Page for PollVotingPage {
         }
     }
 
-    fn content(&self) -> Html<Self> {
+    fn get_content(&self) -> Html<Self> {
         match &self.poll {
             Some(result) => match result {
                 Ok(poll) => self.view_ok(poll),
@@ -271,6 +271,18 @@ impl Page for PollVotingPage {
             },
             None => self.view_loading(),
         }
+    }
+
+    fn get_route(&self) -> Route {
+        Route::PollVoting(
+            self.props.chain.to_chain_id_prefix(),
+            self.props.poll_id.clone(),
+        )
+    }
+
+    fn get_description(&self) -> String {
+        // TODO
+        "Vote on this poll today".to_string()
     }
 }
 

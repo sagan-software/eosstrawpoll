@@ -112,16 +112,16 @@ impl ProfilePage {
 }
 
 impl Page for ProfilePage {
-    fn title(&self) -> String {
+    fn get_title(&self) -> String {
         self.props.account.clone()
     }
-    fn class(&self) -> String {
+    fn get_class(&self) -> String {
         "profile_page".to_string()
     }
     fn get_state(&self) -> PageState {
         PageState::Loaded
     }
-    fn content(&self) -> Html<Self> {
+    fn get_content(&self) -> Html<Self> {
         match &self.polls {
             EosData::NotAsked => self.view_empty(),
             EosData::Loading => self.view_loading(),
@@ -134,6 +134,18 @@ impl Page for ProfilePage {
             }
             EosData::Failure(error) => self.view_error(error),
         }
+    }
+
+    fn get_route(&self) -> Route {
+        Route::Profile(
+            self.props.chain.to_chain_id_prefix(),
+            self.props.account.clone(),
+        )
+    }
+
+    fn get_description(&self) -> String {
+        // TODO
+        self.get_title()
     }
 }
 

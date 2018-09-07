@@ -1,10 +1,10 @@
 use components::*;
 use prelude::*;
-use stdweb::web::document;
 
 pub struct HomePage {
     context: Context,
     chain: Chain,
+    props: Props,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -18,11 +18,16 @@ impl Component for HomePage {
     type Properties = Props;
 
     fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
-        let context = props.context;
+        let context = props.context.clone();
         let chain = props
             .chain
+            .clone()
             .unwrap_or_else(|| context.selected_chain.clone());
-        HomePage { context, chain }
+        HomePage {
+            context,
+            chain,
+            props,
+        }
     }
 
     fn update(&mut self, _msg: Self::Message) -> ShouldRender {
@@ -30,25 +35,41 @@ impl Component for HomePage {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.context = props.context;
+        self.context = props.context.clone();
         self.chain = props
             .chain
+            .clone()
             .unwrap_or_else(|| self.context.selected_chain.clone());
+        self.props = props;
         true
     }
 }
 
 impl Page for HomePage {
-    fn title(&self) -> String {
-        "Real-time polls on EOS blockchains".to_string()
+    fn get_title(&self) -> String {
+        let suffix = match &self.props.chain {
+            Some(chain) => chain.long_name.clone(),
+            None => "EOS blockchains".to_string(),
+        };
+        format!("Real-time polls on {}", suffix)
     }
-    fn class(&self) -> String {
+    fn get_class(&self) -> String {
         "home_page".to_string()
     }
     fn get_state(&self) -> PageState {
         PageState::Loaded
     }
-    fn content(&self) -> Html<Self> {
+    fn get_route(&self) -> Route {
+        match &self.props.chain {
+            Some(chain) => Route::Home(Some(chain.to_chain_id_prefix())),
+            None => Route::Home(None),
+        }
+    }
+    fn get_description(&self) -> String {
+        // TODO
+        self.get_title()
+    }
+    fn get_content(&self) -> Html<Self> {
         html! {
             <>
                 <div class="poll_form_wrapper", >

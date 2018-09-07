@@ -35,7 +35,7 @@ impl Route {
         let strs: Vec<&str> = pathnames.iter().map(|s| s.as_str()).collect();
         match &strs[..] {
             [""] => Ok(Route::Home(None)),
-            [chain_id_prefix] => Ok(Route::Home(Some(chain_id_prefix.to_string().into()))),
+            [chain_id_prefix, ""] => Ok(Route::Home(Some(chain_id_prefix.to_string().into()))),
             [chain_id_prefix, "u", account] => Ok(Route::Profile(
                 chain_id_prefix.to_string().into(),
                 account.to_string(),
@@ -51,13 +51,18 @@ impl Route {
             _ => Err(RouteError::NotFound(format!("/{}", pathnames.join("/")))),
         }
     }
+
+    pub fn to_absolute(&self) -> String {
+        // TODO: use localhost in development environment
+        format!("https://www.eosstrawpoll.com{}", self.to_string())
+    }
 }
 
 impl ToString for Route {
     fn to_string(&self) -> String {
         match self {
             Route::Home(chain_id_prefix) => match chain_id_prefix {
-                Some(chain_id_prefix) => format!("/{}", chain_id_prefix.to_string()),
+                Some(chain_id_prefix) => format!("/{}/", chain_id_prefix.to_string()),
                 None => "/".into(),
             },
             Route::Profile(chain_id_prefix, account) => {

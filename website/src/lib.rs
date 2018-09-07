@@ -24,6 +24,7 @@ mod pages;
 mod prelude;
 mod router;
 mod scatter;
+mod seo;
 mod traits;
 mod types;
 mod views;

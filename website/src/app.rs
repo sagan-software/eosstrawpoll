@@ -83,8 +83,12 @@ impl Component for App {
             }
             Msg::SelectChain(chain) => {
                 if chain != self.context.selected_chain {
+                    let chain_id_prefix = chain.to_chain_id_prefix();
+                    let route = Route::Home(Some(chain_id_prefix));
                     self.scatter.send(ScatterInput::ForgetIdentity);
                     self.context.selected_chain = chain;
+                    self.router
+                        .send(RouterInput::ChangeRoute(route.to_string()));
                     true
                 } else {
                     false

@@ -2,6 +2,7 @@ use eos::types::*;
 use serde::{Deserialize, Serialize};
 use serde_json;
 // use services::scatter::{Authorization, ScatterAction};
+use router::Route;
 use std::fmt::Debug;
 use types::Chain;
 use yew::prelude::{Component, Html};
@@ -41,8 +42,10 @@ pub enum PageState {
 }
 
 pub trait Page: Component {
-    fn title(&self) -> String;
-    fn class(&self) -> String;
-    fn content(&self) -> Html<Self>;
+    fn get_title(&self) -> String;
+    fn get_class(&self) -> String;
+    fn get_content(&self) -> Html<Self>;
     fn get_state(&self) -> PageState;
+    fn get_route(&self) -> Route;
+    fn get_description(&self) -> String;
 }

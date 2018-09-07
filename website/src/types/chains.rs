@@ -92,8 +92,8 @@ impl ChainIdPrefix {
 pub fn eos_devnet() -> Chain {
     Chain {
         chain_id: "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f".to_string(),
-        short_name: "EOS DEV".into(),
-        long_name: "EOS Local DevNet".into(),
+        short_name: "EOS Local".into(),
+        long_name: "EOS Localhost".into(),
         code_account: "eosstrawpoll".to_string(),
         eosio_token_account: "eosio.token".to_string(),
         core_symbol: "SYS".to_string(),
@@ -109,7 +109,7 @@ pub fn eos_testnet_jungle() -> Chain {
     Chain {
         chain_id: "038f4b0fc8ff18a4f0842a8f0564611f6e96e8535901dd45e43ac8691a1c4dca".to_string(),
         short_name: "Jungle".into(),
-        long_name: "EOS Jungle Testnet".into(),
+        long_name: "Jungle Testnet".into(),
         code_account: "eosstrawpoll".to_string(),
         eosio_token_account: "eosio.token".to_string(),
         core_symbol: "EOS".to_string(),
@@ -136,8 +136,8 @@ pub fn eos_testnet_jungle() -> Chain {
 pub fn telos_devnet() -> Chain {
     Chain {
         chain_id: "a773b6d9194c615fae0f0c49dfa54303680031bab6cf12f9888c7f51447e4a90".to_string(),
-        short_name: "Telos Dev".into(),
-        long_name: "Telos Devnet".into(),
+        short_name: "Telos Local".into(),
+        long_name: "Telos Localhost".into(),
         code_account: "eosstrawpoll".to_string(),
         eosio_token_account: "eosio.token".to_string(),
         core_symbol: "SYS".to_string(),
