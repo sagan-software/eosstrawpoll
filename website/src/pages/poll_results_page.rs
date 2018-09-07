@@ -122,7 +122,7 @@ impl Page for PollResultsPage {
     fn get_title(&self) -> String {
         match &self.poll {
             Some(result) => match result {
-                Ok(poll) => poll.title.clone(),
+                Ok(poll) => format!("{} - Results", poll.title),
                 Err(_error) => "Error".to_string(),
             },
             None => "Loading...".to_string(),
@@ -148,6 +148,26 @@ impl Page for PollResultsPage {
             self.props.chain.to_chain_id_prefix(),
             self.props.poll_id.clone(),
         )
+    }
+
+    fn get_breadcrumbs(&self) -> Vec<(Route, String)> {
+        let poll = match &self.poll {
+            Some(Ok(poll)) => poll,
+            _ => return Vec::new(),
+        };
+        let chain = &self.props.chain;
+        let chain_id_prefix = chain.to_chain_id_prefix();
+        vec![
+            (Route::Home(None), "Home".to_string()),
+            (
+                Route::Home(Some(chain_id_prefix.clone())),
+                chain.long_name.clone(),
+            ),
+            (
+                Route::Profile(chain_id_prefix, poll.account.clone()),
+                poll.account.clone(),
+            ),
+        ]
     }
 
     fn get_description(&self) -> String {

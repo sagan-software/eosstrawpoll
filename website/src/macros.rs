@@ -12,10 +12,17 @@ macro_rules! page_view {
                     PageState::Error => "page_error",
                 };
                 let class = format!("page {} {}", state_class, self.get_class());
+                let breadcrumbs = self.get_breadcrumbs();
+                let breadcrumbs_view = if breadcrumbs.is_empty() {
+                    html! { <></> }
+                } else {
+                    ::views::breadcrumbs::view(breadcrumbs, &self.get_title())
+                };
                 html! {
                     <div class=class, >
                         <header class="page_header", >
                             <div class="app_container", >
+                                { breadcrumbs_view }
                                 <h1 class="page_title", >
                                     { self.get_title() }
                                 </h1>

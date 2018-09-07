@@ -48,4 +48,5 @@ pub trait Page: Component {
     fn get_state(&self) -> PageState;
     fn get_route(&self) -> Route;
     fn get_description(&self) -> String;
+    fn get_breadcrumbs(&self) -> Vec<(Route, String)>;
 }

@@ -65,6 +65,9 @@ impl Page for HomePage {
             None => Route::Home(None),
         }
     }
+    fn get_breadcrumbs(&self) -> Vec<(Route, String)> {
+        Vec::new()
+    }
     fn get_description(&self) -> String {
         // TODO
         self.get_title()

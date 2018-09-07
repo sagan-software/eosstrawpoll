@@ -280,6 +280,26 @@ impl Page for PollVotingPage {
         )
     }
 
+    fn get_breadcrumbs(&self) -> Vec<(Route, String)> {
+        let poll = match &self.poll {
+            Some(Ok(poll)) => poll,
+            _ => return Vec::new(),
+        };
+        let chain = &self.props.chain;
+        let chain_id_prefix = chain.to_chain_id_prefix();
+        vec![
+            (Route::Home(None), "Home".to_string()),
+            (
+                Route::Home(Some(chain_id_prefix.clone())),
+                chain.long_name.clone(),
+            ),
+            (
+                Route::Profile(chain_id_prefix, poll.account.clone()),
+                poll.account.clone(),
+            ),
+        ]
+    }
+
     fn get_description(&self) -> String {
         // TODO
         "Vote on this poll today".to_string()

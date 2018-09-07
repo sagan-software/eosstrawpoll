@@ -79,7 +79,6 @@
 
 
 .poll_page_results {
-    cursor: pointer;
 
     & .poll_option {
         cursor: default;

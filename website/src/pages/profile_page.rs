@@ -143,6 +143,18 @@ impl Page for ProfilePage {
         )
     }
 
+    fn get_breadcrumbs(&self) -> Vec<(Route, String)> {
+        let chain = &self.props.chain;
+        let chain_id_prefix = chain.to_chain_id_prefix();
+        vec![
+            (Route::Home(None), "Home".to_string()),
+            (
+                Route::Home(Some(chain_id_prefix.clone())),
+                chain.long_name.clone(),
+            ),
+        ]
+    }
+
     fn get_description(&self) -> String {
         // TODO
         self.get_title()

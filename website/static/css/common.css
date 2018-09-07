@@ -1,12 +1,38 @@
-.page_header {
-    height: 17rem;
+.page_breadcrumbs {
+    width: 100%;
+}
+
+.breadcrumbs {
+    margin: 0 auto;
+    height: 5rem;
+    font-size: 1.2rem;
     display: flex;
     align-items: center;
-    justify-content: center;
+    grid-column: 2 / span 3;
+    grid-row: 1;
+}
+
+.breadcrumb {
+
+    &::after {
+        content: '>';
+        padding: 0 var(--spacing);
+        color: #999;
+        font-size: 1rem;
+    }
+}
+
+.page_header {
+
+    & .app_container {
+        position: relative;
+        height: 17rem;
+    }
 }
 
 .page_title {
-    grid-column: 1 / span 5;
+    grid-row: 1;
+    grid-column: 2 / span 3;
     line-height: 4rem;
 }
 
@@ -28,7 +54,6 @@
 .page_loaded {
     opacity: 1;
 }
-
 
 .-error,
 .-empty {

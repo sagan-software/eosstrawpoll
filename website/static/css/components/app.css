@@ -66,6 +66,7 @@
     position: relative;
     font-size: 1.6rem;
     margin-right: calc(var(--spacing) * 4);
+    color: var(--brand-color);
 
     & .selected_chain {
         border: 1px solid #ccc;

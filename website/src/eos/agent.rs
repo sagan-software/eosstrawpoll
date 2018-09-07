@@ -250,11 +250,8 @@ impl Agent for EosAgent {
             }
             EosMsg::PopularPolls(result) => {
                 self.popular_polls = result.into();
-                // self.popular_polls.sort_by(|a, b| {
-                //     let a_pop: f64 = a.popularity.parse().unwrap();
-                //     let b_pop: f64 = b.popularity.parse().unwrap();
-                //     b_pop.partial_cmp(&a_pop).unwrap()
-                // });
+                self.popular_polls
+                    .sort_by(|a, b| b.popularity.partial_cmp(&a.popularity).unwrap());
                 EosOutput::PopularPolls(self.popular_polls.to_eos_data())
             }
             EosMsg::NewPolls(result) => {
