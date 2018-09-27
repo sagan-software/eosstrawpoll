@@ -92,6 +92,8 @@
         "__string": "cpp",
         "__memory": "cpp",
         "__functional_base": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "__sso_allocator": "cpp",
+        "random": "cpp"
     }
 }

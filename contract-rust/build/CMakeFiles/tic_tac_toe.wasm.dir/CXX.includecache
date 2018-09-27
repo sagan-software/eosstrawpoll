@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/contract/reference/tic_tac_toe.cpp
+tic_tac_toe.hpp
+/contract/reference/tic_tac_toe.hpp
+
+/contract/reference/tic_tac_toe.hpp
+eosiolib/eosio.hpp
+-
+

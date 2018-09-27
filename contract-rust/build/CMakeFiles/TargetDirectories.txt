@@ -1,0 +1,5 @@
+/build/CMakeFiles/rebuild_cache.dir
+/build/CMakeFiles/edit_cache.dir
+/build/CMakeFiles/eosio.token.wasm.dir
+/build/CMakeFiles/hello.wasm.dir
+/build/CMakeFiles/tic_tac_toe.wasm.dir

@@ -1,0 +1,13 @@
+[package]
+name = "contract_rust"
+version = "0.1.0"
+authors = ["Liam Curry <liam@sagan.software>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wee_alloc = { version = "0.4.1" }
+eosio_types = { path = "../../rust-eos/eosio_types", version = "0.1" }
+eosio_macros = { path = "../../rust-eos/eosio_macros", version = "0.1" }
+eosio_sys = { path = "../../rust-eos/eosio_sys", version = "0.1" }
