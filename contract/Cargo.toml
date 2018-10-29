@@ -1,0 +1,12 @@
+[package]
+name = "contract"
+version = "0.1.0"
+authors = ["Liam Curry <liam@sagan.software>"]
+edition = "2018"
+
+# [lib]
+# crate-type = ["cdylib"]
+
+[dependencies]
+eosio = { path = "../../rust-eos/eosio", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"], optional = true }

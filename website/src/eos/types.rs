@@ -9,12 +9,13 @@ pub fn name_to_u64(name: Name) -> u64 {
         const Eos = require("eosjs");
         const name = @{name};
         return Eos.modules.format.encodeName(name, false);
-    }.try_into()
+    }
+    .try_into()
     .unwrap();
     num_str.parse().unwrap()
 }
 
-pub type AccountName = Name;
+pub use eosio::AccountName;
 
 pub type TableName = Name;
 

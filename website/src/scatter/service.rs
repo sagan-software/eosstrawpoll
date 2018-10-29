@@ -40,8 +40,8 @@ impl ScatterService {
 
             try {
                 // var ScatterJS = require("scatter-js/dist/scatter.cjs.js");
-                var Scatter = require("scatterjs-core");
-                var ScatterEos = require("scatterjs-plugin-eosjs");
+                var Scatter = require("scatterjs-core").default;
+                var ScatterEos = require("scatterjs-plugin-eosjs").default;
                 console.log("SCATTER", Scatter, ScatterEos);
                 Scatter.plugins(new ScatterEos());
                 window.Scatter = Scatter;

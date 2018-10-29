@@ -2,6 +2,12 @@
 # yarn lockfile v1
 
 
+"@babel/runtime@^7.1.2":
+  version "7.1.2"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.1.2.tgz#81c89935f4647706fc54541145e6b4ecfef4b8e3"
+  dependencies:
+    regenerator-runtime "^0.12.0"
+
 "@csstools/convert-colors@^1.4.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@csstools/convert-colors/-/convert-colors-1.4.0.tgz#ad495dc41b12e75d588c6db8b9834f08fa131eb7"
@@ -4339,6 +4345,10 @@ regenerator-runtime@^0.11.0:
   version "0.11.1"
   resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.11.1.tgz#be05ad7f9bf7d22e056f9726cee5017fbf19e2e9"
 
+regenerator-runtime@^0.12.0:
+  version "0.12.1"
+  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.12.1.tgz#fa1a71544764c036f8c49b13a08b2594c9f8a0de"
+
 regex-cache@^0.4.2:
   version "0.4.4"
   resolved "https://registry.yarnpkg.com/regex-cache/-/regex-cache-0.4.4.tgz#75bdc58a2a1496cec48a12835bc54c8d562336dd"
@@ -4497,17 +4507,17 @@ sax@^1.2.4, sax@~1.2.4:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
 
-scatterjs-core@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/scatterjs-core/-/scatterjs-core-1.0.0.tgz#149ef83f9be71e1e5506ddbf6f50daa0ac4dfa39"
+scatterjs-core@2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/scatterjs-core/-/scatterjs-core-2.1.0.tgz#dab54cea3357675c088956d64b2935cf0487b212"
   dependencies:
     create-hash "^1.2.0"
     es6-promise "^4.2.4"
     get-random-values "^1.2.0"
 
-scatterjs-plugin-eosjs@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/scatterjs-plugin-eosjs/-/scatterjs-plugin-eosjs-1.0.0.tgz#d8ed4ec7ae321458688b8a668e0571f24be760cd"
+scatterjs-plugin-eosjs@1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/scatterjs-plugin-eosjs/-/scatterjs-plugin-eosjs-1.2.0.tgz#837844095697261f86e751240c1f8bbf0d4ada80"
   dependencies:
     eosjs "^16.0.6"
 

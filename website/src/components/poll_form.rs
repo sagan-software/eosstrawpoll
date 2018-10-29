@@ -288,7 +288,7 @@ impl Renderable<PollForm> for PollForm {
 }
 
 impl PollForm {
-    fn account(&self) -> Option<String> {
+    fn account(&self) -> Option<AccountName> {
         let result = match &self.scatter_identity {
             Some(result) => result,
             None => return None,

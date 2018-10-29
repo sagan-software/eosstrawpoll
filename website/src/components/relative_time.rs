@@ -4,9 +4,9 @@ use yew::prelude::*;
 use yew::services::{Task, TimeoutService};
 
 pub struct RelativeTime {
-    timestamp: u64,
+    timestamp: u32,
     simple: bool,
-    base_timestamp: u64,
+    base_timestamp: u32,
     service: TimeoutService,
     task: Option<Box<Task>>,
     link: ComponentLink<RelativeTime>,
@@ -14,9 +14,9 @@ pub struct RelativeTime {
 
 #[derive(PartialEq, Clone, Default)]
 pub struct Props {
-    pub timestamp: u64,
+    pub timestamp: u32,
     pub simple: bool,
-    pub base_timestamp: Option<u64>,
+    pub base_timestamp: Option<u32>,
 }
 
 #[derive(PartialEq, Clone)]
@@ -31,7 +31,7 @@ impl Component for RelativeTime {
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let base_timestamp = props
             .base_timestamp
-            .unwrap_or_else(|| (Date::now() / 1000.) as u64);
+            .unwrap_or_else(|| (Date::now() / 1000.) as u32);
         let mut relative_time = RelativeTime {
             timestamp: props.timestamp,
             simple: props.simple,
@@ -59,7 +59,7 @@ impl Component for RelativeTime {
         self.simple = props.simple;
         self.base_timestamp = props
             .base_timestamp
-            .unwrap_or_else(|| (Date::now() / 1000.) as u64);
+            .unwrap_or_else(|| (Date::now() / 1000.) as u32);
         true
     }
 }
@@ -113,9 +113,9 @@ impl RelativeTime {
     }
 }
 
-fn time_diff_string(timestamp: u64, base_timestamp: u64) -> String {
-    let timestamp = timestamp as i64;
-    let base_timestamp = base_timestamp as i64;
+fn time_diff_string(timestamp: u32, base_timestamp: u32) -> String {
+    let timestamp = timestamp as i32;
+    let base_timestamp = base_timestamp as i32;
 
     let sec = ((base_timestamp - timestamp).abs() as f64).round();
     let min = (sec / 60.).round();
@@ -151,10 +151,10 @@ fn time_diff_string(timestamp: u64, base_timestamp: u64) -> String {
     }
 }
 
-fn with_suffix(timestamp: u64, base_timestamp: u64) -> String {
+fn with_suffix(timestamp: u32, base_timestamp: u32) -> String {
     let diff_string = time_diff_string(timestamp, base_timestamp);
-    let base_timestamp = base_timestamp as i64;
-    let timestamp = timestamp as i64;
+    let base_timestamp = base_timestamp as i32;
+    let timestamp = timestamp as i32;
     let diff = timestamp - base_timestamp;
 
     if diff <= 0 {

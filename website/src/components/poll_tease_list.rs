@@ -174,10 +174,10 @@ impl PollTeaseList {
                 <div class="poll_details", >
                     <Link: class="poll_account",
                         route=account_route,
-                        text=poll.account.clone(),
+                        text=poll.account.to_string(),
                     />
                     <div class="poll_create_time", >
-                        <RelativeTime: timestamp=poll.create_time, />
+                        <RelativeTime: timestamp=(poll.create_time as u32), />
                     </div>
                     <div class="poll_votes", >
                         { &poll.num_votes } { " vote" }{ if poll.num_votes == 1 { "" } else { "s" } }

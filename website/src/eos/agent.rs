@@ -32,7 +32,7 @@ pub enum EosInput {
     GetDonors,
     GetNewDonations,
     GetPolls(AccountName),
-    GetPoll(AccountName, PollId),
+    GetPoll(AccountName, PollName),
 }
 
 impl Transferable for EosInput {}
@@ -46,7 +46,7 @@ pub enum EosOutput {
     Donors(EosData<Vec<Donor>>),
     NewDonations(EosData<Vec<Donation>>),
     Polls(AccountName, EosData<Vec<Poll>>),
-    Poll(AccountName, PollId, EosData<Poll>),
+    Poll(AccountName, PollName, EosData<Poll>),
 }
 
 impl Transferable for EosOutput {}
@@ -329,7 +329,7 @@ impl EosAgent {
     }
 
     fn fetch_polls(&mut self, account: AccountName) {
-        let lower_bound = name_to_u64(account.clone());
+        let lower_bound: u64 = account.into();
         let upper_bound = lower_bound + 1;
         let params = TableRowsParams {
             json: true,

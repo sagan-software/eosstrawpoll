@@ -30,7 +30,7 @@ pub struct PollVotingPage {
 pub struct Props {
     pub context: Context,
     pub chain: Chain,
-    pub poll_id: PollId,
+    pub poll_id: PollName,
 }
 
 pub enum Msg {
@@ -184,7 +184,8 @@ impl Component for PollVotingPage {
                     poll_id: self.props.poll_id.clone(),
                     account: voter.clone(),
                     answers: self.answers.clone(),
-                }.to_action(&self.props.chain);
+                }
+                .to_action(&self.props.chain);
 
                 let transaction: ScatterTransaction = action.into();
 
@@ -204,7 +205,7 @@ impl Component for PollVotingPage {
                     return false;
                 }
 
-                let answer = Answer::from_writein(self.writein_input.clone());
+                let answer = Answer::from(self.writein_input.clone());
                 self.toggle_answer(answer.clone());
 
                 let available_answer = (self.writein_input.clone(), answer.clone());
@@ -295,7 +296,7 @@ impl Page for PollVotingPage {
             ),
             (
                 Route::Profile(chain_id_prefix, poll.account.clone()),
-                poll.account.clone(),
+                poll.account.to_string(),
             ),
         ]
     }
@@ -317,7 +318,7 @@ impl PollVotingPage {
         }
 
         if let Some(Ok(poll)) = &self.poll {
-            if self.answers.len() > poll.max_answers {
+            if self.answers.len() > (poll.max_answers as usize) {
                 self.answers.remove(0);
             }
         }
@@ -329,7 +330,7 @@ impl PollVotingPage {
             code: self.props.chain.code_account.clone(),
             table: "polls".to_string(),
             json: true,
-            lower_bound: Some(self.props.poll_id.clone()),
+            lower_bound: Some(self.props.poll_id.to_string()),
             upper_bound: None,
             limit: Some(1),
             key_type: None,
@@ -344,7 +345,7 @@ impl PollVotingPage {
     }
 
     fn fetch_votes(&mut self) {
-        let lower_bound = name_to_u64(self.props.poll_id.clone());
+        let lower_bound = name_to_u64(self.props.poll_id.to_string());
         let upper_bound = lower_bound + 1;
         let params = TableRowsParams {
             scope: self.props.chain.code_account.clone(),
@@ -365,7 +366,7 @@ impl PollVotingPage {
         self.votes_task = Some(task);
     }
 
-    fn voter(&self) -> Option<String> {
+    fn voter(&self) -> Option<AccountName> {
         let result = match &self.scatter_identity {
             Some(result) => result,
             None => return None,
@@ -415,7 +416,8 @@ impl PollVotingPage {
                         writein: "".into(),
                     },
                 )
-            }).collect();
+            })
+            .collect();
 
         let voter = match self.voter() {
             Some(voter) => voter,
@@ -425,7 +427,7 @@ impl PollVotingPage {
         let filtered_votes = self
             .votes
             .iter()
-            .filter(|vote| vote.account == voter)
+            .filter(|vote| vote.account == voter.into())
             .cloned()
             .collect::<Vec<Vote>>();
 
@@ -482,10 +484,10 @@ impl PollVotingPage {
         //  - Multiple pre-filled answers and multiple writein options
         //  - 1 pre-filled answer and 1 writein option
         //  - 1 pre-filled answer and multiple writein options
-
-        let results = Route::PollResults(self.props.chain.to_chain_id_prefix(), poll.id.clone());
-        let select_text = if self.answers.len() < poll.min_answers && !self.answers.is_empty() {
-            let diff = poll.min_answers - self.answers.len();
+        let num_answers = self.answers.len() as u16;
+        let results = Route::PollResults(self.props.chain.to_chain_id_prefix(), poll.name.clone());
+        let select_text = if num_answers < poll.min_answers && !self.answers.is_empty() {
+            let diff = poll.min_answers - num_answers;
             if diff == 1 {
                 "Select one more option".to_string()
             } else {
@@ -499,7 +501,7 @@ impl PollVotingPage {
         } else {
             self.view_options(poll)
         };
-        let can_submit = (self.answers.len() >= poll.min_answers)
+        let can_submit = (num_answers >= poll.min_answers)
             || (is_only_one_writein(poll) && !self.writein_input.trim().is_empty());
         html! {
             <form class="poll_voting_form", onsubmit=|e| {
@@ -606,7 +608,7 @@ fn vote_help_text(poll: &Poll) -> String {
         return "write in your answer".to_string();
     }
 
-    let num_options = poll.prefilled_options.len();
+    let num_options = poll.prefilled_options.len() as u16;
     match (
         poll.min_answers,
         poll.max_answers,

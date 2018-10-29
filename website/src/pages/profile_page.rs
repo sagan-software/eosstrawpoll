@@ -93,7 +93,8 @@ impl ProfilePage {
     }
 
     fn view_item(&self, poll: &Poll) -> Html<Self> {
-        let poll_route = Route::PollVoting(self.props.chain.to_chain_id_prefix(), poll.id.clone());
+        let poll_route =
+            Route::PollVoting(self.props.chain.to_chain_id_prefix(), poll.name.clone());
         html! {
             <li class="poll", >
                 <Link: class="poll_title",
@@ -103,7 +104,7 @@ impl ProfilePage {
                 <div class="poll_details", >
                     <div class="poll_create_time", >
                         { "Submitted " }
-                        <RelativeTime: timestamp=poll.create_time, />
+                        <RelativeTime: timestamp=poll.create_time.seconds(), />
                     </div>
                 </div>
             </li>
@@ -113,7 +114,7 @@ impl ProfilePage {
 
 impl Page for ProfilePage {
     fn get_title(&self) -> String {
-        self.props.account.clone()
+        self.props.account.to_string()
     }
     fn get_class(&self) -> String {
         "profile_page".to_string()

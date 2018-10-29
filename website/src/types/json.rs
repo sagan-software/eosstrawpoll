@@ -24,3 +24,11 @@ where
     let s: String = Deserialize::deserialize(deserializer)?;
     s.parse().map_err(de::Error::custom)
 }
+
+pub fn u64_from_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    s.parse().map_err(de::Error::custom)
+}

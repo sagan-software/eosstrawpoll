@@ -1,8 +1,10 @@
 use eos::types::*;
+use eosio::n;
+use std::str::FromStr;
 use stdweb::unstable::TryInto;
 use traits::ToAction;
 use types::json::bool_to_u8;
-use types::{AccountListPreset, Answer, Chain, PollId};
+use types::{AccountListPreset, Answer, Chain, PollName};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClearProfile {
@@ -22,7 +24,7 @@ impl ToAction for ClearProfile {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClosePoll {
-    pub slug: PollId,
+    pub slug: PollName,
 }
 
 // impl Action for ClosePoll {
@@ -41,7 +43,7 @@ pub struct ClosePoll {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreatePoll {
-    pub id: PollId,
+    pub id: PollName,
     pub account: AccountName,
     pub title: String,
     pub prefilled_options: Vec<String>,
@@ -58,8 +60,8 @@ pub struct CreatePoll {
 impl Default for CreatePoll {
     fn default() -> CreatePoll {
         CreatePoll {
-            id: "".to_string(),
-            account: "".to_string(),
+            id: 0.into(),
+            account: 0.into(),
             title: "".to_string(),
             prefilled_options: vec!["".to_string(), "".to_string(), "".to_string()],
             min_answers: 1,
@@ -86,21 +88,23 @@ impl ToAction for CreatePoll {
 
 impl CreatePoll {
     pub fn random_slug(&mut self) {
-        self.id = js! {
+        let id: String = js! {
             var text = "";
             var possible = "abcdefghijklmnopqrstuvwxyz12345";
             for (var i = 0; i < 12; i++) {
                 text += possible.charAt(Math.floor(Math.random() * possible.length));
             }
             return text;
-        }.try_into()
+        }
+        .try_into()
         .unwrap();
+        self.id = PollName::from_str(id.as_str()).unwrap();
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct CreateVote {
-    pub poll_id: PollId,
+    pub poll_id: PollName,
     pub account: AccountName,
     pub answers: Vec<Answer>,
 }
@@ -118,7 +122,7 @@ impl ToAction for CreateVote {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyPoll {
-    pub poll_id: PollId,
+    pub poll_id: PollName,
 }
 
 // impl Action for DestroyPoll {
@@ -137,7 +141,7 @@ pub struct DestroyPoll {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyVote {
-    pub poll_id: PollId,
+    pub poll_id: PollName,
     pub account: AccountName,
 }
 
@@ -157,7 +161,7 @@ pub struct DestroyVote {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct DestroyVotes {
-    pub poll_id: PollId,
+    pub poll_id: PollName,
 }
 
 // impl Action for DestroyVotes {
@@ -176,7 +180,7 @@ pub struct DestroyVotes {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct OpenPoll {
-    pub poll_id: PollId,
+    pub poll_id: PollName,
 }
 
 // impl Action for OpenPoll {

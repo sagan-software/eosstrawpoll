@@ -2,6 +2,7 @@ use components::*;
 use eos::*;
 use prelude::*;
 use scatter::*;
+use std::str::FromStr;
 use stdweb::traits::IEvent;
 
 pub struct DonationForm {
@@ -83,11 +84,12 @@ impl Component for DonationForm {
                 let network = self.chain.to_scatter_network();
                 let config = self.chain.to_eos_config();
                 let action = Transfer {
-                    from: donor.to_string(),
+                    from: donor,
                     to: self.chain.code_account.clone(),
                     quantity: format!("{:.4} {}", amount, self.chain.core_symbol.clone()),
                     memo: "Funded EOS Straw Poll".to_string(),
-                }.to_action(&self.chain);
+                }
+                .to_action(&self.chain);
 
                 let transaction: ScatterTransaction = action.into();
                 self.scatter_agent.send(ScatterInput::PushTransaction(
@@ -175,7 +177,7 @@ impl Renderable<DonationForm> for DonationForm {
 }
 
 impl DonationForm {
-    fn donor(&self) -> Option<String> {
+    fn donor(&self) -> Option<AccountName> {
         let result = match &self.scatter_identity {
             Some(result) => result,
             None => return None,

@@ -1,4 +1,5 @@
 use eos::types::*;
+use eosio::n;
 use scatter::{ScatterNetwork, ScatterRequiredFields};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
@@ -94,8 +95,8 @@ pub fn eos_devnet() -> Chain {
         chain_id: "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f".to_string(),
         short_name: "EOS Local".into(),
         long_name: "EOS Localhost".into(),
-        code_account: "eosstrawpoll".to_string(),
-        eosio_token_account: "eosio.token".to_string(),
+        code_account: n!(eosstrawpoll).into(),
+        eosio_token_account: n!(eosiotoken).into(),
         core_symbol: "SYS".to_string(),
         endpoint: Endpoint {
             protocol: "https".to_string(),
@@ -110,8 +111,8 @@ pub fn eos_testnet_jungle() -> Chain {
         chain_id: "038f4b0fc8ff18a4f0842a8f0564611f6e96e8535901dd45e43ac8691a1c4dca".to_string(),
         short_name: "Jungle".into(),
         long_name: "Jungle Testnet".into(),
-        code_account: "eosstrawpoll".to_string(),
-        eosio_token_account: "eosio.token".to_string(),
+        code_account: n!(eosstrawpoll).into(),
+        eosio_token_account: n!(eosiotoken).into(),
         core_symbol: "EOS".to_string(),
         endpoint: Endpoint {
             protocol: "https".to_string(),
@@ -138,8 +139,8 @@ pub fn telos_devnet() -> Chain {
         chain_id: "a773b6d9194c615fae0f0c49dfa54303680031bab6cf12f9888c7f51447e4a90".to_string(),
         short_name: "Telos Local".into(),
         long_name: "Telos Localhost".into(),
-        code_account: "eosstrawpoll".to_string(),
-        eosio_token_account: "eosio.token".to_string(),
+        code_account: n!(eosstrawpoll).into(),
+        eosio_token_account: n!(eosiotoken).into(),
         core_symbol: "SYS".to_string(),
         endpoint: Endpoint {
             protocol: "https".to_string(),
@@ -154,8 +155,8 @@ pub fn telos_testnet() -> Chain {
         chain_id: "6c8aacc339bf1567743eb9c8ab4d933173aa6dca4ae6b6180a849c422f5bb207".to_string(),
         short_name: "Telos Test".into(),
         long_name: "Telos Testnet".into(),
-        code_account: "espprealpha1".to_string(),
-        eosio_token_account: "eosio.token".to_string(),
+        code_account: n!(espprealpha1).into(),
+        eosio_token_account: n!(eosiotoken).into(),
         core_symbol: "TLOS".to_string(),
         endpoint: Endpoint {
             protocol: "https".to_string(),
@@ -170,8 +171,8 @@ pub fn kylin_testnet() -> Chain {
         chain_id: "5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191".to_string(),
         short_name: "Kylin".into(),
         long_name: "Kylin Testnet".into(),
-        code_account: "eosstrawpoll".to_string(),
-        eosio_token_account: "eosio.token".to_string(),
+        code_account: n!(eosstrawpoll).into(),
+        eosio_token_account: n!(eosiotoken).into(),
         core_symbol: "EOS".to_string(),
         endpoint: Endpoint {
             protocol: "https".to_string(),

@@ -8,8 +8,8 @@ use types::*;
 pub enum Route {
     Home(Option<ChainIdPrefix>),
     Profile(ChainIdPrefix, AccountName),
-    PollVoting(ChainIdPrefix, PollId),
-    PollResults(ChainIdPrefix, PollId),
+    PollVoting(ChainIdPrefix, PollName),
+    PollResults(ChainIdPrefix, PollName),
 }
 
 impl Default for Route {
@@ -38,15 +38,15 @@ impl Route {
             [chain_id_prefix, ""] => Ok(Route::Home(Some(chain_id_prefix.to_string().into()))),
             [chain_id_prefix, "u", account] => Ok(Route::Profile(
                 chain_id_prefix.to_string().into(),
-                account.to_string(),
+                AccountName::from_str(account).unwrap(),
             )),
             [chain_id_prefix, "v", poll_id] => Ok(Route::PollVoting(
                 chain_id_prefix.to_string().into(),
-                poll_id.to_string(),
+                PollName::from_str(poll_id).unwrap(),
             )),
             [chain_id_prefix, "r", poll_id] => Ok(Route::PollResults(
                 chain_id_prefix.to_string().into(),
-                poll_id.to_string(),
+                PollName::from_str(poll_id).unwrap(),
             )),
             _ => Err(RouteError::NotFound(format!("/{}", pathnames.join("/")))),
         }

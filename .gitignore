@@ -1,10 +1,10 @@
 /website/target
 **/*.rs.bk
 /website/Cargo.lock
-/website/node_modules
+/node_modules
+/gh-pages
 /contract/*.wast
 /contract/*.wasm
-/contract/*.abi
 /contract/build
 /website/dist
 /target

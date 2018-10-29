@@ -1,4 +1,5 @@
 use components::*;
+use eosio::n;
 use pages::*;
 use prelude::*;
 use router::{RouterAgent, RouterInput, RouterOutput};
@@ -245,9 +246,7 @@ impl App {
     }
 
     fn view_user_ok(&self, identity: &ScatterIdentity) -> Html<Self> {
-        let account_name = identity
-            .account_name()
-            .unwrap_or_else(|| "Anon".to_string());
+        let account_name = identity.account_name().unwrap_or_else(|| n!(anon).into());
         let profile_route = Route::Profile(
             self.context.selected_chain.to_chain_id_prefix(),
             account_name.clone(),
@@ -263,7 +262,7 @@ impl App {
                     },
                 >
                     { svg::head() }
-                    { account_name }
+                    { account_name.to_string() }
                 </a>
                 <button class="app_user_logout",
                     onclick=|_| Msg::Logout,

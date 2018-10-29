@@ -1,9 +1,9 @@
-extern crate eosstrawpoll;
 extern crate log;
 extern crate web_logger;
+extern crate website;
 extern crate yew;
 
-use eosstrawpoll::Model;
+use website::Model;
 use yew::prelude::*;
 
 fn main() {

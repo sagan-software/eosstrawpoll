@@ -37,8 +37,13 @@ impl Default for Context {
 
         Context {
             lang: lang.parse().unwrap_or_else(|_| Lang::English),
-            selected_chain: eos_testnet_jungle(),
-            available_chains: vec![eos_testnet_jungle(), kylin_testnet(), telos_testnet()],
+            selected_chain: eos_devnet(),
+            available_chains: vec![
+                eos_devnet(),
+                eos_testnet_jungle(),
+                kylin_testnet(),
+                telos_testnet(),
+            ],
         }
     }
 }

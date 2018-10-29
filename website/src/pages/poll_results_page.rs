@@ -26,7 +26,7 @@ pub struct PollResultsPage {
 pub struct Props {
     pub context: Context,
     pub chain: Chain,
-    pub poll_id: PollId,
+    pub poll_id: PollName,
 }
 
 pub enum Msg {
@@ -165,7 +165,7 @@ impl Page for PollResultsPage {
             ),
             (
                 Route::Profile(chain_id_prefix, poll.account.clone()),
-                poll.account.clone(),
+                poll.account.to_string(),
             ),
         ]
     }
@@ -195,7 +195,7 @@ impl PollResultsPage {
             code: self.props.chain.code_account.clone(),
             table: "polls".to_string(),
             json: true,
-            lower_bound: Some(self.props.poll_id.clone()),
+            lower_bound: Some(self.props.poll_id.to_string()),
             upper_bound: None,
             limit: Some(1),
             key_type: None,
@@ -210,7 +210,7 @@ impl PollResultsPage {
     }
 
     fn fetch_votes(&mut self) {
-        let lower_bound = name_to_u64(self.props.poll_id.clone());
+        let lower_bound: u64 = self.props.poll_id.into();
         let upper_bound = lower_bound + 1;
         let params = TableRowsParams {
             scope: self.props.chain.code_account.clone(),
@@ -301,13 +301,13 @@ impl PollResultsPage {
     }
 
     fn view_ok(&self, poll: &Poll) -> Html<Self> {
-        let vote = Route::PollVoting(self.props.chain.to_chain_id_prefix(), poll.id.clone());
+        let vote = Route::PollVoting(self.props.chain.to_chain_id_prefix(), poll.name.clone());
         let results_text = if self.votes.len() == 1 {
             "Results from one voter:".to_string()
         } else {
             format!("Results from {} voters:", self.votes.len())
         };
-        let results = poll.results_by_percent(&self.votes);
+        let results = results_by_percent(poll, &self.votes);
         info!("RESULTS! {:#?}", results);
         html! {
             <>
@@ -315,7 +315,7 @@ impl PollResultsPage {
                     { results_text }
                 </p>
                 <div class="poll_options", >
-                    { for results.iter().map(|(option, percent, votes)| self.view_option_result(option, *percent, &votes)) }
+                    { for results.iter().map(|(option, percent, votes)| self.view_option_result(option, *percent, votes)) }
                 </div>
                 <div class="poll_actions", >
                     <Link: route=vote, text="Vote", />
@@ -328,7 +328,7 @@ impl PollResultsPage {
         &self,
         option: &str,
         percent: f32,
-        _votes: &[(String, usize)],
+        _votes: &[(AccountName, usize)],
     ) -> Html<Self> {
         html! {
             <div class="poll_option", >

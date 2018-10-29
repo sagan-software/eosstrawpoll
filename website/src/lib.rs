@@ -1,3 +1,4 @@
+#![feature(proc_macro_hygiene)]
 #![recursion_limit = "500"]
 #![warn(clippy)]
 #[macro_use]
@@ -13,6 +14,8 @@ extern crate http;
 extern crate stdweb;
 #[macro_use]
 extern crate failure;
+extern crate contract;
+extern crate eosio;
 
 #[macro_use]
 mod macros;

@@ -121,7 +121,7 @@ impl DonorList {
                 </div>
                 <Link: class="donor_account",
                     route=donor_route,
-                    text=donor.account.clone(),
+                    text=donor.account.to_string(),
                 />
                 <div class="donor_donated", >
                     { format!("{:.*} {}", 4, donated / 10000., self.props.chain.core_symbol) }
