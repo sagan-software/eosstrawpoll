@@ -1,0 +1,140 @@
+:root {
+	--font-head: sans-serif;
+	--font-body: sans-serif;
+	--font-code: monospace;
+	--gap: 1.5rem;
+	--background-color: #fff;
+	--text-color: #333;
+	--border-color: #ccc;
+	--border-radius: 0.3rem;
+	--brand-color: blue;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html {
+	font-size: 62.5%;
+	min-height: 100%;
+}
+
+body {
+	background-color: var(--background-color);
+	color: var(--text-color);
+	font-family: var(--font-body);
+	display: flex;
+	flex-direction: column;
+	min-height: 100%;
+}
+
+a {
+	text-decoration: none;
+	color: var(--brand-color);
+}
+
+input {
+	border: 0.1rem solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: calc(var(--gap) * 0.75) calc(var(--gap));
+	margin: 0;
+}
+
+button {
+	border: 0.1rem solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: calc(var(--gap) * 0.75) calc(var(--gap));
+	margin: 0;
+}
+
+.app_container {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.app_main {
+	flex: 1;
+}
+
+.app_header {
+	display: flex;
+	justify-content: space-between;
+	padding: var(--gap);
+	border-bottom: 0.1rem solid var(--border-color);
+	align-items: center;
+	font-size: 1.6rem;
+}
+
+.app_logo {
+	font-weight: bold;
+	font-size: 1.8rem;
+}
+
+.login_button {
+	margin-left: var(--gap);
+	font-size: inherit;
+}
+
+.app_footer {
+	display: flex;
+	justify-content: space-between;
+	padding: var(--gap);
+	border-top: 0.1rem solid var(--border-color);
+}
+
+.social_link {
+	margin-left: var(--gap);
+}
+
+/* PAGE STYLES */
+.page_title {
+	text-align: center;
+	padding: calc(var(--gap) * 2);
+	font-size: 2.6rem;
+}
+
+/* HOME PAGE STYLES */
+.poll_form {
+	padding: 0 var(--gap) var(--gap);
+}
+
+.poll_form_title {
+	width: 100%;
+	font-size: 1.8rem;
+	margin-bottom: var(--gap);
+}
+
+.poll_form_options {
+	padding-bottom: calc(var(--gap) / 2);
+}
+
+.poll_form_option {
+	display: flex;
+	margin-bottom: calc(var(--gap) / 2);
+}
+
+.poll_form_option_input {
+	flex: 1;
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+	border-right-width: 0;
+	font-size: 1.6rem;
+}
+
+.poll_form_option_button {
+	font-size: 2.4rem;
+	width: calc(var(--gap) * 3);
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	padding: 0;
+}
+
+.poll_form_submit {
+	margin: 0 auto;
+	display: block;
+	font-weight: bold;
+	font-size: 1.8rem;
+}

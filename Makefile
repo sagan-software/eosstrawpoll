@@ -8,7 +8,8 @@ install:
 	rustup default nightly
 	cargo install --force wasm-gc
 	cargo install --force bindgen
-	yarn install
+	cargo install --force wasm-bindgen
+	cd crates/website && npm install
 
 build: build-contract website
 
@@ -18,17 +19,19 @@ test:
 clean:
 	rm -Rf target
 
+DOCKER_COMPOSE := docker-compose -f docker/docker-compose.yml
+CLEOS := $(DOCKER_COMPOSE) exec keosd cleos --url http://nodeosd:8888 --wallet-url http://127.0.0.1:8900
+PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
+PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
+
 docker:
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 	docker volume rm -f nodeos-data-volume
 	docker volume rm -f keosd-data-volume
 	docker volume create --name=nodeos-data-volume
 	docker volume create --name=keosd-data-volume
-	docker-compose up
+	$(DOCKER_COMPOSE) up
 
-CLEOS := docker-compose exec keosd cleos --url http://nodeosd:8888 --wallet-url http://127.0.0.1:8900
-PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
-PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
 
 wallet:
 	$(CLEOS) wallet create --to-console
@@ -57,11 +60,13 @@ wallet:
 build-contract: build-contract-wasm target/wasm32-unknown-unknown/release/contract_gc_opt_wat.wasm
 
 build-contract-wasm:
-	cargo build --release --target=wasm32-unknown-unknown --package contract
+	cargo build -vv --release --target=wasm32-unknown-unknown --package contract
 
 contract: build-contract
 	$(CLEOS) set abi eosstrawpoll /mnt/dev/contract/contract.abi.json
 	$(CLEOS) set code eosstrawpoll /mnt/dev/release/contract_gc_opt.wasm
+
+.PHONY: contract
 
 createpoll:
 	$(CLEOS) push action eosstrawpoll createpoll '["test","alice","This is a test poll",[],1,1,1,true,[],0,0]' -p 'alice@active'
@@ -85,34 +90,57 @@ getnew:
 # WEBSITE
 # -------
 
-NPM := ./node_modules/.bin
-PWD := `pwd`
-DIST := $(PWD)/dist
+PWD := $(shell pwd)
+WEBSITE_DIR := $(PWD)/crates/website
+STATIC_DIR := $(WEBSITE_DIR)/static
+NODE_MODULES := $(WEBSITE_DIR)/node_modules
+NPM := $(NODE_MODULES)/.bin
+DIST := $(PWD)/docs
+TARGET_DIR := $(PWD)/target/wasm32-unknown-unknown/release
+WASM_BINDGEN_DIR := $(TARGET_DIR)/wasm-bindgen
 
 website: website-wasm css webpack
 
-website-wasm: website.wasm target/wasm32-unknown-unknown/release/website_gc_opt_wat.wasm
-
-website.wasm:
-	cargo web build --release --target=wasm32-unknown-unknown --package website
+website-wasm:
+	cargo +nightly build \
+		--target wasm32-unknown-unknown \
+		--release \
+		--package website
+	mkdir -p $(WASM_BINDGEN_DIR)
+	wasm-bindgen \
+		$(TARGET_DIR)/website.wasm \
+		--out-dir $(WASM_BINDGEN_DIR)
+	wasm-gc \
+		$(WASM_BINDGEN_DIR)/website_bg.wasm \
+		$(WASM_BINDGEN_DIR)/website_bg_gc.wasm
+	wasm-opt --fuzz-exec \
+		--output $(WASM_BINDGEN_DIR)/website_bg_gc_opt.wasm -Oz \
+		$(WASM_BINDGEN_DIR)/website_bg_gc.wasm
+	mv \
+		$(WASM_BINDGEN_DIR)/website_bg.wasm \
+		$(WASM_BINDGEN_DIR)/website_bg_orig.wasm
+	cp \
+		$(WASM_BINDGEN_DIR)/website_bg_gc_opt.wasm \
+		$(WASM_BINDGEN_DIR)/website_bg.wasm
+	
 
 start-website-wasm:
-	cargo watch -w website/src -s "make website-wasm"
+	cargo watch -w $(WEBSITE_DIR)/src -s "make website-wasm"
 
 css:
-	$(NPM)/postcss website/static/css/index.css --output $(DIST)/index.css
+	NODE_PATH=$(NODE_MODULES) $(NPM)/postcss $(STATIC_DIR)/index.css --output $(DIST)/index.css
 
 start-css:
-	$(NPM)/postcss website/static/css/index.css --output $(DIST)/index.css --watch
+	NODE_PATH=$(NODE_MODULES) $(NPM)/postcss $(STATIC_DIR)/index.css --output $(DIST)/index.css --watch
 
 webpack:
-	$(NPM)/env-cmd .env.prod $(NPM)/webpack
+	$(NPM)/env-cmd $(WEBSITE_DIR)/.env.prod $(NPM)/webpack --config $(WEBSITE_DIR)/webpack.config.js
 
 start-webpack:
-	$(NPM)/env-cmd .env.dev $(NPM)/webpack --watch
+	$(NPM)/env-cmd $(WEBSITE_DIR)/.env.dev $(NPM)/webpack --watch --config $(WEBSITE_DIR)/webpack.config.js
 
 start-server:
-	$(NPM)/browser-sync start --single --config bs-config.js
+	$(NPM)/browser-sync start --single --config $(WEBSITE_DIR)/bs-config.js
 
 start-website:
 	$(NPM)/concurrently \
@@ -122,12 +150,6 @@ start-website:
 		"$(MAKE) start-webpack" \
 		"$(MAKE) start-css" \
 		"$(MAKE) start-server"
-
-gh-pages: build
-	git worktree remove ./gh-pages || exit 0
-	git worktree add ./gh-pages gh-pages
-	mv dist/* gh-pages
-	cp netlify.toml ./gh-pages/
 
 .PHONY: install build test clean docker wallet website gh-pages
 .SECONDARY:

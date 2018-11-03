@@ -1,11 +1,5 @@
-/website/target
 **/*.rs.bk
-/website/Cargo.lock
-/node_modules
+node_modules
 /gh-pages
-/contract/*.wast
-/contract/*.wasm
-/contract/build
-/website/dist
 /target
 .DS_Store
