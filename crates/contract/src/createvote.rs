@@ -2,7 +2,7 @@ use crate::types::*;
 use eosio::*;
 
 #[eosio_action]
-pub fn createvote(poll: PollName, account: AccountName, answers: Vec<Answer>) {
+pub fn createvote(poll: PollId, account: AccountName, answers: Vec<Answer>) {
     require_auth(account);
 
     let code = AccountName::receiver();
@@ -20,7 +20,7 @@ pub fn createvote(poll: PollName, account: AccountName, answers: Vec<Answer>) {
 
     let votes = Vote::poll(code, code);
     votes
-        .insert(
+        .emplace(
             account,
             &Vote {
                 id: 0,

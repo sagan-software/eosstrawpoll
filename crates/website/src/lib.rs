@@ -1,20 +1,32 @@
+#![recursion_limit = "500"]
+#![warn(clippy)]
+#![feature(proc_macro_hygiene)]
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde;
+extern crate serde_json;
+#[macro_use]
+extern crate yew;
+extern crate http;
+#[macro_use]
+extern crate stdweb;
+#[macro_use]
+extern crate failure;
+
+#[macro_use]
+mod macros;
+
 mod app;
-mod context;
-mod home_page;
-mod i18n;
-mod poll_page;
-mod route;
+mod components;
+mod eos;
+mod pages;
+mod prelude;
+mod router;
+mod scatter;
+mod seo;
+mod traits;
+mod types;
+mod views;
 
-use wasm_bindgen::prelude::*;
-use web_sys::{Document, Element, Node};
-
-#[wasm_bindgen]
-pub fn run() -> Result<(), JsValue> {
-    let context = crate::context::Context::new()?;
-    let app_container = app::create_container(&context)?;
-
-    let node = AsRef::<Node>::as_ref(&context.body);
-    node.append_child(app_container.as_ref())?;
-
-    Ok(())
-}
+pub use crate::app::App as Model;

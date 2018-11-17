@@ -1,0 +1,127 @@
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Mono|IBM+Plex+Sans+Condensed:700|IBM+Plex+Sans:400,700');
+
+* {
+    box-sizing: border-box;
+    line-height: 2rem;
+}
+
+body {
+    color: var(--text-color);
+    font-family: var(--font-body);
+}
+
+a:any-link {
+    color: var(--brand-color);
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0b2c6d;
+}
+
+input:not([type=range]),
+textarea {
+    border: 0;
+    border-radius: var(--border-radius);
+    padding: var(--spacing);
+    margin: 0;
+    display: block;
+    font-size: 1.3rem;
+    transition: 300ms opacity, 300ms box-shadow;
+    box-shadow: inset 0px 0px 0px 2px #cfd4de;
+
+    &:focus {
+        outline: 0;
+        box-shadow: inset 0px 0px 0px 3px var(--brand-color);
+    }
+
+    &[disabled=true] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+input[type=checkbox],
+input[type=radio] {
+    display: block;
+    position: relative;
+    height: calc(var(--spacing) * 2);
+    width: calc(var(--spacing) * 2);
+    margin-right: var(--spacing);
+    appearance: none;
+
+    &:after {
+        display: block;
+        content: '';
+        background: #fff;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: var(--border-radius);
+        box-shadow: inset 0px 0px 0px 2px #cfd4de;
+        z-index: 2;
+    }
+
+    &:before {
+        content: '';
+        background: var(--brand-color);
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: calc(var(--spacing) * 2 - 6px);
+        height: calc(var(--spacing) * 2 - 6px);
+        z-index: 3;
+        transform: scale(0);
+        transition: 300ms transform;
+    }
+
+    &:checked {
+        &:after {
+            box-shadow: inset 0px 0px 0px 2px var(--brand-color);
+        }
+        &:before {
+            transform: scale(1);
+        }
+    }
+
+    &[disabled] + * {
+        opacity: 0.5;
+    }
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-head);
+}
+
+h1 {
+    text-align: center;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+}
+
+h2 {
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    margin: 0;
+    margin-bottom: calc(var(--spacing) * 2);
+    border-bottom: 1px solid #ebebeb;
+    padding-bottom: var(--spacing);
+    color: #949494;
+    letter-spacing: 0.05rem;
+}
+
+/* LastPass overrides */
+input, textarea {
+    background-image: none !important;
+}
+
+[id*=__lpform] {
+    display: none;
+    height: 0;
+    width: 0;
+}

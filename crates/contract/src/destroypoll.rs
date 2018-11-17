@@ -2,13 +2,13 @@ use crate::types::*;
 use eosio::*;
 
 #[eosio_action]
-pub fn destroypoll(name: PollName) {
+pub fn destroypoll(name: PollId) {
     let code = AccountName::receiver();
     let table = Poll::table(code, code);
     let cursor = table.find(name).assert("poll doesn't exist");
 
     let poll = cursor.get().assert("read");
-    poll.account.require_auth();
+    require_auth(poll.account);
 
     cursor.remove().assert("read");
 

@@ -1,170 +1,422 @@
-use crate::context::Context;
-use crate::route::Route;
-use futures::{future, Future};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{console, Document, Element, Event, EventTarget, Node};
+use crate::components::*;
+use crate::pages::*;
+use crate::prelude::*;
+use crate::router::{RouterAgent, RouterInput, RouterOutput};
+use crate::scatter::*;
+use crate::views::svg;
+use eosio::n;
+use stdweb::traits::IEvent;
 
-pub fn create_container(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("div")?;
-    el.set_class_name("app_container");
-
-    let node = AsRef::<Node>::as_ref(&el);
-    node.append_child(app_header(ctx)?.as_ref())?;
-    node.append_child(app_main(ctx)?.as_ref())?;
-    node.append_child(app_footer(ctx)?.as_ref())?;
-
-    Ok(el)
+pub struct App {
+    route: Option<Result<Route, RouteError>>,
+    router: Box<Bridge<RouterAgent>>,
+    scatter: Box<Bridge<ScatterAgent>>,
+    context: Context,
+    scatter_connected: Option<Result<(), ScatterError>>,
+    scatter_identity: Option<Result<ScatterIdentity, ScatterError>>,
 }
 
-fn app_header(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("header")?;
-    el.set_class_name("app_header");
-
-    let node = AsRef::<Node>::as_ref(&el);
-    node.append_child(app_logo(ctx)?.as_ref())?;
-    node.append_child(app_nav(ctx)?.as_ref())?;
-
-    Ok(el)
+pub enum Msg {
+    Ignore,
+    Router(RouterOutput),
+    Scatter(ScatterOutput),
+    NavigateTo(Route),
+    Login,
+    Logout,
+    SelectChain(Chain),
 }
 
-fn app_logo(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("a")?;
-    el.set_class_name("app_logo");
+impl Component for App {
+    type Message = Msg;
+    type Properties = ();
 
-    let route = Route::Home;
-    el.set_attribute("href", &route.to_string())?;
+    fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+        let callback = link.send_back(Msg::Router);
+        let mut router = RouterAgent::bridge(callback);
+        router.send(RouterInput::GetCurrentRoute);
+        let scatter = ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
 
-    let node = AsRef::<Node>::as_ref(&el);
-    node.set_text_content(Some("EOS Straw Poll"));
-    Ok(el)
-}
+        App {
+            route: None,
+            router,
+            scatter,
+            context: Context::default(),
+            scatter_connected: None,
+            scatter_identity: None,
+        }
+    }
 
-fn app_nav(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("nav")?;
-    el.set_class_name("app_nav");
-
-    let node = AsRef::<Node>::as_ref(&el);
-    node.append_child(settings_link(ctx)?.as_ref())?;
-    node.append_child(login_button(ctx)?.as_ref())?;
-
-    Ok(el)
-}
-
-mod scatter {
-    use js_sys::Promise;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen(module = "scatterjs-core")]
-    extern "C" {
-        pub fn plugins(plugin: &JsValue);
-
-        #[wasm_bindgen(js_namespace = scatter)]
-        pub fn connect(label: &str) -> Promise;
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        match msg {
+            Msg::NavigateTo(route) => {
+                let url = route.to_string();
+                self.router.send(RouterInput::ChangeRoute(url));
+                false
+            }
+            Msg::Router(output) => {
+                self.route = Some(output.pathname.parse());
+                true
+            }
+            Msg::Scatter(output) => match output {
+                ScatterOutput::GotIdentity(result) => {
+                    self.scatter_identity = Some(result);
+                    true
+                }
+                ScatterOutput::ForgotIdentity(_result) => {
+                    self.scatter_identity = None;
+                    true
+                }
+                ScatterOutput::Connected(result) => {
+                    self.scatter_connected = Some(result);
+                    true
+                }
+                ScatterOutput::PushedTransaction(_result) => false,
+            },
+            Msg::Login => {
+                let required_fields = self.context.selected_chain.to_scatter_required_fields();
+                let scatter_msg = ScatterInput::GetIdentity(required_fields);
+                self.scatter.send(scatter_msg);
+                false
+            }
+            Msg::Logout => {
+                self.scatter.send(ScatterInput::ForgetIdentity);
+                false
+            }
+            Msg::SelectChain(chain) => {
+                if chain != self.context.selected_chain {
+                    let chain_id_prefix = chain.to_chain_id_prefix();
+                    let route = Route::Home(Some(chain_id_prefix));
+                    self.scatter.send(ScatterInput::ForgetIdentity);
+                    self.context.selected_chain = chain;
+                    self.router
+                        .send(RouterInput::ChangeRoute(route.to_string()));
+                    true
+                } else {
+                    false
+                }
+            }
+            Msg::Ignore => false,
+        }
     }
 }
 
-#[wasm_bindgen(module = "static-dir/bindgen")]
-extern "C" {
-    pub type ScatterEOS;
-
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> ScatterEOS;
+impl Renderable<App> for App {
+    fn view(&self) -> Html<Self> {
+        html! {
+            <div class="app", >
+                { self.view_header() }
+                { self.view_content() }
+                { self.view_footer() }
+            </div>
+        }
+    }
 }
 
-fn login_button(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("button")?;
-    el.set_class_name("login_button");
-
-    let node = AsRef::<Node>::as_ref(&el);
-    node.set_text_content(Some("Login"));
-
-    // scatter::plugins(&ScatterEOS::new().into());
-    // scatter::connect("balls");
-    eosio_rpc::chain::get_info("https://localhost:8889");
-
-    // .and_then(|info| {
-    // let v = JsValue::from_serde(&branch_info).unwrap();
-    // console::log_1(&v);
-    // });
-
-    let onclick = Closure::wrap(Box::new(move |e: Event| {
-        e.prevent_default();
-        console::log_1(&"CLICKED LOGIN".into());
-    }) as Box<FnMut(_)>);
-
-    let el_et: web_sys::EventTarget = el.into();
-    el_et.add_event_listener_with_callback("click", onclick.as_ref().unchecked_ref());
-
-    onclick.forget();
-
-    Ok(el_et.dyn_into::<Element>().expect(""))
+fn app_logo() -> Html<App> {
+    html! {
+        <a class="app_logo",
+            href="/",
+            onclick=|e| {
+                e.prevent_default();
+                Msg::NavigateTo(Route::default())
+            },
+        >
+            { "EOS Straw Poll" }
+            <span class="app_version", >
+                { "PRE-ALPHA" }
+            </span>
+        </a>
+    }
 }
 
-fn settings_link(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("a")?;
-    el.set_class_name("settings_link");
+impl App {
+    fn view_header(&self) -> Html<Self> {
+        html! {
+            <header class="app_header", >
+                <div class="app_container", >
+                    { app_logo() }
+                    { self.view_nav() }
+                    { self.view_chains_dropdown() }
+                    { self.view_user() }
+                </div>
+            </header>
+        }
+    }
 
-    let route = Route::Settings;
-    el.set_attribute("href", &route.to_string())?;
+    fn view_nav(&self) -> Html<Self> {
+        html! {
+            <nav class="app_nav", >
+                <a class="app_link app_link_roadmap",
+                    href="https://github.com/sagan-software/eosstrawpoll/projects",
+                    target="_blank",
+                >
+                    { svg::roadmap() }
+                    { "Roadmap" }
+                </a>
+                <a class="app_link app_link_feedback",
+                    href="https://eos-forum.org/#/e/eosstrawpoll",
+                    target="_blank",
+                >
+                    { svg::megaphone() }
+                    { "Feedback" }
+                </a>
+            </nav>
+        }
+    }
 
-    let node = AsRef::<Node>::as_ref(&el);
-    node.set_text_content(Some("Settings"));
+    fn view_chains_dropdown(&self) -> Html<Self> {
+        html! {
+            <div class="chain_dropdown", >
+                <div class="available_chains", >
+                    { for self.context.available_chains.iter().map(|chain| {
+                        self.view_chain_dropdown(chain.clone())
+                    })}
+                </div>
+                <div class="selected_chain", >
+                    { &self.context.selected_chain.long_name }
+                    { svg::chevron_down() }
+                </div>
+            </div>
+        }
+    }
 
-    Ok(el)
-}
+    fn view_chain_dropdown(&self, chain: Chain) -> Html<Self> {
+        let c = chain.clone();
+        let is_selected = chain == self.context.selected_chain;
+        let selected_class = if is_selected { "-selected" } else { "" };
+        html! {
+            <div class=format!("available_chain {}", selected_class),
+                onclick=|e| {
+                    e.prevent_default();
+                    Msg::SelectChain(chain.clone())
+                },
+            >
+                { &c.long_name }
+            </div>
+        }
+    }
 
-fn app_main(ctx: &Context) -> Result<Element, JsValue> {
-    let el = crate::home_page::create(ctx)?;
-    el.class_list().add_1("app_main");
-    Ok(el)
-}
+    fn view_user(&self) -> Html<Self> {
+        let view = match (&self.scatter_connected, &self.scatter_identity) {
+            (None, _) => self.view_user_loading(),
+            (Some(Err(_)), _) => self.view_user_install_scatter(),
+            (_, None) => self.view_user_none(),
+            (_, Some(Ok(identity))) => self.view_user_ok(identity),
+            (_, Some(Err(error))) => self.view_user_err(error),
+        };
+        html! {
+            <nav class="app_user", >
+                { view }
+            </nav>
+        }
+    }
 
-fn app_footer(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("footer")?;
-    el.set_class_name("app_footer");
+    fn view_user_loading(&self) -> Html<Self> {
+        html! {
+            <span
+                class="app_login btn btn-primary btn-lg -loading",
+            >
+                { "Loading..." }
+            </span>
+        }
+    }
 
-    let node = AsRef::<Node>::as_ref(&el);
-    node.append_child(company_link(ctx)?.as_ref())?;
-    node.append_child(social_links(ctx)?.as_ref())?;
+    fn view_user_install_scatter(&self) -> Html<Self> {
+        html! {
+            <a
+                class="app_login btn btn-primary btn-lg -install",
+                href="https://get-scatter.com",
+            >
+                { "Install " }
+                { svg::scatter_large() }
+            </a>
+        }
+    }
 
-    Ok(el)
-}
+    fn view_user_none(&self) -> Html<Self> {
+        html! {
+            <button
+                class="app_login btn btn-primary btn-lg",
+                onclick=|_| Msg::Login,
+            >
+                { "Login with " }
+                { svg::scatter_large() }
+            </button>
+        }
+    }
 
-fn company_link(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("a")?;
-    el.set_class_name("company_link");
-    el.set_attribute("href", "//sagan.software")?;
+    fn view_user_ok(&self, identity: &ScatterIdentity) -> Html<Self> {
+        let account_name = identity.account_name().unwrap_or_else(|| n!(anon).into());
+        let profile_route = Route::Profile(
+            self.context.selected_chain.to_chain_id_prefix(),
+            account_name.clone(),
+        );
+        html! {
+            <div class="app_user_actions", >
+                <a
+                    class="app_user_account",
+                    href=profile_route.to_string(),
+                    onclick=|e| {
+                        e.prevent_default();
+                        Msg::NavigateTo(profile_route.clone())
+                    },
+                >
+                    { svg::head() }
+                    { account_name }
+                </a>
+                <button class="app_user_logout",
+                    onclick=|_| Msg::Logout,
+                >
+                    { svg::logout() }
+                </button>
+            </div>
+        }
+    }
 
-    let node = AsRef::<Node>::as_ref(&el);
-    node.set_text_content(Some("sagan.software"));
-    Ok(el)
-}
+    fn view_user_err(&self, _error: &ScatterError) -> Html<Self> {
+        html! {
+            <button
+                class="app_login btn btn-danger btn-lg",
+                onclick=|_| Msg::Login,
+            >
+                { "Login with " }
+                { svg::scatter_large() }
+            </button>
+        }
+    }
 
-fn social_links(ctx: &Context) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("nav")?;
-    el.set_class_name("social_links");
+    fn view_content(&self) -> Html<Self> {
+        html!{
+            <div class="app_content", >
+                { self.view_page() }
+            </div>
+        }
+    }
 
-    let node = AsRef::<Node>::as_ref(&el);
+    fn view_footer(&self) -> Html<Self> {
+        html!{
+            <footer class="app_footer", >
+                <div class="app_container", >
+                    <p class="app_footer_text", >
+                        { "Created by " }
+                        <a href="//www.sagan.software", >{ "sagan.software" }</a>
+                        { " © 2018" }
+                    </p>
+                    <p class="app_footer_links", >
+                        <a href="//www.github.com/sagan-software", >
+                            { svg::github() }
+                            { "Github" }
+                        </a>
+                        <a href="//www.twitter.com/SaganSoftware", >
+                            { svg::twitter() }
+                            { "Twitter" }
+                        </a>
+                        <a href="https://t.me/SaganSoftware", >
+                            { svg::telegram() }
+                            { "Telegram" }
+                        </a>
+                    </p>
+                </div>
+            </footer>
+        }
+    }
 
-    let github = social_link(ctx, "Github", "https://github.com/sagan-software")?;
-    node.append_child(github.as_ref())?;
+    fn view_unknown_chain(&self, chain_id_prefix: &ChainIdPrefix) -> Html<Self> {
+        html! {
+            <div class="page error_page", >
+                <header class="page_header", >
+                    <div class="app_container", >
+                        <h1 class="page_title", >
+                            { "Unknown Chain"}
+                        </h1>
+                    </div>
+                </header>
+                <main class="page_content", >
+                    <div class="app_container", >
+                        { svg::link_cross() }
+                        <p>{ format!("Couldn't find an EOS blockchain with chain ID prefix '{}'", chain_id_prefix.to_string())}</p>
+                    </div>
+                </main>
+            </div>
+        }
+    }
 
-    let twitter = social_link(ctx, "Twitter", "https://twitter.com/SaganSoftware")?;
-    node.append_child(twitter.as_ref())?;
-
-    let telegram = social_link(ctx, "Telegram", "https://t.me/SaganSoftware")?;
-    node.append_child(telegram.as_ref())?;
-
-    Ok(el)
-}
-
-fn social_link(ctx: &Context, text: &str, href: &str) -> Result<Element, JsValue> {
-    let el = ctx.doc.create_element("a")?;
-    el.set_class_name("social_link");
-    el.set_attribute("href", href)?;
-
-    let node = AsRef::<Node>::as_ref(&el);
-    node.set_text_content(Some(text));
-    Ok(el)
+    fn view_page(&self) -> Html<App> {
+        match &self.route {
+            Some(result) => match result {
+                Ok(route) => match route {
+                    Route::Home(chain_id_prefix) => match chain_id_prefix {
+                        Some(chain_id_prefix) => match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <HomePage:
+                                    context=&self.context,
+                                    chain=Some(chain),
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        },
+                        None => html! {
+                            <HomePage:
+                                context=&self.context,
+                                chain=None,
+                            />
+                        },
+                    },
+                    Route::Profile(chain_id_prefix, ref account) => {
+                        match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <ProfilePage:
+                                    context=&self.context,
+                                    chain=chain,
+                                    account=account,
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        }
+                    }
+                    Route::PollVoting(chain_id_prefix, ref poll_id) => {
+                        match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <PollVotingPage:
+                                    context=&self.context,
+                                    chain=chain,
+                                    poll_id=poll_id,
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        }
+                    }
+                    Route::PollResults(chain_id_prefix, ref poll_id) => {
+                        match self.context.find_chain(chain_id_prefix) {
+                            Some(chain) => html! {
+                                <PollResultsPage:
+                                    context=&self.context,
+                                    chain=chain,
+                                    poll_id=poll_id,
+                                />
+                            },
+                            None => self.view_unknown_chain(chain_id_prefix),
+                        }
+                    }
+                },
+                Err(error) => match error {
+                    RouteError::NotFound(url) => html! {
+                        <>
+                            { format!("404 not found: {}", url)}
+                        </>
+                    },
+                    RouteError::SecurityError(_error) => html! {
+                        <>
+                            { "something bad happened"}
+                        </>
+                    },
+                },
+            },
+            None => html! {
+                <>
+                    { "loading..."}
+                </>
+            },
+        }
+    }
 }

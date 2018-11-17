@@ -1,0 +1,66 @@
+.poll_list {
+
+    & .poll {
+        display: flex;
+        flex-direction: column;
+
+        &:not(:last-of-type) {
+            margin-bottom: var(--spacing);
+        }
+    }
+
+    & .poll_title {
+        order: 1;
+        font-size: 1.4rem;
+        font-weight: bold;
+    }
+
+    & .poll_details {
+        order: 2;
+        display: flex;
+        font-size: 1.2rem;
+        transition: 300ms;
+        color: #999;
+    }
+
+    & .poll_account {
+        order: 1;
+        margin-right: var(--spacing);
+        color: #999;
+    }
+
+    & .poll_votes {
+        order: 2;
+    }
+
+    & .poll_create_time {
+        order: 2;
+    }
+
+}
+
+.popular_polls {
+
+    & .poll_create_time {
+        display: none;
+    }
+
+}
+
+
+.new_polls {
+
+    & .poll_votes {
+        display: none;
+    }
+
+    & .poll_details {
+        display: none;
+        font-size: 1.2rem;
+    }
+
+    & .poll_title {
+        font-weight: normal;
+    }
+
+}

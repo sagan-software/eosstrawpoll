@@ -3,7 +3,7 @@ use eosio::*;
 
 #[eosio_action]
 pub fn createpoll(
-    name: PollName,
+    id: PollId,
     account: AccountName,
     title: String,
     prefilled_options: Vec<String>,
@@ -15,11 +15,11 @@ pub fn createpoll(
     open_time: Time,
     close_time: Time,
 ) {
-    account.require_auth();
+    require_auth(account);
 
     let num_prefilled_options = prefilled_options.len() as u16;
 
-    eosio_assert(title.len() != 0, "title must not be empty");
+    eosio_assert(title.len() > 0, "title must not be empty");
     eosio_assert(
         min_answers <= max_answers,
         "min_answers cannot be greater than max_answers",
@@ -50,8 +50,12 @@ pub fn createpoll(
         "close_time must be 0 or after open_time",
     );
 
+    // TODO: check each option, make sure there are no empty options or duplicates
+
+    let create_time = Time::now();
+
     let poll = Poll {
-        name,
+        id,
         account,
         title,
         prefilled_options,
@@ -62,14 +66,26 @@ pub fn createpoll(
         account_list,
         open_time,
         close_time,
-        create_time: Time::now(),
+        create_time,
     };
 
     let code = AccountName::receiver();
     let table = Poll::table(code, code);
-    table.insert(code, &poll).assert("write");
+    table.emplace(account, &poll).assert("write");
 
-    // let tease: PollTease = poll.into();
+    let tease = PollTease {
+        id,
+        account,
+        title: poll.title,
+        create_time,
+        open_time,
+        close_time,
+        num_votes: 0,
+        popularity: 0.0,
+    };
+
+    let popular_polls = PollTease::table(code, code);
+    popular_polls.emplace(code, &tease).assert("write");
 
     // let table = get_popular_table();
     // table.emplace(code, tease.clone());

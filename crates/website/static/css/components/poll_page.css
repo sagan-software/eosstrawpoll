@@ -1,0 +1,105 @@
+.poll_page {
+
+    & .poll_num_answers {
+        grid-row: 1;
+        grid-column: 2 / span 3;
+        font-size: 1.8rem;
+        color: #999;
+        font-weight: bold;
+        margin: 0;
+        padding: 0;
+    }
+
+    & .poll_options {
+        grid-row: 2;
+        grid-column: 2 / span 3;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        padding: calc(var(--spacing) * 2) 0;
+    }
+
+
+    & .poll_option {
+        display: flex;
+        padding: 0 calc(var(--spacing) * 3);
+        min-height: 5rem;
+        font-size: 1.6rem;
+        border-radius: var(--border-radius);
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+
+        &:not(:last-of-type) {
+            margin-bottom: var(--spacing);
+        }
+    }
+
+    & .poll_option_text {
+        padding-left: var(--spacing);
+        user-select: none;
+        position: relative;
+        z-index: 2;
+    }
+
+    & .poll_option_percent {
+        position: relative;
+        z-index: 2;
+        text-align: right;
+    }
+
+    & .poll_actions {
+        grid-row: 3;
+        grid-column: 2 / span 3;
+        display: flex;
+        align-items: center;
+        font-size: 1.8rem;
+        justify-content: space-between;
+
+        & .btn {
+            order: 1;
+        }
+
+        & p {
+            order: 2;
+        }
+
+        & a {
+            order: 3;
+            border: 1px solid var(--border-color);
+            min-height: 5rem;
+            padding: 0 calc(var(--spacing) * 3);
+            display: flex;
+            align-items: center;
+            border-radius: var(--border-radius);
+        }
+
+    }
+}
+
+
+.poll_page_results {
+
+    & .poll_option {
+        cursor: default;
+        justify-content: space-between;
+        background-color: #eaecf1;
+    }
+
+    & .poll_option_text {
+        font-weight: bold;
+    }
+
+    & .poll_option_bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        background-color: #d4d8e2;
+        z-index: 1;
+        width: 100%;
+        transform-origin: top left;
+        transform: scaleX(0);
+        transition: 500ms transform;
+    }
+}
