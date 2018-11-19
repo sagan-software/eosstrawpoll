@@ -352,14 +352,6 @@
 			"base": "",
 			"fields": [
 				{
-					"name": "id",
-					"type": "uint64"
-				},
-				{
-					"name": "poll_id",
-					"type": "poll_id"
-				},
-				{
 					"name": "account",
 					"type": "account_name"
 				},

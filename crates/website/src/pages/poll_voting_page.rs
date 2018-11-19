@@ -328,7 +328,7 @@ impl PollVotingPage {
 
     fn fetch_poll(&mut self) {
         let params = TableRowsParams {
-            scope: self.props.chain.code_account.clone(),
+            scope: self.props.chain.code_account.into(),
             code: self.props.chain.code_account.clone(),
             table: n!(polls).into(),
             json: true,
@@ -347,18 +347,16 @@ impl PollVotingPage {
     }
 
     fn fetch_votes(&mut self) {
-        let lower_bound: u64 = self.props.poll_id.into();
-        let upper_bound = lower_bound + 1;
         let params = TableRowsParams {
-            scope: self.props.chain.code_account.clone(),
+            scope: self.props.poll_id.into(),
             code: self.props.chain.code_account.clone(),
             table: n!(votes).into(),
             json: true,
-            lower_bound: Some(lower_bound.to_string()),
-            upper_bound: Some(upper_bound.to_string()),
+            lower_bound: None,
+            upper_bound: None,
             limit: Some(10000),
-            key_type: Some("i64".into()),
-            index_position: Some("2".into()),
+            key_type: None,
+            index_position: None,
             encode_type: None,
         };
 

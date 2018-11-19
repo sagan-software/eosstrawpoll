@@ -79,9 +79,6 @@ impl Poll {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Vote {
     #[primary]
-    pub id: u64,
-    #[secondary]
-    pub poll_id: PollId,
     pub account: AccountName,
     pub create_time: Time,
     pub answers: Vec<Answer>,

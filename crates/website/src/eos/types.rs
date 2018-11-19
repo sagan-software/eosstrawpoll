@@ -44,7 +44,7 @@ pub struct TableRows<Row> {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct TableRowsParams {
     pub json: bool,
-    pub scope: AccountName,
+    pub scope: ScopeName,
     pub code: AccountName,
     pub table: TableName,
     #[serde(skip_serializing_if = "Option::is_none")]

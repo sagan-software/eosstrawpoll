@@ -316,7 +316,7 @@ impl EosAgent {
     fn fetch_global_config(&mut self) {
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.clone(),
+            scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
             table: n!(globalconfig).into(),
             lower_bound: None,
@@ -335,7 +335,7 @@ impl EosAgent {
         let upper_bound = lower_bound + 1;
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.clone(),
+            scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
             table: n!(polls).into(),
             lower_bound: Some(lower_bound.to_string()),
@@ -358,7 +358,7 @@ impl EosAgent {
     fn fetch_popular_polls(&mut self) {
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.clone(),
+            scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
             table: n!(popularpolls).into(),
             lower_bound: None,
@@ -375,7 +375,7 @@ impl EosAgent {
     fn fetch_new_polls(&mut self) {
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.clone(),
+            scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
             table: n!(newpolls).into(),
             lower_bound: None,
@@ -392,7 +392,7 @@ impl EosAgent {
     fn fetch_donors(&mut self) {
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.clone(),
+            scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
             table: n!(donors).into(),
             lower_bound: None,
@@ -409,7 +409,7 @@ impl EosAgent {
     fn fetch_new_donations(&mut self) {
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.clone(),
+            scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
             table: n!(newdonations).into(),
             lower_bound: None,

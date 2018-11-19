@@ -86,10 +86,4 @@ pub fn createpoll(
 
     let popular_polls = PollTease::table(code, code);
     popular_polls.emplace(code, &tease).assert("write");
-
-    // let table = get_popular_table();
-    // table.emplace(code, tease.clone());
-
-    // let table = get_new_table();
-    // table.emplace(code, tease.clone());
 }
