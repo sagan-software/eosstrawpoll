@@ -471,7 +471,7 @@
 				},
 				{
 					"name": "donated",
-					"type": "uint64"
+					"type": "int64"
 				},
 				{
 					"name": "memo",
@@ -493,15 +493,7 @@
 				},
 				{
 					"name": "donated",
-					"type": "uint64"
-				},
-				{
-					"name": "first_donation",
-					"type": "donation"
-				},
-				{
-					"name": "last_donation",
-					"type": "donation"
+					"type": "int64"
 				}
 			]
 		},
@@ -795,21 +787,14 @@
 			"key_types": ["i64", "i64"]
 		},
 		{
-			"name": "popularpolls",
+			"name": "pollteases",
 			"type": "poll_tease",
 			"index_type": "i64",
-			"key_names": ["popularity"],
-			"key_types": ["double"]
+			"key_names": ["popularity", "created"],
+			"key_types": ["double", "i64"]
 		},
 		{
-			"name": "newpolls",
-			"type": "poll_tease",
-			"index_type": "i64",
-			"key_names": ["created"],
-			"key_types": ["i64"]
-		},
-		{
-			"name": "newdonations",
+			"name": "donations",
 			"type": "donation",
 			"index_type": "i64",
 			"key_names": [],

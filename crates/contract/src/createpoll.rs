@@ -1,4 +1,5 @@
 use crate::types::*;
+use crate::constants::*;
 use eosio::*;
 
 #[eosio_action]
@@ -53,6 +54,7 @@ pub fn createpoll(
     // TODO: check each option, make sure there are no empty options or duplicates
 
     let create_time = Time::now();
+    let open_time = open_time.max(create_time);
 
     let poll = Poll {
         id,
@@ -69,8 +71,8 @@ pub fn createpoll(
         create_time,
     };
 
-    let code = AccountName::receiver();
-    let table = Poll::table(code, code);
+    let _self = AccountName::receiver();
+    let table = Poll::table(_self, _self);
     table.emplace(account, &poll).assert("write");
 
     let tease = PollTease {
@@ -84,6 +86,11 @@ pub fn createpoll(
         popularity: 0.0,
     };
 
-    let popular_polls = PollTease::table(code, code);
-    popular_polls.emplace(code, &tease).assert("write");
+    let popular_polls = PollTease::table(_self, POPULAR_SCOPE);
+    if popular_polls.count() < MAX_POPULAR_POLLS {
+        popular_polls.emplace(_self, &tease).assert("write");
+    }
+
+    let new_polls = PollTease::table(_self, NEW_SCOPE);
+    new_polls.emplace(_self, &tease).assert("write");
 }

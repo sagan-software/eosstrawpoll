@@ -54,6 +54,7 @@ services:
       - keosd-data-volume:/opt/eosio/bin/data-dir
       - ../target/wasm32-unknown-unknown/release:/mnt/dev/release:ro
       - ../crates/contract:/mnt/dev/contract:ro
+      - ./:/mnt/dev/docker:ro
     links:
       - nodeosd
     stop_grace_period: 10m

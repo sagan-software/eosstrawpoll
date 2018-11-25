@@ -1,4 +1,5 @@
 use crate::eos::types::*;
+use eosio_rpc::TableRows;
 use failure;
 use http::Response;
 use serde;

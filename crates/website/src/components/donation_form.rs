@@ -1,12 +1,15 @@
+use crate::chains::Chain;
 use crate::components::*;
+use crate::context::Context;
 use crate::eos::*;
 use crate::prelude::*;
 use crate::scatter::*;
-use eosio::AccountName;
+use eosio::{AccountName, Asset, Authorization, ToAction};
+use eosio_token::TransferAction;
 use stdweb::traits::IEvent;
 
 pub struct DonationForm {
-    amount: f32,
+    amount: f64,
     submitting: bool,
     context: Context,
     scatter_agent: Box<Bridge<ScatterAgent>>,
@@ -54,7 +57,7 @@ impl Component for DonationForm {
         match msg {
             Msg::Chain(_output) => false,
             Msg::SetAmount(amount) => {
-                let amount = amount.parse::<f32>();
+                let amount = amount.parse::<f64>();
                 match amount {
                     Ok(amount) => {
                         if amount > 0.0001 {
@@ -81,19 +84,24 @@ impl Component for DonationForm {
                 };
 
                 let amount = if self.amount == 0. { 1. } else { self.amount };
+                let amount = amount * 10f64.powf(self.chain.core_symbol.precision() as f64);
                 let network = self.chain.to_scatter_network();
                 let config = self.chain.to_eos_config();
-                let action = Transfer {
-                    from: donor,
+
+                let quantity = Asset {
+                    amount: amount as i64,
+                    symbol: self.chain.core_symbol,
+                };
+                let action = TransferAction {
+                    from: donor.clone(),
                     to: self.chain.code_account.clone(),
-                    quantity: format!(
-                        "{:.4} {}",
-                        amount,
-                        self.chain.core_symbol.name().to_string()
-                    ),
+                    quantity,
                     memo: "Funded EOS Straw Poll".to_string(),
                 }
-                .to_action(&self.chain);
+                .to_action(
+                    self.chain.eosio_token_account,
+                    vec![Authorization::active(donor)],
+                );
 
                 let transaction: ScatterTransaction = action.into();
                 self.scatter_agent.send(ScatterInput::PushTransaction(

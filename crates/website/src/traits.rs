@@ -1,6 +1,6 @@
+use crate::chains::Chain;
 use crate::eos::types::*;
 use crate::router::Route;
-use crate::types::Chain;
 use eosio::Action;
 use serde::{Deserialize, Serialize};
 use serde_json;

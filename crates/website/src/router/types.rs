@@ -1,6 +1,6 @@
 use contract::PollId;
+use crate::chains::ChainIdPrefix;
 use crate::eos::types::*;
-use crate::types::*;
 use eosio::AccountName;
 use std::str::FromStr;
 use stdweb::web::error::SecurityError;

@@ -1,4 +1,6 @@
+use crate::chains::Chain;
 use crate::components::*;
+use crate::context::Context;
 use crate::prelude::*;
 
 pub struct HomePage {

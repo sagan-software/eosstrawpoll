@@ -1,17 +1,20 @@
-use contract::GlobalConfig;
+use contract::{CreatepollAction, GlobalConfig, PollId};
+use crate::chains::Chain;
 use crate::components::*;
+use crate::context::Context;
 use crate::eos::*;
 use crate::prelude::*;
 use crate::router::RouterAgent;
 use crate::scatter::*;
 use crate::views::svg;
-use eosio::AccountName;
+use eosio::{AccountName, Authorization, ToAction};
 use std::cmp::{max, min};
 use std::collections::HashSet;
 use stdweb::traits::IEvent;
+use stdweb::unstable::TryInto;
 
 pub struct PollForm {
-    action: CreatePoll,
+    action: CreatepollAction,
     submitting: bool,
     props: Props,
     scatter_agent: Box<Bridge<ScatterAgent>>,
@@ -49,6 +52,20 @@ pub struct Props {
     pub chain: Chain,
 }
 
+fn random_slug() -> PollId {
+    let id_str: String = js! {
+        var text = "";
+        var possible = "abcdefghijklmnopqrstuvwxyz12345";
+        for (var i = 0; i < 12; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
+    .try_into()
+    .unwrap();
+    PollId::from_string(id_str).unwrap()
+}
+
 impl Component for PollForm {
     type Message = Msg;
     type Properties = Props;
@@ -58,9 +75,13 @@ impl Component for PollForm {
             ScatterAgent::new("eosstrawpoll".into(), 10000, link.send_back(Msg::Scatter));
         let eos_agent = EosAgent::bridge(link.send_back(Msg::Chain));
         // api.send(EosInput::GetGlobalConfig);
+        let mut action = CreatepollAction::default();
+        action.prefilled_options.push("".to_string());
+        action.prefilled_options.push("".to_string());
+        action.prefilled_options.push("".to_string());
 
         PollForm {
-            action: CreatePoll::default(),
+            action,
             submitting: false,
             props,
             scatter_agent,
@@ -110,7 +131,7 @@ impl Component for PollForm {
                         "deleted option {}, leaving options {:#?}",
                         i, self.action.prefilled_options
                     );
-                    let options_len = self.action.prefilled_options.len();
+                    let options_len = self.action.prefilled_options.len() as u16;
                     self.action.max_answers = min(self.action.max_answers, options_len);
                     self.action.min_answers = min(self.action.max_answers, self.action.min_answers);
                     if self.validation_result.is_some() {
@@ -141,7 +162,7 @@ impl Component for PollForm {
                     return true;
                 }
 
-                self.action.random_slug();
+                self.action.id = random_slug();
 
                 let network = self.props.chain.to_scatter_network();
                 let config = self.props.chain.to_eos_config();
@@ -154,7 +175,7 @@ impl Component for PollForm {
 
                 if !self.use_advanced {
                     action.min_answers = 1;
-                    let options_len = action.prefilled_options.len();
+                    let options_len = action.prefilled_options.len() as u16;
                     match (self.allow_multiple_answers, self.allow_writeins) {
                         (true, true) => {
                             action.max_writein_answers = max(options_len, 2);
@@ -175,7 +196,13 @@ impl Component for PollForm {
                     }
                 }
 
-                let transaction: ScatterTransaction = action.to_action(&self.props.chain).into();
+                let account = action.account.clone();
+                let transaction: ScatterTransaction = action
+                    .to_action(
+                        self.props.chain.code_account,
+                        vec![Authorization::active(account)],
+                    )
+                    .into();
 
                 self.scatter_agent.send(ScatterInput::PushTransaction(
                     network,

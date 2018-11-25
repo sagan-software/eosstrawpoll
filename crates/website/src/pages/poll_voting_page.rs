@@ -1,11 +1,14 @@
-use contract::{Answer, Poll, PollId, Vote};
+use contract::{Answer, CreatevoteAction, Poll, PollId, Vote};
+use crate::chains::Chain;
 use crate::components::*;
+use crate::context::Context;
 use crate::eos::*;
 use crate::prelude::*;
 use crate::router::RouterAgent;
 use crate::scatter::*;
 use crate::views::svg;
-use eosio::{n, AccountName};
+use eosio::{n, AccountName, Authorization, ToAction};
+use eosio_rpc::TableRows;
 use stdweb::traits::IEvent;
 use stdweb::web::document;
 use yew::services::fetch::FetchTask;
@@ -182,12 +185,15 @@ impl Component for PollVotingPage {
                 let network = self.props.chain.to_scatter_network();
                 let config = self.props.chain.to_eos_config();
 
-                let action = CreateVote {
+                let action = CreatevoteAction {
                     poll_id: self.props.poll_id.clone(),
                     account: voter.clone(),
                     answers: self.answers.clone(),
                 }
-                .to_action(&self.props.chain);
+                .to_action(
+                    self.props.chain.code_account,
+                    vec![Authorization::active(voter)],
+                );
 
                 let transaction: ScatterTransaction = action.into();
 

@@ -125,13 +125,14 @@ impl Answer {
     }
 }
 
-#[eosio_table(popularpolls)]
+#[eosio_table(pollteases)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct PollTease {
     #[primary]
     pub id: PollId,
     pub account: AccountName,
     pub title: String,
+    #[secondary]
     pub create_time: Time,
     pub open_time: Time,
     pub close_time: Time,
@@ -144,13 +145,13 @@ pub struct PollTease {
     pub popularity: f64,
 }
 
-#[eosio_table(newdonations)]
+#[eosio_table(donations)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Donation {
     #[primary]
     pub id: u64,
     pub account: AccountName,
-    pub donated: u64,
+    pub donated: i64,
     pub memo: String,
     pub create_time: Time,
 }
@@ -160,9 +161,7 @@ pub struct Donation {
 pub struct Donor {
     #[primary]
     pub account: AccountName,
-    pub donated: u64,
-    pub first_donation: Donation,
-    pub last_donation: Donation,
+    pub donated: i64,
 }
 
 #[derive(Debug, Read, Write, NumBytes, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]

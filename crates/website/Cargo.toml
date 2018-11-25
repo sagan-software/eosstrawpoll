@@ -15,3 +15,5 @@ http = "0.1"
 failure = "0.1"
 contract = { path = "../contract", default-features = false, features = ["web"] }
 eosio = { path = "../../../rust-eos/crates/eosio", default-features = false, features = ["serde"] }
+eosio_rpc = { path = "../../../rust-eos/crates/eosio_rpc" }
+eosio_token = { path = "../../../rust-eos/crates/eosio_token", default-features = false, features = ["web"] }

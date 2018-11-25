@@ -1,5 +1,7 @@
 use super::link::Link;
 use contract::Donation;
+use crate::chains::Chain;
+use crate::context::Context;
 use crate::eos::*;
 use crate::prelude::*;
 use crate::views::svg;

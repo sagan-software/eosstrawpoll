@@ -48,7 +48,7 @@ impl ScatterService {
                     .connect(appname)
                     .then(function (connected) {
                         console.log("!!!! CONNECTED?", connected);
-                        callback(true, Scatter.scatter);
+                        callback(connected, Scatter.scatter);
                         callback.drop();
                     })
                     .catch(function (error) {

@@ -1,8 +1,10 @@
 use contract::{Donation, Donor, GlobalConfig, Poll, PollId, PollTease};
+use contract::constants::*;
+use crate::chains::Chain;
 use crate::eos::service::*;
 use crate::eos::types::*;
-use crate::types::*;
-use eosio::{n, AccountName};
+use eosio::{n, AccountName, TableRow};
+use eosio_rpc::TableRows;
 use serde::Deserialize;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -337,12 +339,12 @@ impl EosAgent {
             json: true,
             scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
-            table: n!(polls).into(),
+            table: Poll::TABLE_NAME.into(),
             lower_bound: Some(lower_bound.to_string()),
             upper_bound: Some(upper_bound.to_string()),
             limit: Some(150),
-            key_type: Some("i64".into()),
-            index_position: Some("2".into()),
+            key_type: None,
+            index_position: None,
             encode_type: None,
         };
         let acct = account.clone();
@@ -358,12 +360,12 @@ impl EosAgent {
     fn fetch_popular_polls(&mut self) {
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.into(),
+            scope: POPULAR_SCOPE.into(),
             code: self.chain.code_account.clone(),
-            table: n!(popularpolls).into(),
+            table: PollTease::TABLE_NAME.into(),
             lower_bound: None,
             upper_bound: None,
-            limit: Some(150),
+            limit: Some(MAX_POPULAR_POLLS as u32),
             key_type: None,
             index_position: None,
             encode_type: None,
@@ -375,12 +377,12 @@ impl EosAgent {
     fn fetch_new_polls(&mut self) {
         let params = TableRowsParams {
             json: true,
-            scope: self.chain.code_account.into(),
+            scope: NEW_SCOPE.into(),
             code: self.chain.code_account.clone(),
-            table: n!(newpolls).into(),
+            table: PollTease::TABLE_NAME.into(),
             lower_bound: None,
             upper_bound: None,
-            limit: Some(150),
+            limit: Some(MAX_NEW_POLLS as u32),
             key_type: None,
             index_position: None,
             encode_type: None,
@@ -394,7 +396,7 @@ impl EosAgent {
             json: true,
             scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
-            table: n!(donors).into(),
+            table: Donor::TABLE_NAME.into(),
             lower_bound: None,
             upper_bound: None,
             limit: Some(150),
@@ -411,10 +413,10 @@ impl EosAgent {
             json: true,
             scope: self.chain.code_account.into(),
             code: self.chain.code_account.clone(),
-            table: n!(newdonations).into(),
+            table: Donation::TABLE_NAME.into(),
             lower_bound: None,
             upper_bound: None,
-            limit: Some(150),
+            limit: Some(MAX_NEW_DONATIONS as u32),
             key_type: None,
             index_position: None,
             encode_type: None,

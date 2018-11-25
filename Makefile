@@ -24,22 +24,33 @@ CLEOS := $(DOCKER_COMPOSE) exec keosd cleos --url http://nodeosd:8888 --wallet-u
 PUBKEY := EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
 PRIVKEY := 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
 
-docker:
+docker-down:
 	$(DOCKER_COMPOSE) down
 	docker volume rm -f nodeos-data-volume
 	docker volume rm -f keosd-data-volume
+
+docker: docker-down
 	docker volume create --name=nodeos-data-volume
 	docker volume create --name=keosd-data-volume
 	$(DOCKER_COMPOSE) up
 
 
-wallet:
+init:
 	$(CLEOS) wallet create --to-console
 	$(CLEOS) wallet import --private-key $(PRIVKEY)
 	$(CLEOS) create account eosio eosstrawpoll $(PUBKEY) $(PUBKEY)
 	$(CLEOS) create account eosio alice $(PUBKEY) $(PUBKEY)
 	$(CLEOS) create account eosio bob $(PUBKEY) $(PUBKEY)
 	$(CLEOS) create account eosio carol $(PUBKEY) $(PUBKEY)
+	$(CLEOS) create account eosio eosio.token $(PUBKEY) $(PUBKEY)
+	$(CLEOS) set abi eosio.token /mnt/dev/docker/eosio_token.abi.json
+	$(CLEOS) set code eosio.token /mnt/dev/docker/eosio_token.wasm
+	$(CLEOS) push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token
+	$(CLEOS) push action eosio.token issue '[ "eosio", "10000000000.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "eosstrawpoll", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "alice", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "bob", "2500.0000 SYS", "memo" ]' -p eosio
+	$(CLEOS) push action eosio.token transfer '[ "eosio", "carol", "2500.0000 SYS", "memo" ]' -p eosio
 
 %_gc.wasm: %.wasm
 	wasm-gc $*.wasm $*_gc.wasm

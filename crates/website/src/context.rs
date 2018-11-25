@@ -1,3 +1,6 @@
+use crate::chains::{
+    eos_devnet, eos_testnet_jungle, kylin_testnet, telos_testnet, Chain, ChainIdPrefix,
+};
 use crate::prelude::*;
 use std::str::FromStr;
 use stdweb::unstable::TryInto;

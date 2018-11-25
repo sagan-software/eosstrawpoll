@@ -1,6 +1,5 @@
 #![recursion_limit = "500"]
 #![warn(clippy)]
-#![feature(proc_macro_hygiene)]
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -18,7 +17,9 @@ extern crate failure;
 mod macros;
 
 mod app;
+mod chains;
 mod components;
+mod context;
 mod eos;
 mod pages;
 mod prelude;
@@ -26,7 +27,6 @@ mod router;
 mod scatter;
 mod seo;
 mod traits;
-mod types;
 mod views;
 
 pub use crate::app::App as Model;
