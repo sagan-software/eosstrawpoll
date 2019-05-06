@@ -1,4 +1,4 @@
-#include <eosstrawpoll/contract.hpp>
+#include "contract.hpp"
 
 namespace eosstrawpoll
 {
@@ -7,11 +7,11 @@ void contract::closepoll(const poll_id_t poll_id)
 {
     auto poll = polls_table.find(poll_id);
 
-    eosio_assert(poll != polls_table.end(), "poll does not exist");
+    eosio::check(poll != polls_table.end(), "poll does not exist");
 
     require_auth(poll->account);
 
-    eosio_assert(!poll->is_closed(), "poll is already closed");
+    eosio::check(!poll->is_closed(), "poll is already closed");
 
     const auto close_time = now();
     auto open_time = poll->open_time;

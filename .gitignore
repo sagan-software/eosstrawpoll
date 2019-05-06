@@ -1,11 +1,38 @@
-/website/target
-**/*.rs.bk
-/website/Cargo.lock
-/website/node_modules
-/contract/*.wast
-/contract/*.wasm
-/contract/*.abi
-/contract/build
-/website/dist
-/target
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+build
 .DS_Store
+.vscode
+
+node_modules

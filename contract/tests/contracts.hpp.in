@@ -1,74 +1,52 @@
 #pragma once
 #include <eosio/testing/tester.hpp>
 
-namespace eosstrawpoll
+namespace eosio
 {
 
-using namespace eosio::testing;
+namespace testing
+{
 
 struct contracts
 {
-    static std::vector<uint8_t> wasm()
-    {
-        return read_wasm("${CMAKE_BINARY_DIR}/../eosstrawpoll.wasm");
-    }
-
-    static std::string wast()
-    {
-        return read_wast("${CMAKE_BINARY_DIR}/../eosstrawpoll.wast");
-    }
-
-    static std::vector<char> abi()
-    {
-        return read_abi("${CMAKE_BINARY_DIR}/../eosstrawpoll.abi");
-    }
-    static std::vector<uint8_t> system_wasm()
-    {
-        return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.system/eosio.system.wasm");
-    }
-    static std::string system_wast()
-    {
-        return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.system/eosio.system.wast");
-    }
-    static std::vector<char> system_abi()
-    {
-        return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.system/eosio.system.abi");
-    }
-    static std::vector<uint8_t> token_wasm()
-    {
-        return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.token/eosio.token.wasm");
-    }
-    static std::string token_wast()
-    {
-        return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.token/eosio.token.wast");
-    }
-    static std::vector<char> token_abi()
-    {
-        return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.token/eosio.token.abi");
-    }
-    static std::vector<uint8_t> msig_wasm()
-    {
-        return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.msig/eosio.msig.wasm");
-    }
-    static std::string msig_wast()
-    {
-        return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.msig/eosio.msig.wast");
-    }
-    static std::vector<char> msig_abi()
-    {
-        return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.msig/eosio.msig.abi");
-    }
-    static std::vector<uint8_t> sudo_wasm()
-    {
-        return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.sudo/eosio.sudo.wasm");
-    }
-    static std::string sudo_wast()
-    {
-        return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.sudo/eosio.sudo.wast");
-    }
-    static std::vector<char> sudo_abi()
-    {
-        return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/eosio.sudo/eosio.sudo.abi");
-    }
+   static std::vector<uint8_t> system_wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.system/eosio.system.wasm"); }
+   static std::string system_wast() { return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.system/eosio.system.wast"); }
+   static std::vector<char> system_abi() { return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.system/eosio.system.abi"); }
+   static std::vector<uint8_t> token_wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.token/eosio.token.wasm"); }
+   static std::string token_wast() { return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.token/eosio.token.wast"); }
+   static std::vector<char> token_abi() { return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.token/eosio.token.abi"); }
+   static std::vector<uint8_t> msig_wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.msig/eosio.msig.wasm"); }
+   static std::string msig_wast() { return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.msig/eosio.msig.wast"); }
+   static std::vector<char> msig_abi() { return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.msig/eosio.msig.abi"); }
+   static std::vector<uint8_t> wrap_wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.wrap/eosio.wrap.wasm"); }
+   static std::string wrap_wast() { return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.wrap/eosio.wrap.wast"); }
+   static std::vector<char> wrap_abi() { return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.wrap/eosio.wrap.abi"); }
+   static std::vector<uint8_t> bios_wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.bios/eosio.bios.wasm"); }
+   static std::string bios_wast() { return read_wast("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.bios/eosio.bios.wast"); }
+   static std::vector<char> bios_abi() { return read_abi("${CMAKE_BINARY_DIR}/../eosio.contracts/contracts/eosio.bios/eosio.bios.abi"); }
 };
-} // namespace eosstrawpoll
+
+} // namespace testing
+
+} // namespace eosio
+
+namespace dapp
+{
+
+namespace testing
+{
+
+using eosio::testing::read_abi;
+using eosio::testing::read_wasm;
+using eosio::testing::read_wast;
+
+struct contracts
+{
+   static std::vector<uint8_t> system_wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../src/contract.wasm"); }
+   static std::string system_wast() { return read_wast("${CMAKE_BINARY_DIR}/../src/contract.wast"); }
+   static std::vector<char> system_abi() { return read_abi("${CMAKE_BINARY_DIR}/../src/contract.abi"); }
+};
+
+} // namespace testing
+
+} // namespace dapp

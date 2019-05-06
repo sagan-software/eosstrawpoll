@@ -1,8 +1,41 @@
 cmake_minimum_required(VERSION 3.5)
-project(eosio_contracts VERSION 1.2.0)
 
-set(EOSIO_DEPENDENCY "1.1")
-set(EOSIO_WASMSDK_DEPENDENCY "1.1")
+project(contract)
+
+set(VERSION_MAJOR 1)
+set(VERSION_MINOR 0)
+set(VERSION_PATCH 0)
+
+if (VERSION_SUFFIX)
+   set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}-${VERSION_SUFFIX}")
+else()
+   set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+endif()
+
+include(ExternalProject)
+
+find_package(eosio.cdt)
+
+message(STATUS "Building contract v${VERSION_FULL}")
+
+set(EOSIO_CDT_VERSION_MIN "1.5")
+set(EOSIO_CDT_VERSION_SOFT_MAX "1.6")
+#set(EOSIO_CDT_VERSION_HARD_MAX "")
+
+### Check the version of eosio.cdt
+set(VERSION_MATCH_ERROR_MSG "")
+EOSIO_CHECK_VERSION(VERSION_OUTPUT "${EOSIO_CDT_VERSION}"
+                                   "${EOSIO_CDT_VERSION_MIN}"
+                                   "${EOSIO_CDT_VERSION_SOFT_MAX}"
+                                   "${EOSIO_CDT_VERSION_HARD_MAX}"
+                                   VERSION_MATCH_ERROR_MSG)
+if(VERSION_OUTPUT STREQUAL "MATCH")
+   message(STATUS "Using eosio.cdt version ${EOSIO_CDT_VERSION}")
+elseif(VERSION_OUTPUT STREQUAL "WARN")
+   message(WARNING "Using eosio.cdt version ${EOSIO_CDT_VERSION} even though it exceeds the maximum supported version of ${EOSIO_CDT_VERSION_SOFT_MAX}; continuing with configuration, however build may fail.\nIt is recommended to use eosio.cdt version ${EOSIO_CDT_VERSION_SOFT_MAX}.x")
+else() # INVALID OR MISMATCH
+   message(FATAL_ERROR "Found eosio.cdt version ${EOSIO_CDT_VERSION} but it does not satisfy version requirements: ${VERSION_MATCH_ERROR_MSG}\nPlease use eosio.cdt version ${EOSIO_CDT_VERSION_SOFT_MAX}.x")
+endif(VERSION_OUTPUT STREQUAL "MATCH")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
    set(TEST_BUILD_TYPE "Debug")
@@ -11,42 +44,29 @@ else()
    set(TEST_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 endif()
 
-if(EOSIO_ROOT STREQUAL "" OR NOT EOSIO_ROOT)
-   set(EOSIO_ROOT "/usr/local/eosio")
-endif()
+ExternalProject_Add(
+   contract_project
+   SOURCE_DIR ${CMAKE_SOURCE_DIR}/src
+   BINARY_DIR ${CMAKE_BINARY_DIR}/src
+   CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
+   UPDATE_COMMAND ""
+   PATCH_COMMAND ""
+   TEST_COMMAND ""
+   INSTALL_COMMAND ""
+   BUILD_ALWAYS 1
+)
 
-if(EOSIO_WASMSDK_ROOT STREQUAL "" OR NOT EOSIO_WASMSDK_ROOT)
-   set(EOSIO_WASMSDK_ROOT "/usr/local/eosio.wasmsdk")
-endif()
-
-list(APPEND CMAKE_MODULE_PATH ${EOSIO_WASMSDK_ROOT}/lib/cmake)
-include(EosioWasmToolchain)
-
-### Check the version of wasmsdk
-string(FIND "${EOSIO_WASMSDK_VERSION}" "${EOSIO_WASMSDK_DEPENDENCY}" output)
-
-if (NOT "${output}" EQUAL 0)
-   message(FATAL_ERROR "Incorrect EOSIO.WasmSDK version, please use version ${EOSIO_WASMSDK_DEPENDENCY}.x")
-endif()
-
-include_directories(AFTER ${BOOST_ROOT}/include)
-
-add_subdirectory(eosio.contracts/eosio.msig)
-add_subdirectory(eosio.contracts/eosio.sudo)
-add_subdirectory(eosio.contracts/eosio.system)
-add_subdirectory(eosio.contracts/eosio.token)
-
-add_executable(eosstrawpoll.wasm ${CMAKE_CURRENT_SOURCE_DIR}/src/eosstrawpoll.cpp)
-target_include_directories(eosstrawpoll.wasm
-   PUBLIC
-   ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-set_target_properties(eosstrawpoll.wasm
-   PROPERTIES
-   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
-
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/abi/eosstrawpoll.abi" "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
-
+ExternalProject_Add(
+   eosio_contracts_project
+   SOURCE_DIR ${CMAKE_SOURCE_DIR}/eosio.contracts/contracts
+   BINARY_DIR ${CMAKE_BINARY_DIR}/eosio.contracts/contracts
+   CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
+   UPDATE_COMMAND ""
+   PATCH_COMMAND ""
+   TEST_COMMAND ""
+   INSTALL_COMMAND ""
+   BUILD_ALWAYS 1
+)
 
 if (APPLE)
    set(OPENSSL_ROOT "/usr/local/opt/openssl")
@@ -55,4 +75,23 @@ elseif (UNIX)
 endif()
 set(SECP256K1_ROOT "/usr/local")
 
-include(UnitTestsExternalProject.txt)
+if (APPLE)
+   set(OPENSSL_ROOT "/usr/local/opt/openssl")
+elseif (UNIX)
+   set(OPENSSL_ROOT "/usr/include/openssl")
+endif()
+set(SECP256K1_ROOT "/usr/local")
+
+string(REPLACE ";" "|" TEST_FRAMEWORK_PATH "${CMAKE_FRAMEWORK_PATH}")
+string(REPLACE ";" "|" TEST_MODULE_PATH "${CMAKE_MODULE_PATH}")
+
+ExternalProject_Add(
+  contracts_unit_tests
+  LIST_SEPARATOR | # Use the alternate list separator
+  CMAKE_ARGS -DCMAKE_BUILD_TYPE=${TEST_BUILD_TYPE} -DCMAKE_FRAMEWORK_PATH=${TEST_FRAMEWORK_PATH} -DCMAKE_MODULE_PATH=${TEST_MODULE_PATH} -DEOSIO_ROOT=${EOSIO_ROOT} -DLLVM_DIR=${LLVM_DIR}
+  SOURCE_DIR ${CMAKE_SOURCE_DIR}/tests
+  BINARY_DIR ${CMAKE_BINARY_DIR}/tests
+  BUILD_ALWAYS 1
+  TEST_COMMAND   ""
+  INSTALL_COMMAND ""
+)

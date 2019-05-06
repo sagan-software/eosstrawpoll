@@ -6,11 +6,11 @@ namespace eosstrawpoll
 void contract::openpoll(const poll_id_t poll_id)
 {
     auto poll = polls_table.find(poll_id);
-    eosio_assert(poll != polls_table.end(), "poll does not exist");
+    eosio::check(poll != polls_table.end(), "poll does not exist");
 
     require_auth(poll->account);
 
-    eosio_assert(!poll->is_open(), "poll is already open");
+    eosio::check(!poll->is_open(), "poll is already open");
 
     polls_table.modify(poll, poll->account, [&](auto &p) {
         p.open_time = now();

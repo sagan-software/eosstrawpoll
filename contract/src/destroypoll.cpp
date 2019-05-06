@@ -8,7 +8,7 @@ namespace eosstrawpoll
 void contract::destroypoll(const poll_id_t poll_id)
 {
     auto poll = polls_table.find(poll_id);
-    eosio_assert(poll != polls_table.end(), "poll doesn't exist");
+    eosio::check(poll != polls_table.end(), "poll doesn't exist");
 
     require_auth(poll->account);
 
