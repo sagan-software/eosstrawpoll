@@ -1,4 +1,3 @@
-import { Menu, MenuItem } from '@material-ui/core';
 import Avatar from '@material-ui/core/Avatar';
 import MuiButton, {
     ButtonProps as MuiButtonProps,
@@ -6,28 +5,30 @@ import MuiButton, {
 import CircularProgress from '@material-ui/core/CircularProgress';
 import MuiLink, { LinkProps as MuiLinkProps } from '@material-ui/core/Link';
 import MuiTypography from '@material-ui/core/Typography';
+import AppBar from '@material-ui/core/AppBar';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import IconButton from '@material-ui/core/IconButton';
+import MenuItem from '@material-ui/core/MenuItem';
+import AccountCircle from '@material-ui/icons/AccountCircle';
+import MenuIcon from '@material-ui/icons/Menu';
+import Settings from '@material-ui/icons/Settings';
+import Tooltip from '@material-ui/core/Tooltip';
+import Menu from '@material-ui/core/Menu';
 import classNames from 'classnames';
+import Box from '@material-ui/core/Box';
 import React, { useCallback } from 'react';
 import * as Router from 'react-router-dom';
 import * as Route from '../route';
 import * as Store from '../store';
 import { makeStyles } from '../styles';
-import * as scatterMachine from '../machines/scatterMachine';
 import { useService } from '@xstate/react';
 import UserNav from './UserNav';
 
 export type Props<E> = React.DetailedHTMLProps<React.HTMLAttributes<E>, E>;
 
 const useContainerStyles = makeStyles({
-    container: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-    },
+    container: {},
 });
 
 export function Container(props: Props<HTMLDivElement>) {
@@ -44,28 +45,86 @@ export function Container(props: Props<HTMLDivElement>) {
 
 const useHeaderStyles = makeStyles((theme) => ({
     header: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: theme.spacing(2),
-        paddingLeft: theme.spacing(4),
-        paddingRight: theme.spacing(4),
-        borderBottomStyle: 'solid',
-        borderBottomWidth: 1,
-        borderBottomColor: theme.palette.grey[300],
-        backgroundColor: theme.palette.common.white,
+        // display: 'flex',
+        // justifyContent: 'center',
+        // alignItems: 'center',
+        // padding: theme.spacing(2),
+        // paddingLeft: theme.spacing(4),
+        // paddingRight: theme.spacing(4),
+        // borderBottomStyle: 'solid',
+        // borderBottomWidth: 1,
+        // borderBottomColor: theme.palette.grey[300],
+        // backgroundColor: theme.palette.common.white,
     },
 }));
 
 export function Header(props: Props<HTMLElement>) {
     const classes = useHeaderStyles();
     return (
-        <header
-            {...props}
-            className={classNames(classes.header, props.className)}
-        >
-            {props.children}
-        </header>
+        // <header
+        //     {...props}
+        //     className={classNames(classes.header, props.className)}
+        // >
+        //     {props.children}
+        // </header>
+        <AppBar position='static'>
+            <Toolbar>
+                <Box display='flex' flex={1}>
+                    <IconButton edge='start' color='inherit' aria-label='Menu'>
+                        <MenuIcon />
+                    </IconButton>
+
+                    <Box
+                        flex={1}
+                        display='flex'
+                        justifyContent='center'
+                        alignItems='center'
+                    >
+                        <Typography variant='h6'>EOS Straw Poll</Typography>
+                    </Box>
+                    <div>
+                        <Tooltip title='Settings' aria-label='Settings'>
+                            <IconButton
+                                // aria-owns={open ? 'menu-appbar' : undefined}
+
+                                // onClick={handleMenu}
+                                color='inherit'
+                            >
+                                <Settings />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title='Account'>
+                            <IconButton
+                                // aria-owns={open ? 'menu-appbar' : undefined}
+                                aria-haspopup='true'
+                                // onClick={handleMenu}
+                                color='inherit'
+                            >
+                                <AccountCircle />
+                            </IconButton>
+                        </Tooltip>
+                        <Menu
+                            open={false}
+                            id='menu-appbar'
+                            // anchorEl={anchorEl}
+                            anchorOrigin={{
+                                vertical: 'top',
+                                horizontal: 'right',
+                            }}
+                            transformOrigin={{
+                                vertical: 'top',
+                                horizontal: 'right',
+                            }}
+                            // open={open}
+                            // onClose={handleClose}
+                        >
+                            <MenuItem>Profile</MenuItem>
+                            <MenuItem>My account</MenuItem>
+                        </Menu>
+                    </div>
+                </Box>
+            </Toolbar>
+        </AppBar>
     );
 }
 
@@ -159,11 +218,7 @@ export function SiteNav(props: Props<HTMLElement>) {
 }
 
 const useFooterStyles = makeStyles((theme) => ({
-    footer: {
-        borderTopStyle: 'solid',
-        borderTopWidth: 2,
-        borderTopColor: theme.palette.grey[600],
-    },
+    footer: {},
 }));
 
 export function Footer(props: Props<HTMLElement>) {

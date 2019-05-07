@@ -3,7 +3,7 @@ import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import React, { useCallback } from 'react';
 import { makeStyles } from '../styles';
-import * as scatterMachine from '../machines/scatterMachine';
+import * as scatter from '../machines/scatter';
 import { useService } from '@xstate/react';
 
 const useUserNavStyles = makeStyles((theme) => ({
@@ -19,13 +19,13 @@ const useUserNavStyles = makeStyles((theme) => ({
 
 export default function UserNav() {
     const classes = useUserNavStyles();
-    const [current, send] = useService(scatterMachine.service);
+    const [current, send] = useService(scatter.service);
     return (
         <nav className={classes.userNav}>
             {current.matches('connecting') ? (
                 <Connecting />
             ) : current.matches('connectErr') ? (
-                'connect error'
+                <ConnectError />
             ) : current.matches({ connectOk: 'loggedOut' }) ? (
                 <LoggedOut />
             ) : current.matches({ connectOk: 'loggedIn' }) ? (
@@ -49,8 +49,23 @@ function Connecting() {
     );
 }
 
+function ConnectError() {
+    const [current, send] = useService(scatter.service);
+    const onClick = useCallback(() => {
+        send({
+            type: 'CONNECT_RETRY',
+            appName: 'eosstrawpoll',
+        });
+    }, [send]);
+    return (
+        <Button color='primary' onClick={onClick}>
+            Retry
+        </Button>
+    );
+}
+
 function LoggedOut() {
-    const [current, send] = useService(scatterMachine.service);
+    const [current, send] = useService(scatter.service);
     const onClick = useCallback(() => {
         send({
             type: 'LOGIN',
