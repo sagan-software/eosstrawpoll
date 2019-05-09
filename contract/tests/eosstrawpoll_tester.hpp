@@ -13,6 +13,8 @@
 #include <fc/variant_object.hpp>
 #include <fstream>
 
+#include "eosstrawpoll_types.hpp"
+
 using namespace eosio::chain;
 using namespace eosio::testing;
 using namespace fc;
@@ -27,18 +29,19 @@ using mvo = fc::mutable_variant_object;
 #endif
 #endif
 
-namespace eosio_system
+namespace eosstrawpoll
 {
 
-class eosio_system_tester : public TESTER
+class eosstrawpoll_tester : public TESTER
 {
- public:
+public:
    void basic_setup()
    {
       produce_blocks(2);
 
       create_accounts({N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
-                       N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names), N(eosio.rex)});
+                       N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names), N(eosio.rex),
+                       N(eosstrawpoll)});
 
       produce_blocks(100);
       set_code(N(eosio.token), contracts::token_wasm());
@@ -87,6 +90,14 @@ class eosio_system_tester : public TESTER
       create_account_with_resources(N(carol1111111), config::system_account_name, core_sym::from_string("1.0000"), false);
 
       BOOST_REQUIRE_EQUAL(core_sym::from_string("1000000000.0000"), get_balance("eosio") + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram"));
+      set_code(N(eosstrawpoll), contract::wasm());
+      set_abi(N(eosstrawpoll), contract::abi().data());
+      {
+         const auto &accnt = control->db().get<account_object, by_name>(N(eosstrawpoll));
+         abi_def abi;
+         BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi), true);
+         abi_ser.set_abi(abi, abi_serializer_max_time);
+      }
    }
 
    enum class setup_level
@@ -98,7 +109,7 @@ class eosio_system_tester : public TESTER
       full
    };
 
-   eosio_system_tester(setup_level l = setup_level::full)
+   eosstrawpoll_tester(setup_level l = setup_level::full)
    {
       if (l == setup_level::none)
          return;
@@ -119,7 +130,7 @@ class eosio_system_tester : public TESTER
    }
 
    template <typename Lambda>
-   eosio_system_tester(Lambda setup)
+   eosstrawpoll_tester(Lambda setup)
    {
       setup(*this);
 
@@ -244,10 +255,15 @@ class eosio_system_tester : public TESTER
 
    action_result push_action(const account_name &signer, const action_name &name, const variant_object &data, bool auth = true)
    {
+      return push_action(config::system_account_name, signer, name, data, auth);
+   }
+
+   action_result push_action(const account_name &account, const account_name &signer, const action_name &name, const variant_object &data, bool auth = true)
+   {
       string action_type_name = abi_ser.get_action_type(name);
 
       action act;
-      act.account = config::system_account_name;
+      act.account = account;
       act.name = name;
       act.data = abi_ser.variant_to_binary(action_type_name, data, abi_serializer_max_time);
 
@@ -317,7 +333,7 @@ class eosio_system_tester : public TESTER
 
    asset get_buyrex_result(const account_name &from, const asset &amount)
    {
-      auto trace = base_tester::push_action(N(eosio), N(buyrex), from, mvo()("from", from)("amount", amount));
+      auto trace = base_tester::push_action(config::system_account_name, N(buyrex), from, mvo()("from", from)("amount", amount));
       asset rex_received;
       for (size_t i = 0; i < trace->action_traces.size(); ++i)
       {
@@ -342,7 +358,7 @@ class eosio_system_tester : public TESTER
 
    asset get_unstaketorex_result(const account_name &owner, const account_name &receiver, const asset &from_net, const asset &from_cpu)
    {
-      auto trace = base_tester::push_action(N(eosio), N(unstaketorex), owner, mvo()("owner", owner)("receiver", receiver)("from_net", from_net)("from_cpu", from_cpu));
+      auto trace = base_tester::push_action(config::system_account_name, N(unstaketorex), owner, mvo()("owner", owner)("receiver", receiver)("from_net", from_net)("from_cpu", from_cpu));
       asset rex_received;
       for (size_t i = 0; i < trace->action_traces.size(); ++i)
       {
@@ -367,7 +383,7 @@ class eosio_system_tester : public TESTER
 
    asset get_sellrex_result(const account_name &from, const asset &rex)
    {
-      auto trace = base_tester::push_action(N(eosio), N(sellrex), from, mvo()("from", from)("rex", rex));
+      auto trace = base_tester::push_action(config::system_account_name, N(sellrex), from, mvo()("from", from)("rex", rex));
       asset proceeds;
       for (size_t i = 0; i < trace->action_traces.size(); ++i)
       {
@@ -420,6 +436,38 @@ class eosio_system_tester : public TESTER
    action_result rentnet(const account_name &from, const account_name &receiver, const asset &payment, const asset &fund = core_sym::from_string("0.0000"))
    {
       return push_action(name(from), N(rentnet), mvo()("from", from)("receiver", receiver)("loan_payment", payment)("loan_fund", fund));
+   }
+
+   asset _get_rentrex_result(const account_name &from, const account_name &receiver, const asset &payment, bool cpu)
+   {
+      const name act = cpu ? N(rentcpu) : N(rentnet);
+      auto trace = base_tester::push_action(config::system_account_name, act, from, mvo()("from", from)("receiver", receiver)("loan_payment", payment)("loan_fund", core_sym::from_string("0.0000")));
+
+      asset rented_tokens = core_sym::from_string("0.0000");
+      for (size_t i = 0; i < trace->action_traces.size(); ++i)
+      {
+         for (size_t j = 0; j < trace->action_traces[i].inline_traces.size(); ++j)
+         {
+            if (trace->action_traces[i].inline_traces[j].act.name == N(rentresult))
+            {
+               fc::raw::unpack(trace->action_traces[i].inline_traces[j].act.data.data(),
+                               trace->action_traces[i].inline_traces[j].act.data.size(),
+                               rented_tokens);
+               return rented_tokens;
+            }
+         }
+      }
+      return rented_tokens;
+   }
+
+   asset get_rentcpu_result(const account_name &from, const account_name &receiver, const asset &payment)
+   {
+      return _get_rentrex_result(from, receiver, payment, true);
+   }
+
+   asset get_rentnet_result(const account_name &from, const account_name &receiver, const asset &payment)
+   {
+      return _get_rentrex_result(from, receiver, payment, false);
    }
 
    action_result fundcpuloan(const account_name &from, const uint64_t loan_num, const asset &payment)
@@ -849,6 +897,107 @@ class eosio_system_tester : public TESTER
       }
    }
 
+   time_point_sec current_time_point_sec()
+   {
+      return time_point_sec(control->pending_block_time());
+   }
+
+   action_result closepoll(
+       const account_name &signer,
+       const account_name poll_id)
+   {
+      const auto data = mvo()("poll_id", poll_id);
+      return push_action(N(eosstrawpoll), signer, N(closepoll), data);
+   }
+
+   action_result createpoll(
+       const account_name &signer,
+       const account_name id,
+       const account_name account,
+       const string &title,
+       const vector<string> &options,
+       const uint16_t min_answers,
+       const uint16_t max_answers,
+       const uint16_t min_writeins,
+       const uint16_t max_writeins,
+       const bool use_allow_list,
+       const vector<account_name> &voter_list,
+       const time_point_sec min_account_age,
+       const vector<extended_asset> min_holdings,
+       const time_point_sec open_time,
+       const time_point_sec close_time)
+   {
+      const auto data = mvo()("id", id)("account", account)("title", title)("options", options)("min_answers", min_answers)("max_answers", max_answers)("min_writeins", min_writeins)("max_writeins", max_writeins)("use_allow_list", use_allow_list)("voter_list", voter_list)("min_account_age", min_account_age)("min_holdings", min_holdings)("open_time", open_time)("close_time", close_time);
+      return push_action(N(eosstrawpoll), signer, N(createpoll), data);
+   }
+
+   action_result createvote(
+       const account_name &signer,
+       const account_name poll_id,
+       const account_name account,
+       const vector<answer_t> &answers)
+   {
+      const auto data = mvo()("poll_id", poll_id)("account", account)("answers", answers);
+      return push_action(N(eosstrawpoll), signer, N(createvote), data);
+   }
+
+   action_result destroypoll(
+       const account_name &signer,
+       const account_name poll_id)
+   {
+      const auto data = mvo()("poll_id", poll_id);
+      return push_action(N(eosstrawpoll), signer, N(destroypoll), data);
+   }
+
+   action_result destroyvote(
+       const account_name &signer,
+       const account_name poll_id,
+       const account_name account)
+   {
+      const auto data = mvo()("poll_id", poll_id)("account", account);
+      return push_action(N(eosstrawpoll), signer, N(destroyvote), data);
+   }
+
+   action_result destroyvotes(
+       const account_name &signer,
+       const account_name poll_id)
+   {
+      const auto data = mvo()("poll_id", poll_id);
+      return push_action(N(eosstrawpoll), signer, N(destroyvotes), data);
+   }
+
+   action_result openpoll(
+       const account_name &signer,
+       const account_name poll_id)
+   {
+      const auto data = mvo()("poll_id", poll_id);
+      return push_action(N(eosstrawpoll), signer, N(openpoll), data);
+   }
+
+   action_result setconfig(
+       const account_name &signer,
+       const uint64_t max_latest,
+       const uint64_t max_popular,
+       const uint64_t max_title_len,
+       const uint64_t max_options_len,
+       const uint64_t max_option_len,
+       const uint64_t max_voter_list_len,
+       const uint64_t max_min_voter_holdings_len,
+       const uint64_t max_writein_len,
+       const uint64_t max_answers_len,
+       const double popularity_gravity)
+   {
+      const auto data = mvo()("max_latest", max_latest)("max_popular", max_popular)("max_title_len", max_title_len)("max_options_len", max_options_len)("max_option_len", max_option_len)("max_voter_list_len", max_voter_list_len)("max_min_voter_holdings_len", max_min_voter_holdings_len)("max_writein_len", max_writein_len)("max_answers_len", max_answers_len)("popularity_gravity", popularity_gravity);
+      return push_action(N(eosstrawpoll), signer, N(setconfig), data);
+   }
+
+   poll_t get_poll(const account_name &table, const account_name &poll_id)
+   {
+      poll_t poll;
+      get_table_entry(poll, N(eosstrawpoll), N(eosstrawpoll), table, poll_id);
+      return poll;
+   }
+
    abi_serializer abi_ser;
    abi_serializer token_abi_ser;
 };
@@ -880,4 +1029,4 @@ inline uint64_t M(const string &eos_str)
    return core_sym::from_string(eos_str).get_amount();
 }
 
-} // namespace eosio_system
+} // namespace eosstrawpoll

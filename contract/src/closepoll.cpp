@@ -3,9 +3,9 @@
 namespace eosstrawpoll
 {
 
-void contract::closepoll(const poll_id_t poll_id)
+void contract::closepoll(const eosio::name poll_id)
 {
-    auto poll = polls_table.find(poll_id);
+    auto poll = polls_table.find(poll_id.value);
 
     eosio::check(poll != polls_table.end(), "poll does not exist");
 
@@ -13,31 +13,31 @@ void contract::closepoll(const poll_id_t poll_id)
 
     eosio::check(!poll->is_closed(), "poll is already closed");
 
-    const auto close_time = now();
+    const auto close_time = current_time_point_sec();
     auto open_time = poll->open_time;
     if (open_time > close_time)
     {
         open_time = close_time;
     }
 
-    polls_table.modify(poll, poll->account, [&](auto &p) {
+    polls_table.modify(poll, same_payer, [&](auto &p) {
         p.close_time = close_time;
         p.open_time = open_time;
     });
 
-    auto popular_poll = popular_polls_table.find(poll_id);
-    if (popular_poll != popular_polls_table.end())
+    auto popular_poll = popular_table.find(poll_id.value);
+    if (popular_poll != popular_table.end())
     {
-        popular_polls_table.modify(popular_poll, _self, [&](auto &p) {
+        popular_table.modify(popular_poll, same_payer, [&](auto &p) {
             p.close_time = close_time;
             p.open_time = open_time;
         });
     }
 
-    auto new_poll = new_polls_table.find(poll_id);
-    if (new_poll != new_polls_table.end())
+    auto new_poll = latest_table.find(poll_id.value);
+    if (new_poll != latest_table.end())
     {
-        new_polls_table.modify(new_poll, _self, [&](auto &p) {
+        latest_table.modify(new_poll, same_payer, [&](auto &p) {
             p.close_time = close_time;
             p.open_time = open_time;
         });

@@ -5,6 +5,7 @@
             "browse": {
                 "path": [
                     "${workspaceFolder}/contract/eosio.cdt/libraries/boost/include",
+                    "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib",
                     "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib/capi",
                     "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib/contracts",
                     "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib/core",
@@ -15,6 +16,7 @@
             },
             "includePath": [
                 "${workspaceFolder}/contract/eosio.cdt/libraries/boost/include",
+                "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib",
                 "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib/capi",
                 "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib/contracts",
                 "${workspaceFolder}/contract/eosio.cdt/libraries/eosiolib/core",

@@ -10,9 +10,9 @@
 #include <eosio/chain/exceptions.hpp>
 #include <Runtime/Runtime.h>
 
-#include "eosio.system_tester.hpp"
+#include "eosstrawpoll_tester.hpp"
 
-using namespace eosio_system;
+using namespace eosstrawpoll;
 #define BOOST_TEST_STATIC_LINK
 
 void translate_fc_exception(const fc::exception &e)

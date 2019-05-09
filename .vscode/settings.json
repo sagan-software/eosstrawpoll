@@ -87,6 +87,16 @@
         "valarray": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "__memory": "cpp"
+        "__memory": "cpp",
+        "queue": "cpp",
+        "xtree": "cpp",
+        "xhash": "cpp",
+        "xstring": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "xlocale": "cpp",
+        "*.in": "cpp",
+        "xiosbase": "cpp",
+        "xlocmon": "cpp"
     }
 }

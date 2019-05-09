@@ -5,7 +5,7 @@ RUN apt-get update && \
 
 # Build eos
 ARG eos_fork=EOSIO
-ARG eos_branch=v1.8.0-rc1
+ARG eos_branch=v1.6.3
 RUN git clone \
     --recursive \
     --branch $eos_branch \
@@ -14,14 +14,14 @@ RUN git clone \
     /eos
 WORKDIR /eos
 RUN git submodule update --init --recursive
-RUN echo 1 | ./scripts/eosio_build.sh
-RUN ./scripts/eosio_install.sh
+RUN echo 1 | ./eosio_build.sh
+RUN ./eosio_install.sh
 
 WORKDIR /
 
 # Build eosio.cdt
 ARG cdt_fork=EOSIO
-ARG cdt_branch=v1.6.1
+ARG cdt_branch=v1.5.0
 RUN git clone \
     --recursive \
     --branch $cdt_branch \
@@ -33,6 +33,10 @@ RUN echo 1 | ./build.sh
 RUN ./install.sh
 
 WORKDIR /
+
+# RUN apt-get install -y wget
+# RUN wget https://github.com/eosio/eosio.cdt/releases/download/v1.5.0/eosio.cdt_1.5.0-1_amd64.deb
+# RUN apt install -y ./eosio.cdt_1.5.0-1_amd64.deb
 
 # RUN apt-get install -y cmake
 RUN PATH=/usr/local/eosio/bin:/usr/local/eosio.cdt/bin:$PATH

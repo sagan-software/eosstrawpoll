@@ -30,23 +30,18 @@ struct contracts
 
 } // namespace eosio
 
-namespace dapp
-{
-
-namespace testing
+namespace eosstrawpoll
 {
 
 using eosio::testing::read_abi;
 using eosio::testing::read_wasm;
 using eosio::testing::read_wast;
 
-struct contracts
+struct contract
 {
-   static std::vector<uint8_t> system_wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../src/contract.wasm"); }
-   static std::string system_wast() { return read_wast("${CMAKE_BINARY_DIR}/../src/contract.wast"); }
-   static std::vector<char> system_abi() { return read_abi("${CMAKE_BINARY_DIR}/../src/contract.abi"); }
+   static std::vector<uint8_t> wasm() { return read_wasm("${CMAKE_BINARY_DIR}/../src/contract.wasm"); }
+   static std::string wast() { return read_wast("${CMAKE_BINARY_DIR}/../src/contract.wast"); }
+   static std::vector<char> abi() { return read_abi("${CMAKE_BINARY_DIR}/../src/contract.abi"); }
 };
 
-} // namespace testing
-
-} // namespace dapp
+} // namespace eosstrawpoll

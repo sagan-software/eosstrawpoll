@@ -1,39 +1,36 @@
-#include <eosstrawpoll/contract.hpp>
+#include "contract.hpp"
 
 namespace eosstrawpoll
 {
 
 void contract::setconfig(
-    const uint16_t max_new_polls,
-    const uint16_t max_popular_polls,
-    const uint16_t max_new_donations,
-    const uint16_t max_title_len,
-    const uint16_t max_prefilled_options_len,
-    const uint16_t max_prefilled_option_len,
-    const uint16_t max_account_list_len,
-    const uint16_t max_writein_len,
-    const uint16_t max_answers_len,
-    const double popularity_gravity,
-    const uint64_t profile_unlock_threshold)
+    const uint64_t max_latest,
+    const uint64_t max_popular,
+    const uint64_t max_title_len,
+    const uint64_t max_options_len,
+    const uint64_t max_option_len,
+    const uint64_t max_voter_list_len,
+    const uint64_t max_min_voter_holdings_len,
+    const uint64_t max_writein_len,
+    const uint64_t max_answers_len,
+    const double popularity_gravity)
 {
     require_auth(_self);
 
     global_config = global_config_t{
-        .max_new_polls = max_new_polls,
-        .max_popular_polls = max_popular_polls,
-        .max_new_donations = max_new_donations,
+        .max_latest = max_latest,
+        .max_popular = max_popular,
         .max_title_len = max_title_len,
-        .max_prefilled_options_len = max_prefilled_options_len,
-        .max_prefilled_option_len = max_prefilled_option_len,
-        .max_account_list_len = max_account_list_len,
+        .max_options_len = max_options_len,
+        .max_option_len = max_option_len,
+        .max_voter_list_len = max_voter_list_len,
+        .max_min_voter_holdings_len = max_min_voter_holdings_len,
         .max_writein_len = max_writein_len,
         .max_answers_len = max_answers_len,
-        .popularity_gravity = popularity_gravity,
-        .profile_unlock_threshold = profile_unlock_threshold};
-    global_config_table.set(global_config, _self);
+        .popularity_gravity = popularity_gravity};
+    global_config_singleton.set(global_config, _self);
 
-    prune_new_donations();
-    prune_new_polls();
-    prune_popular_polls();
+    prune_latest();
+    prune_popular();
 };
 } // namespace eosstrawpoll

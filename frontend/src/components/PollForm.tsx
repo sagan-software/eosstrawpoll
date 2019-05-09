@@ -9,6 +9,9 @@ import { useService } from '@xstate/react';
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
+import FormGroup from '@material-ui/core/FormGroup';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Switch from '@material-ui/core/Switch';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ChipInput from 'material-ui-chip-input';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -126,13 +129,21 @@ export default function PollForm() {
                         <Typography>Voter Requirements</Typography>
                     </ExpansionPanelSummary>
                     <ExpansionPanelDetails>
-                        <div>
+                        <Box width={1}>
+                            <FormControlLabel
+                                control={
+                                    <Switch value='checkedB' color='primary' />
+                                }
+                                label='Allow list'
+                            />
                             <ChipInput
                                 classes={{}}
                                 defaultValue={['foo', 'bar']}
                                 onChange={(chips) => console.log(chips)}
+                                fullWidth
+                                helperText='Only these accounts will be allowed to vote'
                             />
-                        </div>
+                        </Box>
                     </ExpansionPanelDetails>
                 </ExpansionPanel>
 
@@ -148,7 +159,6 @@ export default function PollForm() {
                         <div>
                             <DateTimePicker
                                 autoOk
-                                inputVariant='outlined'
                                 disablePast
                                 label='Open Time'
                                 onChange={(value) => {
@@ -161,7 +171,6 @@ export default function PollForm() {
                             />
                             <DateTimePicker
                                 autoOk
-                                inputVariant='outlined'
                                 disablePast
                                 label='Close Time'
                                 onChange={(value) => {

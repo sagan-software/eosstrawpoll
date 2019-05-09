@@ -5,7 +5,7 @@ services:
         build:
             dockerfile: ./eos.dockerfile
             context: .
-        image: eos-habit-app:latest
+        image: sagan-software/eos:latest
         hostname: nodeosd
         entrypoint: nodeos
         command: >
@@ -37,7 +37,7 @@ services:
         build:
             dockerfile: ./eos.dockerfile
             context: .
-        image: eos-habit-app:latest
+        image: sagan-software/eos:latest
         hostname: keosd
         entrypoint: keosd
         command: >
