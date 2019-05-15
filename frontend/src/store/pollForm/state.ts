@@ -23,7 +23,7 @@ export interface BaseState {
     readonly maxWriteins: number;
     readonly useAllowList: boolean;
     readonly voterList: string[];
-    readonly minVoterAge: number;
+    readonly minVoterAgeSec: number;
     readonly minVoterHoldings: string[];
     readonly openTime: Date | null;
     readonly closeTime: Date | null;
@@ -59,7 +59,7 @@ export const initialState: State = {
     maxWriteins: 0,
     useAllowList: true,
     voterList: [],
-    minVoterAge: 0,
+    minVoterAgeSec: 0,
     minVoterHoldings: [],
     openTime: null,
     closeTime: null,

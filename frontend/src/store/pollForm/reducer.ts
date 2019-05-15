@@ -10,7 +10,7 @@ import {
     SetMinWriteinsAction,
     SetMaxWriteinsAction,
     SetUseAllowListAction,
-    SetMinVoterAgeAction,
+    SetMinVoterAgeSecAction,
     SetOpenTimeAction,
     SetCloseTimeAction,
     AddVoterAction,
@@ -45,8 +45,8 @@ export function reducer(state = initialState, action: Action): State {
         return onSetMaxWriteins(state, action);
     case ActionType.SetUseAllowList:
         return onSetUseAllowList(state, action);
-    case ActionType.SetMinVoterAge:
-        return onSetMinVoterAge(state, action);
+    case ActionType.SetMinVoterAgeSec:
+        return onSetMinVoterAgeSec(state, action);
     case ActionType.SetOpenTime:
         return onSetOpenTime(state, action);
     case ActionType.SetCloseTime:
@@ -138,10 +138,13 @@ function onSetUseAllowList(state: State, action: SetUseAllowListAction): State {
     };
 }
 
-function onSetMinVoterAge(state: State, action: SetMinVoterAgeAction): State {
+function onSetMinVoterAgeSec(
+    state: State,
+    action: SetMinVoterAgeSecAction,
+): State {
     return {
         ...state,
-        minVoterAge: action.value,
+        minVoterAgeSec: action.value,
     };
 }
 

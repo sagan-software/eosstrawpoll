@@ -8,7 +8,7 @@ export enum ActionType {
     SetMinWriteins = 'POLL_FORM/SET_MIN_WRITEINS',
     SetMaxWriteins = 'POLL_FORM/SET_MAX_WRITEINS',
     SetUseAllowList = 'POLL_FORM/SET_USE_ALLOW_LIST',
-    SetMinVoterAge = 'POLL_FORM/SET_MIN_VOTER_AGE',
+    SetMinVoterAgeSec = 'POLL_FORM/SET_MIN_VOTER_AGE_SEC',
     SetOpenTime = 'POLL_FORM/SET_OPEN_TIME',
     SetCloseTime = 'POLL_FORM/SET_CLOSE_TIME',
     AddVoter = 'POLL_FORM/ADD_VOTER',
@@ -32,7 +32,7 @@ export type Action =
     | SetMinWriteinsAction
     | SetMaxWriteinsAction
     | SetUseAllowListAction
-    | SetMinVoterAgeAction
+    | SetMinVoterAgeSecAction
     | SetOpenTimeAction
     | SetCloseTimeAction
     | AddVoterAction
@@ -151,14 +151,14 @@ export function setUseAllowList(value: boolean): SetUseAllowListAction {
     };
 }
 
-export interface SetMinVoterAgeAction {
-    readonly type: ActionType.SetMinVoterAge;
+export interface SetMinVoterAgeSecAction {
+    readonly type: ActionType.SetMinVoterAgeSec;
     readonly value: number;
 }
 
-export function setMinVoterAge(value: number): SetMinVoterAgeAction {
+export function setMinVoterAgeSec(value: number): SetMinVoterAgeSecAction {
     return {
-        type: ActionType.SetMinVoterAge,
+        type: ActionType.SetMinVoterAgeSec,
         value,
     };
 }

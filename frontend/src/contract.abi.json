@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu May  9 14:05:22 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Wed May 15 15:37:15 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -71,20 +71,20 @@
                     "type": "name[]"
                 },
                 {
-                    "name": "min_account_age",
-                    "type": "time_point_sec"
+                    "name": "min_voter_age_sec",
+                    "type": "uint32?"
                 },
                 {
-                    "name": "min_holdings",
+                    "name": "min_voter_holdings",
                     "type": "extended_asset[]"
                 },
                 {
                     "name": "open_time",
-                    "type": "time_point_sec"
+                    "type": "time_point_sec?"
                 },
                 {
                     "name": "close_time",
-                    "type": "time_point_sec"
+                    "type": "time_point_sec?"
                 }
             ]
         },
@@ -156,43 +156,43 @@
             "fields": [
                 {
                     "name": "max_latest",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_popular",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_title_len",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_options_len",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_option_len",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_voter_list_len",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_min_voter_holdings_len",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_writein_len",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "max_answers_len",
-                    "type": "uint64"
+                    "type": "uint64?"
                 },
                 {
                     "name": "popularity_gravity",
-                    "type": "float64"
+                    "type": "float64?"
                 }
             ]
         }

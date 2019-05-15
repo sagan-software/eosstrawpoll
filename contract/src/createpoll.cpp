@@ -43,12 +43,10 @@ void contract::createpoll(
     check(
         num_options <= global_config.max_options_len,
         "options contains more options than allowed by the global config");
+
     check(
         max_writeins <= max_answers,
         "max_writeins cannot be greater than max_answers");
-    check(
-        min_writeins <= max_writeins,
-        "min_writeins cannot be greather than max_writeins");
 
     if (max_writeins == 0)
     {
@@ -65,6 +63,10 @@ void contract::createpoll(
             max_writeins + num_options >= max_answers,
             "not enough writein answers or prefilled options to satisfy max_answers requirement");
     }
+
+    check(
+        min_writeins <= max_writeins,
+        "min_writeins cannot be greather than max_writeins");
 
     std::map<std::string, bool> seen_options;
     for (auto &option : options)
@@ -84,15 +86,17 @@ void contract::createpoll(
     }
 
     const auto now = current_time_point_sec();
-    // check times TODO do better
-    if (open_time && close_time)
+    if (close_time)
     {
-        check(
-            *close_time > *open_time,
-            "close_time must be after open_time");
         check(
             *close_time > now,
             "close_time must be in the future");
+        if (open_time)
+        {
+            check(
+                *close_time > *open_time,
+                "close_time must be after open_time");
+        }
     }
 
     auto poll = polls_table.find(id.value);
@@ -135,13 +139,6 @@ void contract::createpoll(
             min_voter_holding.quantity <= stats.supply,
             "min_voter_holdings quantity is greater than supply");
     }
-
-    // // Poll is valid!
-    // const auto start_time = open_time;
-    // if (start_time < now)
-    // {
-    //     start_time = now;
-    // }
 
     // create the poll
     polls_table.emplace(account, [&](auto &p) {

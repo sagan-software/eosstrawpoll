@@ -24,7 +24,7 @@ import { useMappedState, useDispatch, pollForm, chains } from '../store';
 
 export default function PollForm() {
     const state = useMappedState(useCallback(pollForm.getState, []));
-    const allChains = useMappedState(useCallback(chains.getAll, []));
+    const allChains = useMappedState(useCallback(chains.getAllOk, []));
     const dispatch = useDispatch();
     const lastIndex = state.options.length - 1;
     return (
@@ -96,7 +96,6 @@ export default function PollForm() {
                                 <Select
                                     value={state.chainId}
                                     onChange={(e) => {
-                                        console.log(e);
                                         dispatch(
                                             pollForm.setChainId(e.target
                                                 .value as string),
@@ -120,7 +119,7 @@ export default function PollForm() {
                     </ExpansionPanelDetails>
                 </ExpansionPanel>
 
-                <ExpansionPanel>
+                {/* <ExpansionPanel>
                     <ExpansionPanelSummary
                         expandIcon={<ExpandMoreIcon />}
                         aria-controls='panel2a-content'
@@ -224,7 +223,7 @@ export default function PollForm() {
                             />
                         </div>
                     </ExpansionPanelDetails>
-                </ExpansionPanel>
+                </ExpansionPanel> */}
 
                 <Box
                     display='flex'
@@ -244,4 +243,12 @@ export default function PollForm() {
             </form>
         </MuiPickersUtilsProvider>
     );
+}
+
+function Submitting() {
+    return <>Submitting</>;
+}
+
+function SubmitOk() {
+    return <>Created poll</>;
 }
