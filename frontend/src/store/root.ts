@@ -1,30 +1,34 @@
 import { Action, combineReducers } from 'redux';
 import { spawn } from 'redux-saga/effects';
-import * as App from './app';
-import * as Chains from './chains';
-import * as Explorers from './explorers';
-import * as RpcServers from './rpcServers';
-import * as Scatter from './scatter';
+import * as app from './app';
+import * as chains from './chains';
+import * as explorers from './explorers';
+import * as pollForm from './pollForm';
+import * as rpcServers from './rpcServers';
+import * as scatter from './scatter';
 
 export const reducer = combineReducers({
-    chains: Chains.reducer,
-    explorers: Explorers.reducer,
-    rpcServers: RpcServers.reducer,
-    scatter: Scatter.reducer,
+    chains: chains.reducer,
+    explorers: explorers.reducer,
+    pollForm: pollForm.reducer,
+    rpcServers: rpcServers.reducer,
+    scatter: scatter.reducer,
 });
 
 export type State = ReturnType<typeof reducer>;
 
 export type Action =
-    | App.Action
-    | Chains.Action
-    | Explorers.Action
-    | RpcServers.Action
-    | Scatter.Action;
+    | app.Action
+    | chains.Action
+    | pollForm.Action
+    | explorers.Action
+    | rpcServers.Action
+    | scatter.Action;
 
 export function* saga() {
-    yield spawn(App.saga);
-    yield spawn(Chains.saga);
-    yield spawn(RpcServers.saga);
-    yield spawn(Scatter.saga);
+    yield spawn(app.saga);
+    yield spawn(chains.saga);
+    yield spawn(pollForm.sagas);
+    yield spawn(rpcServers.saga);
+    yield spawn(scatter.saga);
 }

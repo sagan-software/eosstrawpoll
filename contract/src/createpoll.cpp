@@ -7,20 +7,20 @@ namespace eosstrawpoll
 {
 
 void contract::createpoll(
-    const eosio::name &id,
-    const eosio::name &account,
-    const std::string &title,
-    const std::vector<std::string> &options,
+    const name &id,
+    const name &account,
+    const string &title,
+    const vector<string> &options,
     const uint16_t min_answers,
     const uint16_t max_answers,
     const uint16_t min_writeins,
     const uint16_t max_writeins,
     const bool use_allow_list,
-    const std::vector<eosio::name> &voter_list,
-    const eosio::time_point_sec &min_voter_age,
-    const std::vector<eosio::extended_asset> &min_voter_holdings,
-    const eosio::time_point_sec &open_time,
-    const eosio::time_point_sec &close_time)
+    const vector<name> &voter_list,
+    const optional<uint32_t> &min_voter_age_sec,
+    const vector<extended_asset> &min_voter_holdings,
+    const optional<time_point_sec> &open_time,
+    const optional<time_point_sec> &close_time)
 {
     require_auth(account);
 
@@ -83,15 +83,17 @@ void contract::createpoll(
         seen_options[option] = true;
     }
 
-    // check times
-    check(
-        close_time == time_point_sec(0) || close_time > open_time,
-        "close_time must be 0 or after open_time");
-
     const auto now = current_time_point_sec();
-    check(
-        close_time == time_point_sec(0) || close_time > now,
-        "close_time must be 0 or in the future");
+    // check times TODO do better
+    if (open_time && close_time)
+    {
+        check(
+            *close_time > *open_time,
+            "close_time must be after open_time");
+        check(
+            *close_time > now,
+            "close_time must be in the future");
+    }
 
     auto poll = polls_table.find(id.value);
     check(
@@ -153,11 +155,20 @@ void contract::createpoll(
         p.max_writeins = max_writeins;
         p.use_allow_list = use_allow_list;
         p.voter_list = voter_list;
-        p.min_voter_age = min_voter_age;
+        if (min_voter_age_sec)
+        {
+            p.min_voter_age_sec = *min_voter_age_sec;
+        }
         p.min_voter_holdings = min_voter_holdings;
         p.create_time = now;
-        p.open_time = open_time;
-        p.close_time = close_time;
+        if (open_time)
+        {
+            p.open_time = *open_time;
+        }
+        if (close_time)
+        {
+            p.close_time = *close_time;
+        }
     });
 
     latest_table.emplace(_self, [&](auto &p) {
@@ -165,8 +176,14 @@ void contract::createpoll(
         p.account = account;
         p.title = title;
         p.create_time = now;
-        p.open_time = open_time;
-        p.close_time = close_time;
+        if (open_time)
+        {
+            p.open_time = *open_time;
+        }
+        if (close_time)
+        {
+            p.close_time = *close_time;
+        }
     });
 
     prune_latest();
@@ -178,8 +195,14 @@ void contract::createpoll(
             p.account = account;
             p.title = title;
             p.create_time = now;
-            p.open_time = open_time;
-            p.close_time = close_time;
+            if (open_time)
+            {
+                p.open_time = *open_time;
+            }
+            if (close_time)
+            {
+                p.close_time = *close_time;
+            }
         });
     }
 }

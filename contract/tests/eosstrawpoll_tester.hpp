@@ -4,6 +4,7 @@
  */
 #pragma once
 
+#include <optional>
 #include <eosio/testing/tester.hpp>
 #include <eosio/chain/abi_serializer.hpp>
 #include <eosio/chain/resource_limits.hpp>
@@ -916,18 +917,18 @@ public:
        const account_name account,
        const string &title,
        const vector<string> &options,
-       const uint16_t min_answers,
-       const uint16_t max_answers,
-       const uint16_t min_writeins,
-       const uint16_t max_writeins,
-       const bool use_allow_list,
+       const optional<uint16_t> min_answers,
+       const optional<uint16_t> max_answers,
+       const optional<uint16_t> min_writeins,
+       const optional<uint16_t> max_writeins,
+       const optional<bool> use_allow_list,
        const vector<account_name> &voter_list,
-       const time_point_sec min_account_age,
-       const vector<extended_asset> min_holdings,
-       const time_point_sec open_time,
-       const time_point_sec close_time)
+       const optional<uint32_t> min_voter_age_sec,
+       const vector<extended_asset> min_voter_holdings,
+       const optional<time_point_sec> open_time,
+       const optional<time_point_sec> close_time)
    {
-      const auto data = mvo()("id", id)("account", account)("title", title)("options", options)("min_answers", min_answers)("max_answers", max_answers)("min_writeins", min_writeins)("max_writeins", max_writeins)("use_allow_list", use_allow_list)("voter_list", voter_list)("min_account_age", min_account_age)("min_holdings", min_holdings)("open_time", open_time)("close_time", close_time);
+      const auto data = mvo()("id", id)("account", account)("title", title)("options", options)("min_answers", min_answers)("max_answers", max_answers)("min_writeins", min_writeins)("max_writeins", max_writeins)("use_allow_list", use_allow_list)("voter_list", voter_list)("min_voter_age_sec", min_voter_age_sec)("min_voter_holdings", min_voter_holdings)("open_time", open_time)("close_time", close_time);
       return push_action(N(eosstrawpoll), signer, N(createpoll), data);
    }
 
@@ -976,16 +977,16 @@ public:
 
    action_result setconfig(
        const account_name &signer,
-       const uint64_t max_latest,
-       const uint64_t max_popular,
-       const uint64_t max_title_len,
-       const uint64_t max_options_len,
-       const uint64_t max_option_len,
-       const uint64_t max_voter_list_len,
-       const uint64_t max_min_voter_holdings_len,
-       const uint64_t max_writein_len,
-       const uint64_t max_answers_len,
-       const double popularity_gravity)
+       const optional<uint64_t> max_latest,
+       const optional<uint64_t> max_popular,
+       const optional<uint64_t> max_title_len,
+       const optional<uint64_t> max_options_len,
+       const optional<uint64_t> max_option_len,
+       const optional<uint64_t> max_voter_list_len,
+       const optional<uint64_t> max_min_voter_holdings_len,
+       const optional<uint64_t> max_writein_len,
+       const optional<uint64_t> max_answers_len,
+       const optional<double> popularity_gravity)
    {
       const auto data = mvo()("max_latest", max_latest)("max_popular", max_popular)("max_title_len", max_title_len)("max_options_len", max_options_len)("max_option_len", max_option_len)("max_voter_list_len", max_voter_list_len)("max_min_voter_holdings_len", max_min_voter_holdings_len)("max_writein_len", max_writein_len)("max_answers_len", max_answers_len)("popularity_gravity", popularity_gravity);
       return push_action(N(eosstrawpoll), signer, N(setconfig), data);

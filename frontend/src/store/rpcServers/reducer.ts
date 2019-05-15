@@ -1,33 +1,48 @@
-import * as Action from './action';
-import * as State from './state';
+import {
+    ActionType,
+    UpsertAction,
+    CheckAction,
+    CheckAllAction,
+    SetOkAction,
+    SetErrAction,
+    RemoveAction,
+    Action,
+} from './actions';
+import {
+    initialState,
+    State,
+    serverToUrl,
+    RpcServerStateType,
+    UnknownRpcServerState,
+    CheckingRpcServerState,
+    OkRpcServerState,
+    ErrRpcServerState,
+} from './state';
 
-export function reducer(
-    state = State.initialState,
-    action: Action.Action,
-): State.State {
+export function reducer(state = initialState, action: Action): State {
     switch (action.type) {
-    case Action.Type.Add:
-        return onAdd(state, action);
-    case Action.Type.Check:
+    case ActionType.Upsert:
+        return onUpsert(state, action);
+    case ActionType.Check:
         return onCheck(state, action);
-    case Action.Type.SetOk:
+    case ActionType.SetOk:
         return onSetOk(state, action);
-    case Action.Type.SetErr:
+    case ActionType.SetErr:
         return onSetErr(state, action);
-    case Action.Type.Remove:
+    case ActionType.Remove:
         return onRemove(state, action);
     default:
         return state;
     }
 }
 
-function onAdd(state: State.State, action: Action.Add): State.State {
-    const url = State.serverToUrl(action);
+function onUpsert(state: State, action: UpsertAction): State {
+    const url = serverToUrl(action);
     if (url in state.rpcServers) {
         return state;
     } else {
-        const rpcServer: State.ServerUnknown = {
-            status: State.Status.Default,
+        const rpcServer: UnknownRpcServerState = {
+            type: RpcServerStateType.Default,
             protocol: action.protocol,
             host: action.host,
             port: action.port,
@@ -39,11 +54,11 @@ function onAdd(state: State.State, action: Action.Add): State.State {
     }
 }
 
-function onCheck(state: State.State, action: Action.Check): State.State {
-    const rpcServerUrl = State.serverToUrl(action);
-    const rpcServer: State.ServerChecking = {
+function onCheck(state: State, action: CheckAction): State {
+    const rpcServerUrl = serverToUrl(action);
+    const rpcServer: CheckingRpcServerState = {
         ...(state[rpcServerUrl] || {}),
-        status: State.Status.Checking,
+        type: RpcServerStateType.Checking,
         protocol: action.protocol,
         host: action.host,
         port: action.port,
@@ -54,10 +69,10 @@ function onCheck(state: State.State, action: Action.Check): State.State {
     };
 }
 
-function onSetOk(state: State.State, action: Action.SetOk): State.State {
-    const rpcServerUrl = State.serverToUrl(action);
-    const rpcServer: State.ServerOk = {
-        status: State.Status.Ok,
+function onSetOk(state: State, action: SetOkAction): State {
+    const rpcServerUrl = serverToUrl(action);
+    const rpcServer: OkRpcServerState = {
+        type: RpcServerStateType.Ok,
         protocol: action.protocol,
         host: action.host,
         port: action.port,
@@ -70,10 +85,10 @@ function onSetOk(state: State.State, action: Action.SetOk): State.State {
     };
 }
 
-function onSetErr(state: State.State, action: Action.SetErr): State.State {
-    const rpcServerUrl = State.serverToUrl(action);
-    const rpcServer: State.ServerErr = {
-        status: State.Status.Err,
+function onSetErr(state: State, action: SetErrAction): State {
+    const rpcServerUrl = serverToUrl(action);
+    const rpcServer: ErrRpcServerState = {
+        type: RpcServerStateType.Err,
         protocol: action.protocol,
         host: action.host,
         port: action.port,
@@ -85,8 +100,8 @@ function onSetErr(state: State.State, action: Action.SetErr): State.State {
     };
 }
 
-function onRemove(state: State.State, action: Action.Remove): State.State {
-    const url = State.serverToUrl(action);
+function onRemove(state: State, action: RemoveAction): State {
+    const url = serverToUrl(action);
     if (url in state) {
         delete state[url];
         return { ...state };

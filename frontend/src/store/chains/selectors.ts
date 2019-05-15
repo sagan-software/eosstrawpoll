@@ -1,25 +1,31 @@
-import * as Root from '../root';
-import * as State from './state';
+import { State } from '../root';
+import {
+    OkChainState,
+    ChainState,
+    DefaultChainState,
+    ErrChainState,
+    ChainStateType,
+} from './state';
 
-export const getAll = (state: Root.State): ReadonlyArray<State.Chain> =>
+export const getAll = (state: State): ReadonlyArray<ChainState> =>
     Object.values(state.chains);
 
-export const getAllOk = (state: Root.State): ReadonlyArray<State.ChainOk> =>
-    getAll(state).reduce((acc: State.ChainOk[], chain) => {
-        if (chain.status === State.Status.Ok) {
+export const getAllOk = (state: State): ReadonlyArray<OkChainState> =>
+    getAll(state).reduce((acc: OkChainState[], chain) => {
+        if (chain.type === ChainStateType.Ok) {
             acc.push(chain);
         }
         return acc;
     }, []);
 
 export const getAllNotOk = (
-    state: Root.State,
-): ReadonlyArray<State.ChainDefault | State.ChainErr> =>
+    state: State,
+): ReadonlyArray<DefaultChainState | ErrChainState> =>
     getAll(state).reduce(
-        (acc: Array<State.ChainDefault | State.ChainErr>, chain) => {
+        (acc: Array<DefaultChainState | ErrChainState>, chain) => {
             if (
-                chain.status === State.Status.Default ||
-                chain.status === State.Status.Err
+                chain.type === ChainStateType.Default ||
+                chain.type === ChainStateType.Err
             ) {
                 acc.push(chain);
             }
@@ -28,21 +34,18 @@ export const getAllNotOk = (
         [],
     );
 
-export const getAllDefault = (
-    state: Root.State,
-): ReadonlyArray<State.ChainDefault> =>
-    getAll(state).reduce((acc: State.ChainDefault[], chain) => {
-        if (chain.status === State.Status.Default) {
+export const getAllDefault = (state: State): ReadonlyArray<DefaultChainState> =>
+    getAll(state).reduce((acc: DefaultChainState[], chain) => {
+        if (chain.type === ChainStateType.Default) {
             acc.push(chain);
         }
         return acc;
     }, []);
 
-export const getById = (chainId: string) => (
-    state: Root.State,
-): State.Chain | void => state.chains[chainId];
+export const getById = (chainId: string) => (state: State): ChainState | void =>
+    state.chains[chainId];
 
 export const getByIdPrefix = (chainIdPrefix: string) => (
-    state: Root.State,
-): State.Chain | void =>
+    state: State,
+): ChainState | void =>
     getAll(state).filter((c) => c.chainId.startsWith(chainIdPrefix))[0];

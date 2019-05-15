@@ -65,7 +65,7 @@ try
         const uint16_t max_writeins = 3;
         const bool use_allow_list = true;
         const vector<account_name> voter_list{N(carol1111111)};
-        const time_point_sec min_account_age = time_point_sec(0);
+        const uint32_t min_voter_age_sec = 15;
         const vector<extended_asset> min_holdings{};
         const time_point_sec open_time = current_time_point_sec();
         const time_point_sec close_time = current_time_point_sec() + fc::seconds(700);
@@ -83,7 +83,7 @@ try
                 max_writeins,
                 use_allow_list,
                 voter_list,
-                min_account_age,
+                min_voter_age_sec,
                 min_holdings,
                 open_time,
                 close_time));
@@ -120,10 +120,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -151,10 +151,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 
     BOOST_REQUIRE_EQUAL(
         success(),
@@ -185,10 +185,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 
     BOOST_REQUIRE_EQUAL(
         wasm_assert_msg("title is longer than allowed by the global config"),
@@ -204,10 +204,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -249,10 +249,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -273,10 +273,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -297,11 +297,11 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{
                 extended_asset(asset::from_string("1.0000 TST"), N(eosio.token))},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -322,11 +322,11 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{
                 extended_asset(asset::from_string("1.0000 TST"), N(notreal))},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -347,11 +347,11 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{
                 extended_asset(asset::from_string("1.0000 TST"), N(eosio.saving))},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -372,11 +372,11 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{
                 extended_asset(asset::from_string("1.0000 SAGAN"), N(eosio.token))},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -397,11 +397,11 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{
                 extended_asset(asset::from_string("1.00 TST"), N(eosio.token))},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -422,11 +422,11 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{
                 extended_asset(asset::from_string("1000000000.0001 TST"), N(eosio.token))},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
 }
 FC_LOG_AND_RETHROW()
 
@@ -447,10 +447,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
     BOOST_REQUIRE_EQUAL(
         success(),
         createvote(
@@ -485,10 +485,10 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
     BOOST_REQUIRE_EQUAL(
         wasm_assert_msg("invalid answer: must have either a option index OR a writein answer, not neither or both. set option index to -1 or writein to an empty string"),
         createvote(
@@ -537,11 +537,11 @@ try
             0,
             true,
             vector<account_name>{},
-            time_point_sec(0),
+            {},
             vector<extended_asset>{
                 extended_asset(asset::from_string("1.0000 TST"), N(eosio.token))},
-            time_point_sec(0),
-            time_point_sec(0)));
+            {},
+            {}));
     BOOST_REQUIRE_EQUAL(
         wasm_assert_msg("min voter holdings criteria not met -- no balance object found"),
         createvote(

@@ -10,80 +10,96 @@ import {
     takeLatest,
 } from 'redux-saga/effects';
 import * as Chains from '../chains';
-import * as Action from './action';
+import {
+    ActionType,
+    SetOkAction,
+    CheckAction,
+    setOk,
+    check,
+    SetErrAction,
+    setErr,
+    CheckAllAction,
+} from './actions';
 import { getAll } from './selector';
-import * as State from './state';
+import { serverToUrl, RpcServerState, RpcServerStateType } from './state';
+import * as chains from '../chains';
 
 export function* saga() {
-    yield takeLatest(Action.Type.CheckAll, onCheckAll);
-    yield takeEvery(Action.Type.Check, onCheck);
-    yield takeEvery(Action.Type.SetOk, onSetOk);
+    yield takeLatest(ActionType.CheckAll, onCheckAll);
+    yield takeEvery(ActionType.Check, onCheck);
+    yield takeEvery(ActionType.SetOk, onSetOk);
 }
 
-function* onCheck(action: Action.Check) {
+function* onCheck(action: CheckAction) {
     try {
-        const url = State.serverToUrl(action);
+        const url = serverToUrl(action);
         const rpc = new Eos.JsonRpc(url);
         const start = new Date();
         const info = yield call(rpc.get_info.bind(rpc));
         const end = new Date();
         const ping = end.getTime() - start.getTime();
-        yield put<Action.SetOk>({
-            type: Action.Type.SetOk,
-            protocol: action.protocol,
-            host: action.host,
-            port: action.port,
-            status: State.Status.Ok,
-            ping,
-            chainId: info.chain_id,
-        });
+        yield put(
+            setOk(
+                {
+                    protocol: action.protocol,
+                    host: action.host,
+                    port: action.port,
+                },
+                ping,
+                info.chain_id,
+            ),
+        );
     } catch (error) {
-        yield put<Action.SetErr>({
-            type: Action.Type.SetErr,
-            protocol: action.protocol,
-            host: action.host,
-            port: action.port,
-            status: State.Status.Err,
-            message: error.message,
-        });
+        yield put(
+            setErr(
+                {
+                    protocol: action.protocol,
+                    host: action.host,
+                    port: action.port,
+                },
+                error.message,
+            ),
+        );
         yield cancel();
     }
 }
 
-export function* onCheckAll(action: Action.CheckAll) {
+export function* onCheckAll(action: CheckAllAction) {
     const servers: ReturnType<typeof getAll> = yield select(getAll);
     for (let i = servers.length; i--; ) {
         const server = servers[i];
-        yield put<Action.Check>({
-            type: Action.Type.Check,
-            protocol: server.protocol,
-            host: server.host,
-            port: server.port,
-        });
+        yield put(
+            check({
+                protocol: server.protocol,
+                host: server.host,
+                port: server.port,
+            }),
+        );
     }
 }
 
-function* onSetOk(action: Action.SetOk) {
+function* onSetOk(action: SetOkAction) {
     const getChain = Chains.getById(action.chainId);
     const chain: ReturnType<typeof getChain> = yield select(getChain);
     if (!chain) {
-        // Add unknown chain?
-    } else if (chain.status === Chains.Status.Default) {
-        yield put<Chains.Check>({
-            type: Chains.Type.Check,
-            chain,
-            server: action,
-        });
+        // TODO Add unknown chain?
+    } else if (chain.type === chains.ChainStateType.Default) {
+        yield put(
+            chains.check(chain, {
+                ...action,
+                type: RpcServerStateType.Ok,
+            }),
+        );
     }
 }
 
-export function* waitForServers(servers: ReadonlyArray<State.Server>) {
+export function* waitForServers(servers: ReadonlyArray<RpcServerState>) {
     const pending = servers.filter(
         (s) =>
-            s.status === State.Status.Default ||
-            s.status === State.Status.Checking,
+            s.type === RpcServerStateType.Default ||
+            s.type === RpcServerStateType.Checking,
     );
-    const ids = pending.map(State.serverToUrl);
+    const ids = pending.map(serverToUrl);
     let count = pending.length;
 
     while (true) {
@@ -91,17 +107,16 @@ export function* waitForServers(servers: ReadonlyArray<State.Server>) {
             return;
         }
 
-        const [ok, err]: [
-            Action.SetOk | void,
-            Action.SetErr | void
-        ] = yield race([take(Action.Type.SetOk), take(Action.Type.SetErr)]);
+        const [ok, err]: [SetOkAction | void, SetErrAction | void] = yield race(
+            [take(ActionType.SetOk), take(ActionType.SetErr)],
+        );
         if (ok) {
-            const url = State.serverToUrl(ok);
+            const url = serverToUrl(ok);
             if (ids.includes(url)) {
                 count--;
             }
         } else if (err) {
-            const url = State.serverToUrl(err);
+            const url = serverToUrl(err);
             if (ids.includes(url)) {
                 count--;
             }

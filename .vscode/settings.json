@@ -97,6 +97,15 @@
         "xlocale": "cpp",
         "*.in": "cpp",
         "xiosbase": "cpp",
-        "xlocmon": "cpp"
+        "xlocmon": "cpp",
+        "new": "cpp",
+        "xfacet": "cpp",
+        "xlocinfo": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp",
+        "xmemory": "cpp",
+        "xmemory0": "cpp",
+        "xstddef": "cpp",
+        "xtr1common": "cpp"
     }
 }

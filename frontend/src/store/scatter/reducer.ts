@@ -1,74 +1,79 @@
-import * as Action from './action';
-import * as State from './state';
+import {
+    ActionType,
+    Action,
+    ConnectAction,
+    ConnectOkAction,
+    ConnectErrAction,
+    LoginAction,
+    LoginOkAction,
+    LoginErrAction,
+    LogoutAction,
+    LogoutOkAction,
+    SuggestNetworkAction,
+    SuggestNetworkOkAction,
+    SuggestNetworkErrAction,
+} from './actions';
+import { State, initialState, StateType, IdentityStateType } from './state';
 
-export function reducer(
-    state = State.initialState,
-    action: Action.Action,
-): State.State {
+export function reducer(state = initialState, action: Action): State {
     switch (action.type) {
-    case Action.Type.Connect:
+    case ActionType.Connect:
         return onConnect(state, action);
-    case Action.Type.ConnectOk:
+    case ActionType.ConnectOk:
         return onConnectOk(state, action);
-    case Action.Type.ConnectErr:
+    case ActionType.ConnectErr:
         return onConnectErr(state, action);
-    case Action.Type.Login:
+    case ActionType.Login:
         return onLogin(state, action);
-    case Action.Type.LoginOk:
+    case ActionType.LoginOk:
         return onLoginOk(state, action);
-    case Action.Type.LoginErr:
+    case ActionType.LoginErr:
         return onLoginErr(state, action);
-    case Action.Type.Logout:
+    case ActionType.Logout:
         return onLogout(state, action);
-    case Action.Type.LogoutOk:
+    case ActionType.LogoutOk:
         return onLogoutOk(state, action);
-    case Action.Type.SuggestNetwork:
+    case ActionType.SuggestNetwork:
         return onSuggestNetwork(state, action);
-    case Action.Type.SuggestNetworkOk:
+    case ActionType.SuggestNetworkOk:
         return onSuggestNetworkOk(state, action);
-    case Action.Type.SuggestNetworkErr:
+    case ActionType.SuggestNetworkErr:
         return onSuggestNetworkErr(state, action);
     default:
         return state;
     }
 }
 
-function onConnect(state: State.State, action: Action.Connect): State.State {
+function onConnect(state: State, action: ConnectAction): State {
     return {
-        status: State.Status.Connecting,
+        type: StateType.Connecting,
         appName: action.appName,
     };
 }
 
-function onConnectOk(
-    state: State.State,
-    action: Action.ConnectOk,
-): State.State {
+function onConnectOk(state: State, action: ConnectOkAction): State {
     return {
-        status: State.Status.Connected,
+        type: StateType.Connected,
         appName: action.appName,
         identity: action.identity
-            ? { status: State.IdentityStatus.LoggedIn, ...action.identity }
-            : { status: State.IdentityStatus.LoggedOut },
+            ? { type: IdentityStateType.LoggedIn, ...action.identity }
+            : { type: IdentityStateType.LoggedOut },
     };
 }
 
-function onConnectErr(
-    state: State.State,
-    action: Action.ConnectErr,
-): State.State {
+function onConnectErr(state: State, action: ConnectErrAction): State {
     return {
-        status: State.Status.Unavailable,
+        type: StateType.Unavailable,
         appName: action.appName,
     };
 }
 
-function onLogin(state: State.State, action: Action.Login): State.State {
-    if (state.status === State.Status.Connected) {
+function onLogin(state: State, action: LoginAction): State {
+    if (state.type === StateType.Connected) {
         return {
             ...state,
             identity: {
-                status: State.IdentityStatus.LoggingIn,
+                type: IdentityStateType.LoggingIn,
                 options: action.options,
             },
         };
@@ -77,12 +82,12 @@ function onLogin(state: State.State, action: Action.Login): State.State {
     }
 }
 
-function onLoginOk(state: State.State, action: Action.LoginOk): State.State {
-    if (state.status === State.Status.Connected) {
+function onLoginOk(state: State, action: LoginOkAction): State {
+    if (state.type === StateType.Connected) {
         return {
             ...state,
             identity: {
-                status: State.IdentityStatus.LoggedIn,
+                type: IdentityStateType.LoggedIn,
                 ...action.identity,
             },
         };
@@ -91,12 +96,12 @@ function onLoginOk(state: State.State, action: Action.LoginOk): State.State {
     }
 }
 
-function onLoginErr(state: State.State, action: Action.LoginErr): State.State {
-    if (state.status === State.Status.Connected) {
+function onLoginErr(state: State, action: LoginErrAction): State {
+    if (state.type === StateType.Connected) {
         return {
             ...state,
             identity: {
-                status: State.IdentityStatus.LoginError,
+                type: IdentityStateType.LoginError,
                 error: action.error,
             },
         };
@@ -105,8 +110,8 @@ function onLoginErr(state: State.State, action: Action.LoginErr): State.State {
     }
 }
 
-function onLogout(state: State.State, action: Action.Logout): State.State {
-    if (state.status === State.Status.Connected) {
+function onLogout(state: State, action: LogoutAction): State {
+    if (state.type === StateType.Connected) {
         return {
             ...state,
         };
@@ -115,12 +120,12 @@ function onLogout(state: State.State, action: Action.Logout): State.State {
     }
 }
 
-function onLogoutOk(state: State.State, action: Action.LogoutOk): State.State {
-    if (state.status === State.Status.Connected) {
+function onLogoutOk(state: State, action: LogoutOkAction): State {
+    if (state.type === StateType.Connected) {
         return {
             ...state,
             identity: {
-                status: State.IdentityStatus.LoggedOut,
+                type: IdentityStateType.LoggedOut,
             },
         };
     } else {
@@ -128,26 +133,23 @@ function onLogoutOk(state: State.State, action: Action.LogoutOk): State.State {
     }
 }
 
-function onSuggestNetwork(
-    state: State.State,
-    action: Action.SuggestNetwork,
-): State.State {
+function onSuggestNetwork(state: State, action: SuggestNetworkAction): State {
     // TODO
     return state;
 }
 
 function onSuggestNetworkOk(
-    state: State.State,
-    action: Action.SuggestNetworkOk,
-): State.State {
+    state: State,
+    action: SuggestNetworkOkAction,
+): State {
     // TODO
     return state;
 }
 
 function onSuggestNetworkErr(
-    state: State.State,
-    action: Action.SuggestNetworkErr,
-): State.State {
+    state: State,
+    action: SuggestNetworkErrAction,
+): State {
     // TODO
     return state;
 }

@@ -1,45 +1,49 @@
 export interface State {
-    [url: string]: Server;
+    [url: string]: RpcServerState;
 }
 
-export type Server = ServerUnknown | ServerChecking | ServerOk | ServerErr;
+export enum RpcServerStateType {
+    Default = 'DEFAULT',
+    Checking = 'CHECKING',
+    Ok = 'OK',
+    Err = 'ERR',
+}
+
+export type RpcServerState =
+    | UnknownRpcServerState
+    | CheckingRpcServerState
+    | OkRpcServerState
+    | ErrRpcServerState;
 
 export enum Protocol {
     Https = 'https',
     Http = 'http',
 }
 
-export enum Status {
-    Default,
-    Checking,
-    Ok,
-    Err,
-}
-
-export interface ServerBase {
+export interface BaseRpcServerState {
     readonly protocol: Protocol;
     readonly host: string;
     readonly port: number;
 }
 
-export interface ServerUnknown extends ServerBase {
-    readonly status: Status.Default;
+export interface UnknownRpcServerState extends BaseRpcServerState {
+    readonly type: RpcServerStateType.Default;
 }
 
-export interface ServerChecking extends ServerBase {
-    readonly status: Status.Checking;
+export interface CheckingRpcServerState extends BaseRpcServerState {
+    readonly type: RpcServerStateType.Checking;
     readonly ping?: number;
     readonly chainId?: string;
 }
 
-export interface ServerOk extends ServerBase {
-    readonly status: Status.Ok;
+export interface OkRpcServerState extends BaseRpcServerState {
+    readonly type: RpcServerStateType.Ok;
     readonly ping: number;
     readonly chainId: string;
 }
 
-export interface ServerErr extends ServerBase {
-    readonly status: Status.Err;
+export interface ErrRpcServerState extends BaseRpcServerState {
+    readonly type: RpcServerStateType.Err;
     readonly message: string;
 }
 
@@ -47,15 +51,15 @@ export function serverToUrl({
     protocol,
     host,
     port,
-}: Server | ServerBase): string {
+}: RpcServerState | BaseRpcServerState): string {
     return `${protocol}://${host}:${port}`;
 }
 
-export function serverFromUrl(url: string): ServerUnknown {
+export function serverFromUrl(url: string): UnknownRpcServerState {
     const { protocol, hostname, port } = new URL(url);
     const isHttps = protocol.startsWith('https');
     return {
-        status: Status.Default,
+        type: RpcServerStateType.Default,
         protocol: isHttps ? Protocol.Https : Protocol.Http,
         host: hostname,
         port: port ? parseInt(port, 10) : isHttps ? 443 : 80,

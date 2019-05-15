@@ -1,40 +1,50 @@
 import Scatter from 'scatterjs-core';
 
-export type FullNetwork = Scatter.FullNetwork;
-export type PartialNetwork = Scatter.PartialNetwork;
-
-export type State = Default | Connecting | Connected | Unavailable;
-
-export enum Status {
-    Default,
-    Connecting,
-    Connected,
-    Unavailable,
+export enum StateType {
+    Default = 'DEFAULT',
+    Connecting = 'CONNECTING',
+    Connected = 'CONNECTED',
+    Unavailable = 'UNAVAILABLE',
 }
 
-export interface Default {
-    readonly status: Status.Default;
+export type State =
+    | DefaultState
+    | ConnectingState
+    | ConnectedState
+    | UnavailableState;
+
+export interface DefaultState {
+    readonly type: StateType.Default;
 }
 
-export interface Connecting {
-    readonly status: Status.Connecting;
+export interface ConnectingState {
+    readonly type: StateType.Connecting;
     readonly appName: string;
 }
 
-export interface Connected {
-    readonly status: Status.Connected;
+export interface ConnectedState {
+    readonly type: StateType.Connected;
     readonly appName: string;
-    readonly identity: Identity;
+    readonly identity: IdentityState;
 }
 
-export type Identity =
-    | LoggedOut
-    | LoggedIn
-    | LoggingIn
-    | LoggingOut
-    | LoginError;
+export interface UnavailableState {
+    readonly type: StateType.Unavailable;
+    readonly appName: string;
+}
 
-export enum IdentityStatus {
+export const initialState: State = {
+    type: StateType.Default,
+};
+
+export type IdentityState =
+    | LoggedOutState
+    | LoggedInState
+    | LoggingInState
+    | LoggingOutState
+    | LoginErrorState;
+
+export enum IdentityStateType {
     LoggedOut,
     LoggedIn,
     LoggingIn,
@@ -42,33 +52,27 @@ export enum IdentityStatus {
     LoginError,
 }
 
-export interface LoggedOut {
-    readonly status: IdentityStatus.LoggedOut;
+export interface LoggedOutState {
+    readonly type: IdentityStateType.LoggedOut;
 }
 
-export interface LoggedIn extends Scatter.Identity {
-    readonly status: IdentityStatus.LoggedIn;
+export interface LoggedInState extends Scatter.Identity {
+    readonly type: IdentityStateType.LoggedIn;
 }
 
-export interface LoggingIn {
-    readonly status: IdentityStatus.LoggingIn;
+export interface LoggingInState {
+    readonly type: IdentityStateType.LoggingIn;
     readonly options: Scatter.LoginOptions;
 }
 
-export interface LoggingOut extends Scatter.Identity {
-    readonly status: IdentityStatus.LoggingOut;
+export interface LoggingOutState extends Scatter.Identity {
+    readonly type: IdentityStateType.LoggingOut;
 }
 
-export interface LoginError {
-    readonly status: IdentityStatus.LoginError;
+export interface LoginErrorState {
+    readonly type: IdentityStateType.LoginError;
     readonly error: Scatter.LoginError;
 }
 
-export interface Unavailable {
-    readonly status: Status.Unavailable;
-    readonly appName: string;
-}
-
-export const initialState: State = {
-    status: Status.Default,
-};
+export type FullNetwork = Scatter.FullNetwork;
+export type PartialNetwork = Scatter.PartialNetwork;

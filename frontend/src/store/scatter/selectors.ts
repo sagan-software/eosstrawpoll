@@ -1,19 +1,19 @@
-import * as Root from '../root';
-import * as State from './state';
+import { State } from '../root';
+import { StateType, IdentityState, IdentityStateType } from './state';
 
-export const getState = (state: Root.State) => state.scatter;
+export const getState = (state: State) => state.scatter;
 
-export const getStatus = (state: Root.State) => state.scatter.status;
+export const getStateType = (state: State) => state.scatter.type;
 
-export const isConnected = (state: Root.State) =>
-    getStatus(state) === State.Status.Connected;
+export const isConnected = (state: State) =>
+    getStateType(state) === StateType.Connected;
 
-export const getIdentity = (state: Root.State): State.Identity =>
-    state.scatter.status === State.Status.Connected
+export const getIdentity = (state: State): IdentityState =>
+    state.scatter.type === StateType.Connected
         ? state.scatter.identity
-        : { status: State.IdentityStatus.LoggedOut };
+        : { type: IdentityStateType.LoggedOut };
 
-export const isLoggedIn = (state: Root.State) => {
+export const isLoggedIn = (state: State) => {
     const identity = getIdentity(state);
-    return identity.status === State.IdentityStatus.LoggedIn;
+    return identity.type === IdentityStateType.LoggedIn;
 };

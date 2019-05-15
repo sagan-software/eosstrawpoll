@@ -1,27 +1,33 @@
-import * as Action from './action';
-import * as State from './state';
+import { ActionType, UpsertAction, RemoveAction, Action } from './actions';
+import { State, initialState } from './state';
 
-export function reducer(
-    state = State.initialState,
-    action: Action.Action,
-): State.State {
+export function reducer(state = initialState, action: Action): State {
     switch (action.type) {
-    case Action.Type.Upsert:
+    case ActionType.Upsert:
         return onUpsert(state, action);
-    case Action.Type.Remove:
+    case ActionType.Remove:
         return onRemove(state, action);
     default:
         return state;
     }
 }
 
-function onUpsert(state: State.State, action: Action.Upsert): State.State {
+function onUpsert(state: State, action: UpsertAction): State {
     return {
         ...state,
+        [action.host]: {
+            displayName: action.displayName,
+            host: action.host,
+            chainId: action.chainId,
+            account: action.account,
+            transaction: action.transaction,
+            block: action.block,
+        },
     };
 }
 
-function onRemove(state: State.State, action: Action.Remove): State.State {
+function onRemove(state: State, action: RemoveAction): State {
+    delete state[action.host];
     return {
         ...state,
     };

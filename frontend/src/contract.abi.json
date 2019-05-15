@@ -1,452 +1,198 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Mar 31 04:19:29 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu May  9 14:05:22 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
-            "name": "backer",
+            "name": "answer_t",
+            "base": "",
+            "fields": [
+                {
+                    "name": "option_index",
+                    "type": "int16"
+                },
+                {
+                    "name": "writein",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "closepoll",
+            "base": "",
+            "fields": [
+                {
+                    "name": "poll_id",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "createpoll",
             "base": "",
             "fields": [
                 {
                     "name": "id",
+                    "type": "name"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "options",
+                    "type": "string[]"
+                },
+                {
+                    "name": "min_answers",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_answers",
+                    "type": "uint16"
+                },
+                {
+                    "name": "min_writeins",
+                    "type": "uint16"
+                },
+                {
+                    "name": "max_writeins",
+                    "type": "uint16"
+                },
+                {
+                    "name": "use_allow_list",
+                    "type": "bool"
+                },
+                {
+                    "name": "voter_list",
+                    "type": "name[]"
+                },
+                {
+                    "name": "min_account_age",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "min_holdings",
+                    "type": "extended_asset[]"
+                },
+                {
+                    "name": "open_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "close_time",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "createvote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "poll_id",
+                    "type": "name"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "answers",
+                    "type": "answer_t[]"
+                }
+            ]
+        },
+        {
+            "name": "destroypoll",
+            "base": "",
+            "fields": [
+                {
+                    "name": "poll_id",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "destroyvote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "poll_id",
+                    "type": "name"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "destroyvotes",
+            "base": "",
+            "fields": [
+                {
+                    "name": "poll_id",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "openpoll",
+            "base": "",
+            "fields": [
+                {
+                    "name": "poll_id",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "setconfig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "max_latest",
                     "type": "uint64"
                 },
                 {
-                    "name": "project_slug",
-                    "type": "name"
+                    "name": "max_popular",
+                    "type": "uint64"
                 },
                 {
-                    "name": "account",
-                    "type": "name"
+                    "name": "max_title_len",
+                    "type": "uint64"
                 },
                 {
-                    "name": "pledged",
-                    "type": "asset"
+                    "name": "max_options_len",
+                    "type": "uint64"
                 },
                 {
-                    "name": "reward_index",
-                    "type": "uint16?"
-                }
-            ]
-        },
-        {
-            "name": "claimpledges",
-            "base": "",
-            "fields": [
-                {
-                    "name": "project_name",
-                    "type": "name"
-                }
-            ]
-        },
-        {
-            "name": "deldraft",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "draft_name",
-                    "type": "name"
-                }
-            ]
-        },
-        {
-            "name": "delprofile",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                }
-            ]
-        },
-        {
-            "name": "delreward",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "draft_name",
-                    "type": "name"
-                },
-                {
-                    "name": "reward_index",
-                    "type": "uint8"
-                }
-            ]
-        },
-        {
-            "name": "editprofile",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "display_name",
-                    "type": "string"
-                },
-                {
-                    "name": "avatar_hash",
-                    "type": "string"
-                },
-                {
-                    "name": "biography",
-                    "type": "string"
-                },
-                {
-                    "name": "websites",
-                    "type": "string[]"
-                }
-            ]
-        },
-        {
-            "name": "killproject",
-            "base": "",
-            "fields": [
-                {
-                    "name": "project_name",
-                    "type": "name"
-                }
-            ]
-        },
-        {
-            "name": "newproject",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "draft_name",
-                    "type": "name"
-                },
-                {
-                    "name": "category",
-                    "type": "uint16"
-                },
-                {
-                    "name": "description",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "profile",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "display_name",
-                    "type": "string"
-                },
-                {
-                    "name": "avatar_hash",
-                    "type": "string"
-                },
-                {
-                    "name": "biography",
-                    "type": "string"
-                },
-                {
-                    "name": "websites",
-                    "type": "string[]"
-                },
-                {
-                    "name": "created_time",
-                    "type": "time_point_sec"
-                }
-            ]
-        },
-        {
-            "name": "project",
-            "base": "",
-            "fields": [
-                {
-                    "name": "project_name",
-                    "type": "name"
-                },
-                {
-                    "name": "creator",
-                    "type": "name"
-                },
-                {
-                    "name": "title",
-                    "type": "string"
-                },
-                {
-                    "name": "subtitle",
-                    "type": "string"
-                },
-                {
-                    "name": "goal_amount",
-                    "type": "asset"
-                },
-                {
-                    "name": "goal_type",
-                    "type": "uint8"
-                },
-                {
-                    "name": "stage",
-                    "type": "uint8"
-                },
-                {
-                    "name": "category",
-                    "type": "uint16"
-                },
-                {
-                    "name": "tags",
-                    "type": "string[]"
-                },
-                {
-                    "name": "image_hash",
-                    "type": "string"
-                },
-                {
-                    "name": "video_hash",
-                    "type": "string"
-                },
-                {
-                    "name": "story_hash",
-                    "type": "string"
-                },
-                {
-                    "name": "rewards",
-                    "type": "project_reward[]"
-                },
-                {
-                    "name": "start_time",
-                    "type": "time_point_sec"
-                },
-                {
-                    "name": "end_time",
-                    "type": "time_point_sec"
-                },
-                {
-                    "name": "duration_days",
-                    "type": "uint8"
-                },
-                {
-                    "name": "pleged_total",
-                    "type": "asset"
-                },
-                {
-                    "name": "pleged_claimed",
-                    "type": "asset"
-                }
-            ]
-        },
-        {
-            "name": "project_reward",
-            "base": "",
-            "fields": [
-                {
-                    "name": "title",
-                    "type": "string"
-                },
-                {
-                    "name": "description",
-                    "type": "string"
-                },
-                {
-                    "name": "pledge_amount",
-                    "type": "asset"
-                },
-                {
-                    "name": "items",
-                    "type": "project_reward_item[]"
-                },
-                {
-                    "name": "estimated_delivery",
-                    "type": "time_point_sec"
-                },
-                {
-                    "name": "start_quantity",
-                    "type": "uint32"
-                },
-                {
-                    "name": "current_quantity",
-                    "type": "uint32"
-                },
-                {
-                    "name": "start_time",
-                    "type": "time_point_sec"
-                },
-                {
-                    "name": "end_time",
-                    "type": "time_point_sec"
-                }
-            ]
-        },
-        {
-            "name": "project_reward_item",
-            "base": "",
-            "fields": [
-                {
-                    "name": "name",
-                    "type": "string"
-                },
-                {
-                    "name": "quantity",
-                    "type": "uint16"
-                }
-            ]
-        },
-        {
-            "name": "pubproject",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "draft_name",
-                    "type": "name"
-                },
-                {
-                    "name": "live_name",
-                    "type": "name"
-                }
-            ]
-        },
-        {
-            "name": "savebasics",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "draft_name",
-                    "type": "name"
-                },
-                {
-                    "name": "title",
-                    "type": "string"
-                },
-                {
-                    "name": "subtitle",
-                    "type": "string"
-                },
-                {
-                    "name": "goal_amount",
-                    "type": "asset"
-                },
-                {
-                    "name": "goal_type",
-                    "type": "uint8"
-                },
-                {
-                    "name": "stage",
-                    "type": "uint8"
-                },
-                {
-                    "name": "category",
-                    "type": "uint16"
-                },
-                {
-                    "name": "start_time",
-                    "type": "time_point_sec"
-                },
-                {
-                    "name": "end_time",
-                    "type": "time_point_sec"
-                },
-                {
-                    "name": "duration_days",
-                    "type": "uint8"
-                },
-                {
-                    "name": "tags",
-                    "type": "string[]"
-                }
-            ]
-        },
-        {
-            "name": "savecontent",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "draft_name",
-                    "type": "name"
-                },
-                {
-                    "name": "image_hash",
-                    "type": "string"
-                },
-                {
-                    "name": "video_hash",
-                    "type": "string"
-                },
-                {
-                    "name": "story_hash",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "savereward",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "draft_name",
-                    "type": "name"
-                },
-                {
-                    "name": "reward_index",
-                    "type": "uint8"
-                },
-                {
-                    "name": "title",
-                    "type": "string"
-                },
-                {
-                    "name": "description",
-                    "type": "string"
-                },
-                {
-                    "name": "pledge_amount",
-                    "type": "asset"
+                    "name": "max_option_len",
+                    "type": "uint64"
                 },
                 {
-                    "name": "items",
-                    "type": "project_reward_item[]"
+                    "name": "max_voter_list_len",
+                    "type": "uint64"
                 },
                 {
-                    "name": "estimated_delivery",
-                    "type": "time_point_sec"
+                    "name": "max_min_voter_holdings_len",
+                    "type": "uint64"
                 },
                 {
-                    "name": "initial_quantity",
-                    "type": "uint32"
+                    "name": "max_writein_len",
+                    "type": "uint64"
                 },
                 {
-                    "name": "start_time",
-                    "type": "time_point_sec"
+                    "name": "max_answers_len",
+                    "type": "uint64"
                 },
                 {
-                    "name": "end_time",
-                    "type": "time_point_sec"
+                    "name": "popularity_gravity",
+                    "type": "float64"
                 }
             ]
         }
@@ -454,84 +200,47 @@
     "types": [],
     "actions": [
         {
-            "name": "claimpledges",
-            "type": "claimpledges",
+            "name": "closepoll",
+            "type": "closepoll",
             "ricardian_contract": ""
         },
         {
-            "name": "deldraft",
-            "type": "deldraft",
+            "name": "createpoll",
+            "type": "createpoll",
             "ricardian_contract": ""
         },
         {
-            "name": "delprofile",
-            "type": "delprofile",
+            "name": "createvote",
+            "type": "createvote",
             "ricardian_contract": ""
         },
         {
-            "name": "delreward",
-            "type": "delreward",
+            "name": "destroypoll",
+            "type": "destroypoll",
             "ricardian_contract": ""
         },
         {
-            "name": "editprofile",
-            "type": "editprofile",
+            "name": "destroyvote",
+            "type": "destroyvote",
             "ricardian_contract": ""
         },
         {
-            "name": "killproject",
-            "type": "killproject",
+            "name": "destroyvotes",
+            "type": "destroyvotes",
             "ricardian_contract": ""
         },
         {
-            "name": "newproject",
-            "type": "newproject",
+            "name": "openpoll",
+            "type": "openpoll",
             "ricardian_contract": ""
         },
         {
-            "name": "pubproject",
-            "type": "pubproject",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "savebasics",
-            "type": "savebasics",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "savecontent",
-            "type": "savecontent",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "savereward",
-            "type": "savereward",
+            "name": "setconfig",
+            "type": "setconfig",
             "ricardian_contract": ""
         }
     ],
-    "tables": [
-        {
-            "name": "backer",
-            "type": "backer",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "profiles",
-            "type": "profile",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "projects",
-            "type": "project",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        }
-    ],
+    "tables": [],
     "ricardian_clauses": [],
     "variants": [],
     "abi_extensions": []

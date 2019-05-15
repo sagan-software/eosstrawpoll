@@ -87,12 +87,12 @@ void contract::createvote(
         }
     }
 
-    if (poll->min_voter_age > time_point_sec(0))
+    if (poll->min_voter_age_sec && poll->min_voter_age_sec > 0)
     {
         const auto creation_time = time_point_sec(time_point(microseconds(::get_account_creation_time(account.value))));
-        const auto voter_age = time_point_sec(time_point(now - creation_time));
+        const auto voter_age_sec = time_point_sec(time_point(now - creation_time)).sec_since_epoch();
         check(
-            voter_age >= poll->min_voter_age,
+            voter_age_sec >= poll->min_voter_age_sec,
             "voter account is not old enough");
     }
 

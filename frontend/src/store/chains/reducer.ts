@@ -1,41 +1,52 @@
-import * as Action from './action';
-import * as State from './state';
+import {
+    Action,
+    ActionType,
+    UpsertAction,
+    RemoveAction,
+    CheckAction,
+    SetOkAction,
+    SetErrAction,
+} from './actions';
+import {
+    State,
+    initialState,
+    ChainStateType,
+    CheckingChainState,
+    OkChainState,
+    ErrChainState,
+} from './state';
 
-export function reducer(
-    state = State.initialState,
-    action: Action.Action,
-): State.State {
+export function reducer(state = initialState, action: Action): State {
     switch (action.type) {
-    case Action.Type.Upsert:
+    case ActionType.Upsert:
         return onUpsert(state, action);
-    case Action.Type.Remove:
+    case ActionType.Remove:
         return onRemove(state, action);
-    case Action.Type.Check:
+    case ActionType.Check:
         return onCheck(state, action);
-    case Action.Type.SetOk:
+    case ActionType.SetOk:
         return onSetOk(state, action);
-    case Action.Type.SetErr:
+    case ActionType.SetErr:
         return onSetErr(state, action);
     default:
         return state;
     }
 }
 
-function onUpsert(state: State.State, action: Action.Upsert): State.State {
+function onUpsert(state: State, action: UpsertAction): State {
     return {
         ...state,
         [action.chainId]: {
-            status: State.Status.Default,
+            type: ChainStateType.Default,
             env: action.env,
             chainId: action.chainId,
             displayName: action.displayName,
             contractName: action.contractName,
-            priority: action.priority,
         },
     };
 }
 
-function onRemove(state: State.State, action: Action.Remove): State.State {
+function onRemove(state: State, action: RemoveAction): State {
     if (action.chainId in state) {
         delete state[action.chainId];
         return { ...state };
@@ -44,17 +55,16 @@ function onRemove(state: State.State, action: Action.Remove): State.State {
     }
 }
 
-function onCheck(state: State.State, { server }: Action.Check): State.State {
+function onCheck(state: State, { server }: CheckAction): State {
     const chainId = server.chainId;
     if (chainId in state) {
         const oldChain = state[chainId];
-        const newChain: State.ChainChecking = {
-            status: State.Status.Checking,
+        const newChain: CheckingChainState = {
+            type: ChainStateType.Checking,
             env: oldChain.env,
             chainId,
             displayName: oldChain.displayName,
             contractName: oldChain.contractName,
-            priority: oldChain.priority,
         };
         return {
             ...state,
@@ -65,19 +75,15 @@ function onCheck(state: State.State, { server }: Action.Check): State.State {
     }
 }
 
-function onSetOk(
-    state: State.State,
-    { chainId, coreSymbol }: Action.SetOk,
-): State.State {
+function onSetOk(state: State, { chainId, coreSymbol }: SetOkAction): State {
     if (chainId in state) {
         const oldChain = state[chainId];
-        const newChain: State.ChainOk = {
-            status: State.Status.Ok,
+        const newChain: OkChainState = {
+            type: ChainStateType.Ok,
             env: oldChain.env,
             chainId,
             displayName: oldChain.displayName,
             contractName: oldChain.contractName,
-            priority: oldChain.priority,
             coreSymbol,
         };
         return {
@@ -89,19 +95,15 @@ function onSetOk(
     }
 }
 
-function onSetErr(
-    state: State.State,
-    { chainId, error }: Action.SetErr,
-): State.State {
+function onSetErr(state: State, { chainId, error }: SetErrAction): State {
     if (chainId in state) {
         const oldChain = state[chainId];
-        const newChain: State.ChainErr = {
-            status: State.Status.Err,
+        const newChain: ErrChainState = {
+            type: ChainStateType.Err,
             env: oldChain.env,
             chainId,
             displayName: oldChain.displayName,
             contractName: oldChain.contractName,
-            priority: oldChain.priority,
             error,
         };
         return {

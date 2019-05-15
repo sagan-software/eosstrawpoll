@@ -11,18 +11,26 @@ import {
     takeEvery,
 } from 'redux-saga/effects';
 import * as Contract from '../../contract';
-import * as RpcServers from '../rpcServers';
-import * as Action from './action';
+import { serverToUrl } from '../rpcServers';
+import {
+    CheckAction,
+    CheckAllAction,
+    setErr,
+    setOk,
+    ActionType,
+    SetErrAction,
+    SetOkAction,
+} from './actions';
 import { getAll, getById } from './selectors';
-import * as State from './state';
+import { ChainError, ChainStateType, ChainState } from './state';
 
 export function* saga() {
-    yield takeEvery(Action.Type.Check, onCheck);
+    yield takeEvery(ActionType.Check, onCheck);
 }
 
-function* onCheck({ chain, server }: Action.Check) {
+function* onCheck({ chain, server }: CheckAction) {
     const chainId = chain.chainId;
-    const url = RpcServers.serverToUrl(server);
+    const url = serverToUrl(server);
     const rpc = new Eos.JsonRpc(url);
     let coreSymbol: string;
     try {
@@ -33,11 +41,7 @@ function* onCheck({ chain, server }: Action.Check) {
         const coreLiquidBalance = systemAccount.core_liquid_balance;
         coreSymbol = coreLiquidBalance.split(' ')[1];
     } catch (e) {
-        yield put<Action.SetErr>({
-            type: Action.Type.SetErr,
-            chainId,
-            error: State.Err.NoCoreSymbol,
-        });
+        yield put(setErr(chainId, ChainError.NoCoreSymbol));
         return yield cancel();
     }
 
@@ -45,30 +49,18 @@ function* onCheck({ chain, server }: Action.Check) {
     try {
         contract = yield call(rpc.get_abi.bind(rpc), chain.contractName);
     } catch (e) {
-        yield put<Action.SetErr>({
-            type: Action.Type.SetErr,
-            chainId: chain.chainId,
-            error: State.Err.NoContractAccount,
-        });
+        yield put(setErr(chain.chainId, ChainError.NoContractAccount));
         return yield cancel();
     }
 
     if (contract.abi && Contract.isValidAbi(contract.abi)) {
-        yield put<Action.SetOk>({
-            type: Action.Type.SetOk,
-            chainId: chain.chainId,
-            coreSymbol,
-        });
+        yield put(setOk(chain.chainId, coreSymbol));
     } else {
-        yield put<Action.SetErr>({
-            type: Action.Type.SetErr,
-            chainId: chain.chainId,
-            error: State.Err.InvalidContractAbi,
-        });
+        yield put(setErr(chain.chainId, ChainError.InvalidContractAbi));
     }
 }
 
-function* checkAll(action: Action.CheckAll) {
+function* checkAll(action: CheckAllAction) {
     const chains = yield select(getAll);
 }
 
@@ -85,11 +77,11 @@ export function* waitForChainId(chainId: string) {
     yield* waitForChains([chain]);
 }
 
-export function* waitForChains(chains: ReadonlyArray<State.Chain>) {
+export function* waitForChains(chains: ReadonlyArray<ChainState>) {
     const pendingChains = chains.filter(
         (c) =>
-            c.status === State.Status.Default ||
-            c.status === State.Status.Checking,
+            c.type === ChainStateType.Default ||
+            c.type === ChainStateType.Checking,
     );
     const chainIds = pendingChains.map((c) => c.chainId);
 
@@ -100,10 +92,9 @@ export function* waitForChains(chains: ReadonlyArray<State.Chain>) {
             return;
         }
 
-        const [ok, err]: [
-            Action.SetOk | void,
-            Action.SetErr | void
-        ] = yield race([take(Action.Type.SetOk), take(Action.Type.SetErr)]);
+        const [ok, err]: [SetOkAction | void, SetErrAction | void] = yield race(
+            [take(ActionType.SetOk), take(ActionType.SetErr)],
+        );
         if (ok && chainIds.includes(ok.chainId)) {
             count--;
         } else if (err && chainIds.includes(err.chainId)) {

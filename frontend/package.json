@@ -16,7 +16,6 @@
         "@material-ui/system": "^3.0.0-alpha.2",
         "@types/classnames": "^2.2.7",
         "@types/humps": "^1.1.2",
-        "@types/identicon.js": "^2.3.0",
         "@types/jest": "24.0.12",
         "@types/lodash.isequal": "^4.5.5",
         "@types/lodash.merge": "^4.6.6",
@@ -36,9 +35,9 @@
         "humps": "^2.0.1",
         "lodash.isequal": "^4.5.0",
         "lodash.merge": "^4.6.1",
+        "material-table": "^1.36.1",
         "material-ui-chip-input": "^1.0.0-beta.16",
         "material-ui-slider": "^3.0.0",
-        "normalize.css": "^8.0.1",
         "normalizr": "^3.3.0",
         "react": "^16.8.5",
         "react-dom": "^16.8.5",
@@ -55,8 +54,7 @@
         "scatterjs-core": "^2.7.18",
         "scatterjs-plugin-eosjs2": "^1.5.0",
         "typescript": "3.4.5",
-        "url-template": "^2.0.8",
-        "xstate": "^4.5.0"
+        "url-template": "^2.0.8"
     },
     "scripts": {
         "start": "cross-env HTTPS=true react-scripts start",

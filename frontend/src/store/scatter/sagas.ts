@@ -9,70 +9,65 @@ import {
     takeLatest,
 } from 'redux-saga/effects';
 import Scatter from 'scatterjs-core';
-import * as RpcServers from '../rpcServers';
-import * as Action from './action';
+import * as rpcServers from '../rpcServers';
+import {
+    ActionType,
+    connectOk,
+    connectErr,
+    connect,
+    ConnectAction,
+    LoginAction,
+    login,
+    loginOk,
+    loginErr,
+    logout,
+    logoutOk,
+    LogoutAction,
+} from './actions';
 import { getIdentity, isConnected } from './selectors';
-import * as State from './state';
+import { IdentityStateType } from './state';
 
 export function* saga() {
-    yield takeLatest(Action.Type.Connect, onConnect);
-    yield takeLatest(Action.Type.Login, onLogin);
-    yield takeLatest(Action.Type.Logout, onLogout);
+    yield takeLatest(ActionType.Connect, onConnect);
+    yield takeLatest(ActionType.Login, onLogin);
+    yield takeLatest(ActionType.Logout, onLogout);
 }
 
-function* onConnect({ appName }: Action.Connect) {
+function* onConnect({ appName }: ConnectAction) {
     try {
         const connected = yield call(Scatter.connect.bind(Scatter), appName);
         if (connected) {
-            yield put<Action.ConnectOk>({
-                type: Action.Type.ConnectOk,
-                appName,
-                identity: Scatter.identity,
-            });
+            yield put(connectOk(appName, Scatter.identity));
         } else {
-            yield put<Action.ConnectErr>({
-                type: Action.Type.ConnectErr,
-                appName,
-            });
+            yield put(connectErr(appName));
             yield cancel();
         }
     } catch (e) {
         console.error(e);
-        yield put<Action.ConnectErr>({
-            type: Action.Type.ConnectErr,
-            appName,
-        });
+        yield put(connectErr(appName));
         yield cancel();
     }
 }
 
-function* onLogin({ options }: Action.Login) {
+function* onLogin({ options }: LoginAction) {
     try {
         const identity: Scatter.Identity = yield call(
             Scatter.login.bind(Scatter),
             options,
         );
-        yield put<Action.LoginOk>({
-            type: Action.Type.LoginOk,
-            identity,
-        });
+        yield put(loginOk(identity));
         return identity;
     } catch (error) {
         console.error(error);
-        yield put<Action.LoginErr>({
-            type: Action.Type.LoginErr,
-            error,
-        });
+        yield put(loginErr(error));
         yield cancel();
     }
 }
 
-function* onLogout(action: Action.Logout) {
+function* onLogout(action: LogoutAction) {
     try {
         yield call(Scatter.logout.bind(Scatter));
-        yield put<Action.LogoutOk>({
-            type: Action.Type.LogoutOk,
-        });
+        yield put(logoutOk());
     } catch (e) {
         // TODO can this error?
         console.error(e);
@@ -81,18 +76,15 @@ function* onLogout(action: Action.Logout) {
 }
 
 export function* transact<T>(
-    rpcServer: RpcServers.ServerOk,
+    rpcServer: rpcServers.OkRpcServerState,
     toActions: (account: Scatter.Account) => ReadonlyArray<T>,
 ) {
     const connected: ReturnType<typeof isConnected> = yield select(isConnected);
     if (!connected) {
-        yield put<Action.Connect>({
-            type: Action.Type.Connect,
-            appName: 'weos.fund',
-        });
+        yield put(connect('eosstrawpoll'));
         const [_, err] = yield race([
-            take(Action.Type.ConnectOk),
-            take(Action.Type.ConnectErr),
+            take(ActionType.ConnectOk),
+            take(ActionType.ConnectErr),
         ]);
         if (err) {
             return yield cancel();
@@ -102,11 +94,11 @@ export function* transact<T>(
     const chainId = rpcServer.chainId;
     const identity: ReturnType<typeof getIdentity> = yield select(getIdentity);
     let needsLogin = false;
-    if (identity && identity.status === State.IdentityStatus.LoggedIn) {
+    if (identity && identity.type === IdentityStateType.LoggedIn) {
         const hasAccount = identity.accounts.some((a) => a.chainId === chainId);
         if (!hasAccount) {
-            yield put<Action.Logout>({ type: Action.Type.Logout });
-            yield take(Action.Type.LogoutOk); // TODO LogoutErr ?
+            yield put(logout());
+            yield take(ActionType.LogoutOk); // TODO LogoutErr ?
             needsLogin = true;
         }
     } else {
@@ -114,9 +106,8 @@ export function* transact<T>(
     }
 
     if (needsLogin) {
-        yield put<Action.Login>({
-            type: Action.Type.Login,
-            options: {
+        yield put(
+            login({
                 accounts: [
                     {
                         name: chainId,
@@ -127,11 +118,11 @@ export function* transact<T>(
                         blockchain: 'eos',
                     },
                 ],
-            },
-        });
+            }),
+        );
         const [_, err] = yield race([
-            take(Action.Type.LoginOk),
-            take(Action.Type.LoginErr),
+            take(ActionType.LoginOk),
+            take(ActionType.LoginErr),
         ]);
         if (err) {
             return yield cancel();
@@ -139,9 +130,9 @@ export function* transact<T>(
     }
 
     const id: ReturnType<typeof getIdentity> = yield select(getIdentity);
-    if (id && id.status === State.IdentityStatus.LoggedIn) {
+    if (id && id.type === IdentityStateType.LoggedIn) {
         const account = id.accounts.filter((a) => a.chainId === chainId)[0];
-        const rpcServerUrl = RpcServers.serverToUrl(rpcServer);
+        const rpcServerUrl = rpcServers.serverToUrl(rpcServer);
         const rpc = new Eos.JsonRpc(rpcServerUrl);
         const eos: Eos.Api = Scatter.eos({ chainId }, Eos.Api, {
             rpc,

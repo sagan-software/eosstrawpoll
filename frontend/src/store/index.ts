@@ -2,38 +2,40 @@ import { applyMiddleware, createStore, Store } from 'redux';
 import { composeWithDevTools } from 'redux-devtools-extension';
 import { create } from 'redux-react-hook';
 import createSagaMiddleware from 'redux-saga';
-import * as App from './app';
-import * as Chains from './chains';
-import * as Explorers from './explorers';
-import * as Root from './root';
-import * as RpcServers from './rpcServers';
-import * as Scatter from './scatter';
+import * as app from './app';
+import * as chains from './chains';
+import * as pollForm from './pollForm';
+import * as explorers from './explorers';
+import * as root from './root';
+import * as rpcServers from './rpcServers';
+import * as scatter from './scatter';
 
-export function makeStore(): Store<Root.State, Root.Action> {
+export function makeStore(): Store<root.State, root.Action> {
     const sagaMiddleware = createSagaMiddleware();
     const enhancer = applyMiddleware(sagaMiddleware);
-    const store = createStore<Root.State, Root.Action, {}, {}>(
-        Root.reducer,
-        composeWithDevTools({ name: 'weos.fund' })(enhancer),
+    const store = createStore<root.State, root.Action, {}, {}>(
+        root.reducer,
+        composeWithDevTools({ name: 'eosstrawpoll' })(enhancer),
     );
-    sagaMiddleware.run(Root.saga);
+    sagaMiddleware.run(root.saga);
     return store;
 }
 
 export const { StoreContext, useDispatch, useMappedState } = create<
-    Root.State,
-    Root.Action,
-    Store<Root.State, Root.Action>
+    root.State,
+    root.Action,
+    Store<root.State, root.Action>
 >();
 
-export { App, Chains, Explorers, Root, RpcServers, Scatter };
+export { app, chains, explorers, pollForm, root, rpcServers, scatter };
 export default {
-    App,
-    Chains,
-    Explorers,
-    Root,
-    RpcServers,
-    Scatter,
+    app,
+    chains,
+    explorers,
+    pollForm,
+    root,
+    rpcServers,
+    scatter,
     useDispatch,
     useMappedState,
     StoreContext,

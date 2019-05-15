@@ -1,39 +1,38 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import TextField from '@material-ui/core/TextField';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import DeleteIcon from '@material-ui/icons/Delete';
 import Button from '@material-ui/core/Button';
-import { useService } from '@xstate/react';
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
-import FormGroup from '@material-ui/core/FormGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Switch from '@material-ui/core/Switch';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ChipInput from 'material-ui-chip-input';
-import CircularProgress from '@material-ui/core/CircularProgress';
+import OutlinedInput from '@material-ui/core/OutlinedInput';
+import MenuItem from '@material-ui/core/MenuItem';
+import FormControl from '@material-ui/core/FormControl';
+import Select from '@material-ui/core/Select';
 import Box from '@material-ui/core/Box';
 import DateFnsUtils from '@date-io/date-fns';
 import { Slider } from 'material-ui-slider';
 import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
-
-import * as pollForm from '../machines/pollForm';
+import { useMappedState, useDispatch, pollForm, chains } from '../store';
 
 export default function PollForm() {
-    const [current, send] = useService(pollForm.service);
-    const lastIndex = current.context.options.length - 1;
-    const isSubmitting = current.matches('submitting');
+    const state = useMappedState(useCallback(pollForm.getState, []));
+    const allChains = useMappedState(useCallback(chains.getAll, []));
+    const dispatch = useDispatch();
+    const lastIndex = state.options.length - 1;
     return (
         <MuiPickersUtilsProvider utils={DateFnsUtils}>
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
-                    send({
-                        type: 'SUBMIT',
-                    });
+                    dispatch(pollForm.submit());
                 }}
             >
                 <ExpansionPanel expanded>
@@ -45,16 +44,13 @@ export default function PollForm() {
                                 variant='outlined'
                                 autoFocus
                                 fullWidth
-                                value={current.context.name}
+                                value={state.name}
                                 onChange={(e) =>
-                                    send({
-                                        type: 'SET_NAME',
-                                        value: e.target.value,
-                                    })
+                                    dispatch(pollForm.setName(e.target.value))
                                 }
                             />
 
-                            {current.context.options.map((option, index) => (
+                            {state.options.map((option, index) => (
                                 <TextField
                                     variant='outlined'
                                     fullWidth
@@ -62,15 +58,16 @@ export default function PollForm() {
                                     placeholder={`Option ${index + 1}`}
                                     value={option}
                                     onChange={(e) => {
-                                        send({
-                                            type: 'SET_OPTION',
-                                            index,
-                                            value: e.target.value,
-                                        });
+                                        dispatch(
+                                            pollForm.setOption(
+                                                index,
+                                                e.target.value,
+                                            ),
+                                        );
                                     }}
                                     onFocus={(_e) => {
                                         if (index === lastIndex) {
-                                            send({ type: 'ADD_OPTION' });
+                                            dispatch(pollForm.addOption());
                                         }
                                     }}
                                     InputProps={{
@@ -80,10 +77,11 @@ export default function PollForm() {
                                                     aria-label='Delete'
                                                     edge='end'
                                                     onClick={(_e) =>
-                                                        send({
-                                                            type: 'DEL_OPTION',
-                                                            index,
-                                                        })
+                                                        dispatch(
+                                                            pollForm.delOption(
+                                                                index,
+                                                            ),
+                                                        )
                                                     }
                                                     disabled={lastIndex <= 1}
                                                 >
@@ -94,6 +92,30 @@ export default function PollForm() {
                                     }}
                                 />
                             ))}
+                            <FormControl fullWidth margin='normal'>
+                                <Select
+                                    value={state.chainId}
+                                    onChange={(e) => {
+                                        console.log(e);
+                                        dispatch(
+                                            pollForm.setChainId(e.target
+                                                .value as string),
+                                        );
+                                    }}
+                                    displayEmpty
+                                    name='chain'
+                                    input={<OutlinedInput labelWidth={0} />}
+                                >
+                                    <MenuItem value='' disabled>
+                                        Select a Chain
+                                    </MenuItem>
+                                    {allChains.map((chain) => (
+                                        <MenuItem value={chain.chainId}>
+                                            {chain.displayName}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </div>
                     </ExpansionPanelDetails>
                 </ExpansionPanel>
@@ -132,14 +154,31 @@ export default function PollForm() {
                         <Box width={1}>
                             <FormControlLabel
                                 control={
-                                    <Switch value='checkedB' color='primary' />
+                                    <Switch
+                                        value='checkedB'
+                                        color='primary'
+                                        checked={state.useAllowList}
+                                        onChange={(e) =>
+                                            dispatch(
+                                                pollForm.setUseAllowList(
+                                                    e.target.checked,
+                                                ),
+                                            )
+                                        }
+                                    />
                                 }
                                 label='Allow list'
                             />
                             <ChipInput
                                 classes={{}}
-                                defaultValue={['foo', 'bar']}
-                                onChange={(chips) => console.log(chips)}
+                                value={state.voterList}
+                                onAdd={(chip) => {
+                                    console.dir(11111, chip);
+                                    dispatch(pollForm.addVoter(chip as string));
+                                }}
+                                onDelete={(_chip, index) => {
+                                    dispatch(pollForm.delVoter(index));
+                                }}
                                 fullWidth
                                 helperText='Only these accounts will be allowed to vote'
                             />
@@ -158,28 +197,30 @@ export default function PollForm() {
                     <ExpansionPanelDetails>
                         <div>
                             <DateTimePicker
+                                clearable
                                 autoOk
                                 disablePast
                                 label='Open Time'
                                 onChange={(value) => {
-                                    send({
-                                        type: 'SET_OPEN_TIME',
-                                        value: value as Date,
-                                    });
+                                    dispatch(
+                                        pollForm.setOpenTime(value as Date),
+                                    );
                                 }}
-                                value={current.context.openTime}
+                                value={state.openTime}
+                                maxDate={state.closeTime}
                             />
                             <DateTimePicker
+                                clearable
                                 autoOk
                                 disablePast
                                 label='Close Time'
                                 onChange={(value) => {
-                                    send({
-                                        type: 'SET_CLOSE_TIME',
-                                        value: value as Date,
-                                    });
+                                    dispatch(
+                                        pollForm.setCloseTime(value as Date),
+                                    );
                                 }}
-                                value={current.context.closeTime}
+                                value={state.closeTime}
+                                minDate={state.openTime}
                             />
                         </div>
                     </ExpansionPanelDetails>
